@@ -1,10 +1,10 @@
 # Routine catalog
 
-Status: **eight executable routines**, source-evidenced at E3.
+Status: **nine executable routines**, source-evidenced at E3.
 
 `registry.json` is the executable routine inventory. `g36/coverage.json`
 records aggregate scope without duplicating that inventory. The current entries
-are eight scalar specializations of G36 Generic AirEconomizerHighLimits; they do
+are nine scalar specializations of G36 Generic AirEconomizerHighLimits; they do
 not establish class, family, donor-set, or guideline completeness.
 
 Revision ownership is explicit:
