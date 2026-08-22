@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" width="760" height="220" font-family="Menlo, SFMono-Regular, Consolas, monospace" font-size="14">
+  <title>ASHRAE 90.1 fixed 18 degree Celsius dry-bulb economizer high-limit signal flow</title>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect x="150" y="60" width="300" height="100" rx="14" fill="#f8fafc" stroke="#475569" stroke-width="2"/>
+  <text x="300" y="100" text-anchor="middle" fill="#0f172a">con2</text>
+  <text x="300" y="126" text-anchor="middle" fill="#475569">Constant · k=291.15 K</text>
+  <line x1="450" y1="110" x2="612" y2="110" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="620" y="85" width="110" height="50" rx="25" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="675" y="116" text-anchor="middle" fill="#0f172a">TCut [K]</text>
+</svg>
