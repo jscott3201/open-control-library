@@ -1,0 +1,15 @@
+{
+  "schema": "cxf-library/routine-interface/v1",
+  "routine_id": "G36-GEN-AEHL__ashrae-fixed-dry-bulb-18",
+  "tick_profile": "HostTick-v1",
+  "connectors": [
+    {
+      "id": "TCut",
+      "direction": "output",
+      "value_type": "real",
+      "unit": "K",
+      "quantity": "ThermodynamicTemperature",
+      "shape": "scalar"
+    }
+  ]
+}
