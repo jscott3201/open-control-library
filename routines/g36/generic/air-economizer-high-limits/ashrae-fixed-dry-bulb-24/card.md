@@ -1,8 +1,8 @@
-# ASHRAE 90.1 fixed 18 °C dry-bulb economizer high limit
+# ASHRAE 90.1 fixed 24 °C dry-bulb economizer high limit
 
 | Field | Value |
 |---|---|
-| Routine ID | `G36-GEN-AEHL__ashrae-fixed-dry-bulb-18` |
+| Routine ID | `G36-GEN-AEHL__ashrae-fixed-dry-bulb-24` |
 | Status | `source_evidenced` |
 | Evidence | E3 |
 | Runtime profile | `HostTick-v1` |
@@ -10,15 +10,15 @@
 ## Purpose
 
 This output-only specialization provides the fixed outdoor-air economizer
-temperature cutoff for the ASHRAE 90.1 fixed dry-bulb 18 °C bucket. The source
-groups climate zones 1A, 2A, 3A, and 4A in this bucket. The fixture selects zone
-1A as its representative fixed configuration.
+temperature cutoff for the ASHRAE 90.1 fixed dry-bulb 24 °C bucket. The source
+assigns zones 1B, 2B, 3B, 3C, 4B, 4C, 5B, 5C, 6B, 7, and 8 to this bucket. The
+fixture uses zone 1B as the representative fixed configuration.
 
 Fixed parameters:
 
 - `eneStd = Buildings.Controls.OBC.ASHRAE.G36.Types.EnergyStandard.ASHRAE90_1`
 - `ecoHigLimCon = Buildings.Controls.OBC.ASHRAE.G36.Types.ControlEconomizer.FixedDryBulb`
-- `ashCliZon = Buildings.Controls.OBC.ASHRAE.G36.Types.ASHRAEClimateZone.Zone_1A`
+- `ashCliZon = Buildings.Controls.OBC.ASHRAE.G36.Types.ASHRAEClimateZone.Zone_1B`
 
 ## Interface and behavior
 
@@ -29,12 +29,12 @@ Fixed parameters:
 For this specialization:
 
 ```text
-TCut = 291.15 K (18 °C)
+TCut = 297.15 K (24 °C)
 ```
 
 The donor fixture preserves the selected source branch as
-`Buildings.Controls.OBC.CDL.Reals.Sources.Constant` instance `con2` with
-`k=291.15 K`. The routine has no boundary inputs, state, optional connectors,
+`Buildings.Controls.OBC.CDL.Reals.Sources.Constant` instance `con` with
+`k=297.15 K`. The routine has no boundary inputs, state, optional connectors,
 or host services beyond the tick call.
 
 ![Signal flow](diagram.svg)
@@ -42,7 +42,7 @@ or host services beyond the tick call.
 ## Replay and evidence
 
 `vectors.json` replays the donor reference at 0 seconds with an empty input
-object and expects `TCut = 291.15 K` with zero absolute tolerance. The graph and
+object and expects `TCut = 297.15 K` with zero absolute tolerance. The graph and
 files under `golden/` are preserved from the donor and hash-locked in
 `provenance.json`.
 
