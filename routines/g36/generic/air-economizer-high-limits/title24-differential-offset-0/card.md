@@ -54,7 +54,7 @@ ID is recorded separately in `provenance.json`.
 ## Completeness
 
 - Donor configuration: complete for this fixed variant.
-- Canonical class: partial; 7 of 12 donor variants are present.
+- Canonical class: partial; 8 of 12 donor variants are present.
 - Family package: not applicable to this leaf.
 - Declared guideline profile: partial.
 
