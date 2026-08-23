@@ -162,6 +162,24 @@
         "family_package": "not_applicable",
         "guideline_profile": "partial"
       }
+    },
+    {
+      "id": "G36-GEN-AEHL__title24-fixed-dry-bulb-22",
+      "class_id": "G36-GEN-AEHL",
+      "variant_id": "title24-fixed-dry-bulb-22",
+      "name": "Air economizer high limit — Title 24 fixed dry bulb, 22 °C",
+      "family": "generic",
+      "level": "leaf",
+      "status": "source_evidenced",
+      "path": "g36/generic/air-economizer-high-limits/title24-fixed-dry-bulb-22",
+      "canonical_class": "Buildings.Controls.OBC.ASHRAE.G36.Generic.AirEconomizerHighLimits",
+      "evidence_tier": "E3",
+      "completeness": {
+        "donor_configuration": "complete",
+        "canonical_class": "partial",
+        "family_package": "not_applicable",
+        "guideline_profile": "partial"
+      }
     }
   ]
 }
