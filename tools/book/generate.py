@@ -17,6 +17,12 @@ from pathlib import Path
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+from tools.point_resolution import load_point_corpus  # noqa: E402
+
+
 SRC = REPO / "book" / "src"
 
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
@@ -73,7 +79,9 @@ def yaml_list(v):
     return v if isinstance(v, list) else ([] if v is None else [v])
 
 
-def render_fault_page(fid: str, fdir: Path, fm: dict, body: str, known: set) -> str:
+def render_fault_page(
+    fid: str, fdir: Path, fm: dict, body: str, known: set, point_corpus
+) -> str:
     out = [f"# {fid} — {fm.get('name', '')}\n"]
 
     status = fm.get("status", "")
@@ -111,7 +119,15 @@ def render_fault_page(fid: str, fdir: Path, fm: dict, body: str, known: set) -> 
     pts = yaml_list(fm.get("points"))
     if pts:
         family = fid.split("-")[0].lower()
-        linked = ", ".join(f"[`{p}`](../../points/{family}.md#{p})" for p in pts)
+        dictionary_path = f"points/{family}.points.json"
+        links = []
+        for point in pts:
+            resolved = point_corpus.resolve_bare(dictionary_path, point)
+            canonical_family = Path(resolved.path).name.removesuffix(".points.json")
+            links.append(
+                f"[`{point}`](../../points/{canonical_family}.md#{resolved.name})"
+            )
+        linked = ", ".join(links)
         out.append(f"**Points:** {linked}\n")
 
     outs = yaml_list(fm.get("outputs"))
@@ -162,7 +178,7 @@ def render_fault_page(fid: str, fdir: Path, fm: dict, body: str, known: set) -> 
     return "\n".join(out) + "\n"
 
 
-def build_family(family_dir: Path, known: set):
+def build_family(family_dir: Path, known: set, point_corpus):
     family = family_dir.name
     dest = SRC / "faults" / family
     dest.mkdir(parents=True, exist_ok=True)
@@ -174,7 +190,8 @@ def build_family(family_dir: Path, known: set):
         fid = fdir.name
         fm, body = read_card(fdir / "card.md")
         (dest / f"{fid}.md").write_text(
-            render_fault_page(fid, fdir, fm, body, known), encoding="utf-8"
+            render_fault_page(fid, fdir, fm, body, known, point_corpus),
+            encoding="utf-8",
         )
         svg = fdir / "diagram.svg"
         if svg.is_file():
@@ -194,13 +211,14 @@ def build_family(family_dir: Path, known: set):
     return entries
 
 
-def build_points(known: set):
-    dest = SRC / "points"
+def build_points(point_corpus, dest=None):
+    dest = SRC / "points" if dest is None else Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
     pages = []
-    for pfile in sorted((REPO / "points").glob("*.points.json")):
-        family = pfile.name.split(".")[0]
-        d = json.loads(pfile.read_text(encoding="utf-8"))
+    for dictionary_path in point_corpus.paths:
+        dictionary = point_corpus.dictionaries[dictionary_path]
+        family = Path(dictionary_path).name.removesuffix(".points.json")
+        d = dictionary.document
         pts = d.get("points", [])
         out = [f"# Point Dictionary: {family.upper()}\n"]
         if d.get("notes"):
@@ -223,6 +241,17 @@ def build_points(known: set):
                 out.append(f"- **QUDT unit:** `{p['qudt_unit']}`")
             if p.get("notes"):
                 out.append(f"\n{p['notes']}")
+        if dictionary.aliases:
+            out.append("\n## Compatibility aliases\n")
+            for name, _ in dictionary.aliases:
+                resolved = point_corpus.resolve_bare(dictionary_path, name)
+                canonical_family = Path(resolved.path).name.removesuffix(
+                    ".points.json"
+                )
+                out.append(
+                    f"- [`{name}`]({canonical_family}.md#{resolved.name}) → "
+                    f"`{resolved.ref}`"
+                )
         (dest / f"{family}.md").write_text("\n".join(out) + "\n", encoding="utf-8")
         pages.append(family)
     return pages
@@ -273,6 +302,7 @@ def build_playbooks():
 
 
 def main():
+    point_corpus = load_point_corpus(REPO).require_valid()
     if SRC.exists():
         shutil.rmtree(SRC)
     SRC.mkdir(parents=True)
@@ -315,7 +345,7 @@ def main():
     families = {}
     for fam in sorted((REPO / "faults").iterdir()):
         if fam.is_dir():
-            entries = build_family(fam, known)
+            entries = build_family(fam, known, point_corpus)
             if entries:
                 families[fam.name] = entries
 
@@ -366,7 +396,7 @@ def main():
 
     build_clusters(known)
     playbooks = build_playbooks()
-    point_pages = build_points(known)
+    point_pages = build_points(point_corpus)
 
     summary = ["# Summary\n", "[Introduction](index.md)", "[Schema](schema.md)\n", "# Fault Rules\n"]
     for fam, entries in families.items():

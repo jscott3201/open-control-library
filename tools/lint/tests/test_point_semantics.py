@@ -144,6 +144,23 @@ class PointSemanticLintTests(unittest.TestCase):
         self.assert_error(f"{relative_path}: missing required key 'schema'")
         self.restore(relative_path)
 
+        for schema in ([], {}):
+            with self.subTest(schema=schema):
+                self.mutate(
+                    relative_path,
+                    lambda value, bad_schema=schema: value.update(schema=bad_schema),
+                )
+                errors = self.assert_error(
+                    f"{relative_path}: schema must be one of"
+                )
+                self.assertFalse(any("Traceback" in error for error in errors))
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    result = point_semantics.main(self.root)
+                self.assertEqual(result, 1)
+                self.assertNotIn("Traceback", output.getvalue())
+                self.restore(relative_path)
+
         self.mutate(relative_path, lambda value: value.update(extra=True))
         self.assert_error(f"{relative_path}: unexpected key 'extra'")
         self.restore(relative_path)
@@ -160,7 +177,8 @@ class PointSemanticLintTests(unittest.TestCase):
 
         self.mutate(relative_path, lambda value: value.update(schema="wrong"))
         self.assert_error(
-            f"{relative_path}: schema must be {point_semantics.POINT_SCHEMA!r}"
+            f"{relative_path}: schema must be one of "
+            f"{', '.join(repr(item) for item in sorted(point_semantics.POINT_SCHEMAS))}"
         )
         self.restore(relative_path)
 
@@ -342,14 +360,17 @@ class PointSemanticLintTests(unittest.TestCase):
         for (relative_path, name), expected in sorted(
             point_semantics.REVIEWED_MAPPING_EXPECTATIONS.items()
         ):
-            for field in (
+            fields = (
                 "qudt_unit",
                 "property_class",
                 "quantitykind",
                 "unit",
                 "medium",
                 "aspects",
-            ):
+            )
+            if "enumerationkind" in expected:
+                fields += ("enumerationkind",)
+            for field in fields:
                 with self.subTest(relative_path=relative_path, name=name, field=field):
                     if field == "qudt_unit":
                         self.mutate_point(
@@ -372,6 +393,7 @@ class PointSemanticLintTests(unittest.TestCase):
                                 if expected["aspects"] != ["Aspect-Delta"]
                                 else []
                             ),
+                            "enumerationkind": "Binary-OnOff",
                         }[field]
                         self.mutate_point(
                             relative_path,

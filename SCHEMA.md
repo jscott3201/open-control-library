@@ -488,7 +488,7 @@ YAML frontmatter followed by Markdown prose. Frontmatter fields:
 | `playbooks` | list | ✓ | Playbook slugs in `playbooks/` |
 | `operating_states` | string | ✓ | Applicable states (`all` or list, prose ok) |
 | `preconditions` | string | ✓ | Host-enforced evaluation gate, prose |
-| `points` | list | ✓ | Canonical point names consumed (see below) |
+| `points` | list | ✓ | Bare point names consumed; resolved in the equipment dictionary (see below) |
 | `outputs` | list | ✓ | `{name, description}` — boundary outputs |
 | `params` | map | ✓ | name → `{default, unit, description, cxf}` |
 | `energy_impact` | map | ✓ | `{affected_subsystem, savings_range, climate_sensitivity, runtime_estimation}` |
@@ -496,10 +496,11 @@ YAML frontmatter followed by Markdown prose. Frontmatter fields:
 | `verified` | map | ✓ | `{engine_rev, content_id, date}` — all null until verified |
 
 Conventions:
-- **Every entry in `points` is a canonical name from
-  `points/<equipment>.points.json`, and the CXF boundary input connector for it
-  has exactly that local name.** This single convention makes point binding
-  mechanical for every consumer.
+- **Every entry in `points` is a bare name resolvable in
+  `points/<equipment>.points.json` as either a local concrete point or an
+  explicit v2 alias.** The CXF boundary input connector keeps that exact bare
+  name. Resolution yields the canonical concrete target; a compatibility alias
+  is not itself a canonical identity.
 - `params.*.cxf` is the parameter's CXF path relative to the root block
   (`<instance>.<param>`, e.g. `persist.delayTime`) so hosts can retune deployed
   rules via `set_param` without re-authoring. It may be a list of paths when
@@ -614,29 +615,90 @@ Target dialect: the open-control engine's composite subset
   one threshold-edge case, and one transient case exercising delay/reset
   behavior where the rule has timing state.
 
-## `points/<equip>.points.json` contract (`cxf-library/points/v1`)
+## `points/<equip>.points.json` contract (`cxf-library/points/v1` and `v2`)
 
 ```json
 {
-  "schema": "cxf-library/points/v1",
-  "equipment": "ahu",
+  "schema": "cxf-library/points/v2",
+  "equipment": "vav",
+  "namespaces": {
+    "brick": {
+      "iri": "https://brickschema.org/schema/Brick#",
+      "verified_version": "1.4.4"
+    },
+    "s223": {
+      "iri": "http://data.ashrae.org/standard223#",
+      "verified_version": "1.0.0-ppr.2.1"
+    },
+    "quantitykind": {
+      "iri": "http://qudt.org/vocab/quantitykind/",
+      "verified_version": "QUDT 3.1.4"
+    },
+    "unit": {
+      "iri": "http://qudt.org/vocab/unit/",
+      "verified_version": "QUDT 3.1.4"
+    }
+  },
+  "imports": ["points/zone.points.json"],
+  "aliases": [
+    {
+      "name": "zone_temp",
+      "target": "points/zone.points.json#zone_temp"
+    }
+  ],
   "points": [
     {
-      "name": "htg_vlv_cmd",
-      "description": "Heating coil valve command (0 = closed, 100 = full open)",
+      "name": "zone_airflow",
+      "description": "VAV box measured supply airflow",
       "kind": "real",
-      "unit": "%",
-      "qudt_unit": "PERCENT",
-      "brick": null,
-      "s223": null,
-      "provisional": true
+      "unit": "L/s",
+      "qudt_unit": "L-PER-SEC",
+      "brick": "Supply_Air_Flow_Sensor",
+      "s223": {
+        "pattern": "Sensor observes QuantifiableObservableProperty at the VAV box discharge via hasProperty",
+        "property_class": "QuantifiableObservableProperty",
+        "quantitykind": "VolumeFlowRate",
+        "unit": "L-PER-SEC",
+        "medium": "Fluid-Air",
+        "aspects": []
+      },
+      "provisional": false,
+      "notes": "Attach isPointOf the VAV box; hosts convert CFM before binding."
     }
   ]
 }
 ```
 
-- `name` is the library-wide canonical identifier (snake_case; suffixes: none =
-  measured, `_sp` setpoint, `_cmd` command, `_status` status, `_fbk` feedback).
+- A v1 dictionary has exactly the required top-level fields `schema`,
+  `equipment`, `namespaces`, and `points`. Only `notes` is optional. Existing
+  v1 dictionaries remain valid and MUST NOT contain `imports` or `aliases`.
+- A v2 dictionary has exactly the required top-level fields `schema`,
+  `equipment`, `namespaces`, `imports`, `aliases`, and `points`. Only `notes`
+  is optional. Namespace and concrete point records use the same closed shapes
+  as v1.
+- A concrete point's canonical identity is
+  `points/<family>.points.json#<name>`. `name` is snake_case; suffixes are none
+  for measured values, `_sp` for setpoints, `_cmd` for commands, `_status` for
+  status, and `_fbk` for feedback. A bare name is meaningful only in the
+  context of one family dictionary.
+- `imports` is an array of unique root-relative
+  `points/<lowercase-family>.points.json` paths. Absolute paths, traversal,
+  URLs, self-imports, missing files, duplicate entries, and import cycles are
+  invalid.
+- `aliases` is an array of closed `{name, target}` objects. `name` MUST be
+  unique and MUST NOT collide with a local concrete point. `target` MUST be a
+  fully qualified point reference whose dictionary appears in `imports` and
+  whose fragment names a concrete record. Alias-to-alias targets are invalid.
+- Contextual resolution of `(family dictionary, bare name)` checks one local
+  concrete record, then one explicitly declared alias. It does not search
+  other dictionaries. A fully qualified reference resolves its named
+  dictionary and fragment; a legacy alias fragment normalizes once to its
+  concrete target. Malformed, missing, colliding, or ambiguous references fail
+  closed. There is no alias chain, filesystem-first match, or fallback.
+- Fault cards keep bare boundary names. Rust fault lint resolves each name in
+  the card family's dictionary before the existing card/CXF/vector checks.
+  Book generation uses the canonical resolved target for links and lists
+  compatibility aliases without copying the target record or anchor.
 - **Role points** (documented exception, `points/sys.points.json` only): the
   cross-equipment sensor-health rules bind role names (`sensor_value`,
   `sensor_value_a/b`, `equip_active`) rather than canonical points, because
@@ -669,11 +731,14 @@ Target dialect: the open-control engine's composite subset
   unattested in the standard's reference models); the per-point `notes` field
   records the specifics. All s223 entries also await confirmation against the
   formal ASHRAE 223 standard text once obtained.
-- `tools/lint/point_semantics.py` checks strict `points/v1` JSON and shape,
-  namespace echoes, command/setpoint direction, actuatable quantity and unit
-  requirements, and the bounded reviewed VAV/SYS mappings. It reads the local
-  pin record without network access. It does not verify arbitrary external
-  term existence, evaluate topology or SHACL, or certify building instances.
+- `tools/lint/point_semantics.py` checks the strict mixed v1/v2 corpus,
+  import/alias resolution, namespace echoes, command/setpoint direction,
+  actuatable quantity and unit requirements, and the bounded reviewed
+  VAV/SYS/zone mappings. It reads local files without network access and emits
+  sorted diagnostics. It does not verify arbitrary external term existence,
+  evaluate topology or SHACL, certify building instances, or change Engine or
+  Studio runtime behavior. The Engine executes CXF and does not consume point
+  dictionaries.
 
 ## `clusters/clusters.json` (`cxf-library/clusters/v1`)
 

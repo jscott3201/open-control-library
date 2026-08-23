@@ -11,6 +11,7 @@ use oce_api::{Engine, PointDirection, PointValueType, Value};
 use serde::{Deserialize, Serialize};
 
 mod lint;
+mod point_resolution;
 
 #[derive(Deserialize)]
 struct Vectors {
