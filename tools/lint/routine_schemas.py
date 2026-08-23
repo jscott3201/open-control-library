@@ -6,6 +6,7 @@ import json
 import math
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urldefrag
 
@@ -59,6 +60,19 @@ CANONICAL_RE = re.compile(
     r"^G36-05-(?P<section>0[1-9]|1[0-9]|2[0-2])-(?P<slug>[A-Z]+(?:-[A-Z]+)*)$"
 )
 NUMERIC_TYPES = frozenset(("real", "integer"))
+
+
+@dataclass(frozen=True)
+class _InterfaceSpecializationModel:
+    types: dict
+    enum_members: dict
+    dimensions: dict
+    parameters: dict
+    parameter_types: dict
+    assignments: dict
+    effective_values: dict
+    concrete_dimensions: dict
+    specialization_members: dict
 
 
 class _DuplicateKeyError(ValueError):
@@ -248,6 +262,12 @@ def _instance_path(error):
     return path
 
 
+def _check_schema_instance(value, schema_id, label, schemas_by_id, registry, errors):
+    validator = Draft202012Validator(schemas_by_id[schema_id], registry=registry)
+    for error in validator.iter_errors(value):
+        errors.append(f"{label}: {_instance_path(error)}: {error.message}")
+
+
 def _load_fixtures(repo_root, schemas_by_id, registry, errors):
     fixture_directory = repo_root / FIXTURE_ROOT
     actual_names = (
@@ -267,11 +287,14 @@ def _load_fixtures(repo_root, schemas_by_id, registry, errors):
         if value is None:
             continue
         fixtures[name] = value
-        validator = Draft202012Validator(schemas_by_id[schema_id], registry=registry)
-        for error in validator.iter_errors(value):
-            errors.append(
-                f"{(FIXTURE_ROOT / name).as_posix()}: {_instance_path(error)}: {error.message}"
-            )
+        _check_schema_instance(
+            value,
+            schema_id,
+            (FIXTURE_ROOT / name).as_posix(),
+            schemas_by_id,
+            registry,
+            errors,
+        )
     if errors or len(fixtures) != len(FIXTURE_SCHEMAS):
         return None
     return fixtures
@@ -345,7 +368,7 @@ def _check_scalar(value, type_info, enum_members, constraints, label, errors):
         valid = (
             isinstance(value, (int, float))
             and not isinstance(value, bool)
-            and math.isfinite(value)
+            and (not isinstance(value, float) or math.isfinite(value))
         )
     elif kind == "enum":
         valid = isinstance(value, str) and value in enum_members.get(name, set())
@@ -567,9 +590,17 @@ def _check_manifest(manifest, errors):
         )
 
 
-def _check_interface_and_specialization(interface, specialization, errors):
-    interface_label = (FIXTURE_ROOT / "interface.json").as_posix()
-    specialization_label = (FIXTURE_ROOT / "specialization.json").as_posix()
+def _check_interface_and_specialization(
+    interface,
+    specialization,
+    errors,
+    interface_label=None,
+    specialization_label=None,
+):
+    if interface_label is None:
+        interface_label = (FIXTURE_ROOT / "interface.json").as_posix()
+    if specialization_label is None:
+        specialization_label = (FIXTURE_ROOT / "specialization.json").as_posix()
 
     type_indexes = _duplicates(interface["types"], "id", f"{interface_label}: $.types", errors)
     types = {name: interface["types"][index] for name, index in type_indexes.items()}
@@ -829,6 +860,41 @@ def _check_interface_and_specialization(interface, specialization, errors):
                 )
             else:
                 all_member_locations[member_id] = location
+
+    specialization_members = {
+        name: specialization["members"][index]["members"]
+        for name, index in member_indexes.items()
+    }
+    return _InterfaceSpecializationModel(
+        types=types,
+        enum_members=enum_members,
+        dimensions=dimensions,
+        parameters=parameters,
+        parameter_types=parameter_types,
+        assignments=assignments,
+        effective_values=effective_values,
+        concrete_dimensions=concrete_dimensions,
+        specialization_members=specialization_members,
+    )
+
+
+def _check_interface_specialization_agreement(
+    interface,
+    specialization,
+    errors,
+    interface_label="interface",
+    specialization_label="specialization",
+):
+    if interface["canonical_id"] != specialization["canonical_id"]:
+        errors.append(
+            f"{specialization_label}: $.canonical_id: must equal "
+            f"{interface_label} $.canonical_id"
+        )
+    if interface["revision"] != specialization["revision"]:
+        errors.append(
+            f"{specialization_label}: $.revision: must equal "
+            f"{interface_label} $.revision"
+        )
 
 
 def _check_cross_document(manifest, interface, specialization, errors):
