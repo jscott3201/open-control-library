@@ -76,10 +76,15 @@ cargo run --manifest-path tools/verify/Cargo.toml -- --routines
 Canonical IDs name parameterized engineering classes, never fixed parameter
 variants or source locations. Local types and enums belong to one interface.
 The schemas cover scalar and rank-one/rank-two typed values,
-parameter-controlled dimensions, stable repeated-member IDs, and
-parameter-only optional-connector guards. They do not evaluate guards or
-define production connector bindings, source mapping instances,
-specializations, generated deployments, or executable CXF.
+fixed and parameter-controlled dimensions, stable repeated-member IDs, and
+parameter-only optional-connector guards. A fixed dimension owns an ordered
+canonical member list in interface v3 whose count equals its extent. A
+parameter-driven dimension has no canonical member list; specialization v1 owns
+its ordered members. Member IDs are authored stable identities rather than
+array ordinals and are unique across all dimensions in an interface and
+specialization pair. The schemas do not evaluate guards or define production
+connector bindings, source mapping instances, specializations, generated
+deployments, or executable CXF.
 
 The semantic and derivation schemas are exercised only by synthetic fixtures
 under `tools/lint/tests/fixtures/routine_semantics/`. Validation is local and

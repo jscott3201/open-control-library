@@ -25,7 +25,7 @@ COMMON_ID = "https://open-control-library.example/schemas/routine-common-v1.json
 CLASS_MANIFEST_ID = (
     "https://open-control-library.example/schemas/routine-class-manifest-v1.json"
 )
-INTERFACE_ID = "https://open-control-library.example/schemas/routine-interface-v2.json"
+INTERFACE_ID = "https://open-control-library.example/schemas/routine-interface-v3.json"
 SPECIALIZATION_ID = (
     "https://open-control-library.example/schemas/routine-specialization-v1.json"
 )
@@ -650,9 +650,24 @@ def _check_interface_and_specialization(interface, specialization, errors):
                     f"{interface_label}: $.parameters[{index}].constraints minimum exceeds maximum"
                 )
 
+    all_member_locations = {}
     for index, dimension in enumerate(interface["dimensions"]):
         extent = dimension["extent"]
-        if extent["kind"] != "parameter":
+        if extent["kind"] == "fixed":
+            members = dimension["members"]
+            if len(members) != extent["value"]:
+                errors.append(
+                    f"{interface_label}: $.dimensions[{index}].members: expected {extent['value']} members, found {len(members)}"
+                )
+            for member_index, member_id in enumerate(members):
+                location = f"{interface_label}: $.dimensions[{index}].members[{member_index}]"
+                first_location = all_member_locations.get(member_id)
+                if first_location is not None:
+                    errors.append(
+                        f"{location}: duplicate stable member {member_id!r}; first used at {first_location}"
+                    )
+                else:
+                    all_member_locations[member_id] = location
             continue
         parameter_id = extent["parameter"]
         parameter = parameters.get(parameter_id)
@@ -789,7 +804,6 @@ def _check_interface_and_specialization(interface, specialization, errors):
         errors.append(
             f"{specialization_label}: parameter-driven dimension {missing!r} requires stable members"
         )
-    all_member_ids = {}
     for index, record in enumerate(specialization["members"]):
         dimension_id = record["dimension"]
         dimension = dimensions.get(dimension_id)
@@ -807,12 +821,14 @@ def _check_interface_and_specialization(interface, specialization, errors):
                 f"{specialization_label}: $.members[{index}].members: expected {expected} members, found {len(record['members'])}"
             )
         for member_index, member_id in enumerate(record["members"]):
-            if member_id in all_member_ids:
+            location = f"{specialization_label}: $.members[{index}].members[{member_index}]"
+            first_location = all_member_locations.get(member_id)
+            if first_location is not None:
                 errors.append(
-                    f"{specialization_label}: $.members[{index}].members[{member_index}]: duplicate stable member {member_id!r}"
+                    f"{location}: duplicate stable member {member_id!r}; first used at {first_location}"
                 )
             else:
-                all_member_ids[member_id] = (index, member_index)
+                all_member_locations[member_id] = location
 
 
 def _check_cross_document(manifest, interface, specialization, errors):
