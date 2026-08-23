@@ -1,8 +1,8 @@
-# ASHRAE 90.1 fixed 24 °C dry-bulb economizer high limit
+# California Title 24 zones 6, 8, and 9 fixed 22 °C dry-bulb economizer high limit
 
 | Field | Value |
 |---|---|
-| Routine ID | `G36-GEN-AEHL__ashrae-fixed-dry-bulb-24` |
+| Routine ID | `G36-GEN-AEHL__title24-fixed-dry-bulb-22` |
 | Status | `source_evidenced` |
 | Evidence | E3 |
 | Runtime profile | `HostTick-v1` |
@@ -10,15 +10,14 @@
 ## Purpose
 
 This output-only specialization provides the fixed outdoor-air economizer
-temperature cutoff for the ASHRAE 90.1 fixed dry-bulb 24 °C bucket. The source
-assigns zones 1B, 2B, 3B, 3C, 4B, 4C, 5B, 5C, 6B, 7, and 8 to this bucket. The
-fixture uses zone 1B as the representative fixed configuration.
+temperature cutoff for the California Title 24 bucket containing climate zones
+6, 8, and 9. The fixture uses zone 6 as the representative configuration.
 
 Fixed parameters:
 
-- `eneStd = Buildings.Controls.OBC.ASHRAE.G36.Types.EnergyStandard.ASHRAE90_1`
+- `eneStd = Buildings.Controls.OBC.ASHRAE.G36.Types.EnergyStandard.California_Title_24`
 - `ecoHigLimCon = Buildings.Controls.OBC.ASHRAE.G36.Types.ControlEconomizer.FixedDryBulb`
-- `ashCliZon = Buildings.Controls.OBC.ASHRAE.G36.Types.ASHRAEClimateZone.Zone_1B`
+- `tit24CliZon = Buildings.Controls.OBC.ASHRAE.G36.Types.Title24ClimateZone.Zone_6`
 
 ## Interface and behavior
 
@@ -29,12 +28,12 @@ Fixed parameters:
 For this specialization:
 
 ```text
-TCut = 297.15 K (24 °C)
+TCut = 295.15 K (22 °C)
 ```
 
-The donor fixture preserves the selected source branch as
-`Buildings.Controls.OBC.CDL.Reals.Sources.Constant` instance `con` with
-`k=297.15 K`. The routine has no boundary inputs, state, optional connectors,
+The donor fixture preserves the selected branch as
+`Buildings.Controls.OBC.CDL.Reals.Sources.Constant` instance `con7` with
+`k=295.15 K`. The routine has no boundary inputs, state, optional connectors,
 or host services beyond the tick call.
 
 ![Signal flow](diagram.svg)
@@ -42,7 +41,7 @@ or host services beyond the tick call.
 ## Replay and evidence
 
 `vectors.json` replays the donor reference at 0 seconds with an empty input
-object and expects `TCut = 297.15 K` with zero absolute tolerance. The graph and
+object and expects `TCut = 295.15 K` with zero absolute tolerance. The graph and
 files under `golden/` are preserved from the donor and hash-locked in
 `provenance.json`.
 
@@ -61,10 +60,10 @@ donor-set, or G36 coverage.
 
 ## Exclusions
 
-Climate-zone selection is fixed rather than exposed as an input. Other fixed
-temperature buckets, differential controls, arrays, member lists, packages,
-controller traces, and E4/E5 evidence are outside this bundle. Modelica and
-EnergyPlus execution are not claimed.
+Climate-zone selection is fixed rather than exposed as an input. Zones outside
+the 6/8/9 bucket, other fixed temperature buckets, differential controls,
+arrays, member lists, packages, controller traces, and E4/E5 evidence are
+outside this bundle. Modelica and EnergyPlus execution are not claimed.
 
 ## References
 
