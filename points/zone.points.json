@@ -1,0 +1,102 @@
+{
+  "schema": "cxf-library/points/v2",
+  "equipment": "zone",
+  "namespaces": {
+    "brick": {
+      "iri": "https://brickschema.org/schema/Brick#",
+      "verified_version": "1.4.4"
+    },
+    "s223": {
+      "iri": "http://data.ashrae.org/standard223#",
+      "verified_version": "1.0.0-ppr.2.1"
+    },
+    "quantitykind": {
+      "iri": "http://qudt.org/vocab/quantitykind/",
+      "verified_version": "QUDT 3.1.4"
+    },
+    "unit": {
+      "iri": "http://qudt.org/vocab/unit/",
+      "verified_version": "QUDT 3.1.4"
+    }
+  },
+  "imports": [],
+  "aliases": [],
+  "notes": "Zone point dictionary. These records describe the occupied space independently of the equipment serving it.",
+  "points": [
+    {
+      "name": "zone_temp",
+      "description": "Zone air temperature",
+      "kind": "real",
+      "unit": "°C",
+      "qudt_unit": "DEG_C",
+      "brick": "Zone_Air_Temperature_Sensor",
+      "s223": {
+        "pattern": "Sensor observes QuantifiableObservableProperty on the Zone (DomainSpace) via hasProperty",
+        "property_class": "QuantifiableObservableProperty",
+        "quantitykind": "Temperature",
+        "unit": "DEG_C",
+        "medium": "Fluid-Air",
+        "aspects": []
+      },
+      "provisional": false,
+      "notes": "brick:Zone_Air_Temperature_Sensor grep-verified in Brick 1.4.4. 223P attachment is to the zone DomainSpace rather than the VAV box; no reference-model instance checked for the zone-side pattern, but the property class and quantitykind (Temperature, DEG_C) follow the AHU temperature points."
+    },
+    {
+      "name": "zone_temp_sp_htg",
+      "description": "Zone heating temperature setpoint",
+      "kind": "real",
+      "unit": "°C",
+      "qudt_unit": "DEG_C",
+      "brick": "Zone_Air_Heating_Temperature_Setpoint",
+      "s223": {
+        "pattern": "QuantifiableActuatableProperty (setpoint) on the Zone via hasProperty",
+        "property_class": "QuantifiableActuatableProperty",
+        "quantitykind": "Temperature",
+        "unit": "DEG_C",
+        "medium": "Fluid-Air",
+        "aspects": [
+          "Aspect-Setpoint"
+        ]
+      },
+      "provisional": false,
+      "notes": "brick:Zone_Air_Heating_Temperature_Setpoint grep-verified in Brick 1.4.4. Bind the ACTIVE (occupied-mode) heating setpoint the loop is controlling to, not a schedule default — same active-setpoint convention as the AHU dictionary's sat_sp."
+    },
+    {
+      "name": "zone_temp_sp_clg",
+      "description": "Zone cooling temperature setpoint",
+      "kind": "real",
+      "unit": "°C",
+      "qudt_unit": "DEG_C",
+      "brick": "Zone_Air_Cooling_Temperature_Setpoint",
+      "s223": {
+        "pattern": "QuantifiableActuatableProperty (setpoint) on the Zone via hasProperty",
+        "property_class": "QuantifiableActuatableProperty",
+        "quantitykind": "Temperature",
+        "unit": "DEG_C",
+        "medium": "Fluid-Air",
+        "aspects": [
+          "Aspect-Setpoint"
+        ]
+      },
+      "provisional": false,
+      "notes": "brick:Zone_Air_Cooling_Temperature_Setpoint grep-verified in Brick 1.4.4. Active-setpoint convention as zone_temp_sp_htg."
+    },
+    {
+      "name": "occ_sensor",
+      "description": "Occupancy sensor state (TRUE = occupied detected)",
+      "kind": "bool",
+      "unit": "bool",
+      "qudt_unit": null,
+      "brick": "Occupancy_Sensor",
+      "s223": {
+        "pattern": "EnumeratedObservableProperty on the occupancy Sensor via hasProperty",
+        "property_class": "EnumeratedObservableProperty",
+        "quantitykind": null,
+        "unit": null,
+        "medium": null,
+        "aspects": [],
+        "enumerationkind": "Binary-OccupiedUnoccupied"
+      }
+    }
+  ]
+}

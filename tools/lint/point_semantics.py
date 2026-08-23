@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
 """Validate point dictionaries against the repository's pinned semantic contract."""
 
-import json
 import re
 import sys
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from tools.point_resolution import (  # noqa: E402
+    POINT_SCHEMA_V1,
+    POINT_SCHEMA_V2,
+    POINT_SCHEMAS,
+    load_point_corpus,
+    read_json_object,
+)
+
+
 POINTS_ROOT = Path("points")
 PINS_PATH = Path("routines/ontology/ontology-pins.json")
 
-POINT_SCHEMA = "cxf-library/points/v1"
+POINT_SCHEMA = POINT_SCHEMA_V1
 PINS_SCHEMA = "cxf-library/ontology-pins/v1"
 
-TOP_LEVEL_REQUIRED_KEYS = frozenset(("schema", "equipment", "namespaces", "points"))
-TOP_LEVEL_OPTIONAL_KEYS = frozenset(("notes",))
 NAMESPACE_REQUIRED_KEYS = frozenset(("brick", "s223", "quantitykind", "unit"))
 NAMESPACE_OPTIONAL_KEYS = frozenset(("s223_g36",))
 NAMESPACE_RECORD_KEYS = frozenset(("iri", "verified_version"))
@@ -47,7 +56,7 @@ ACTUATABLE_CLASS_BY_KIND = {
 NAME_RE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
 ACTUATABLE_NAME_RE = re.compile(r"(?:_cmd$|_sp(?:_|$))")
 
-# This table is the reviewed VAV/SYS audit boundary, not a general ontology term catalog.
+# This table is the reviewed VAV/SYS/zone audit boundary, not a general ontology term catalog.
 REVIEWED_MAPPING_EXPECTATIONS = {
     ("points/sys.points.json", "oat"): {
         "qudt_unit": "DEG_C",
@@ -121,7 +130,7 @@ REVIEWED_MAPPING_EXPECTATIONS = {
         "medium": None,
         "aspects": [],
     },
-    ("points/vav.points.json", "zone_temp"): {
+    ("points/zone.points.json", "zone_temp"): {
         "qudt_unit": "DEG_C",
         "property_class": "QuantifiableObservableProperty",
         "quantitykind": "Temperature",
@@ -129,7 +138,7 @@ REVIEWED_MAPPING_EXPECTATIONS = {
         "medium": "Fluid-Air",
         "aspects": [],
     },
-    ("points/vav.points.json", "zone_temp_sp_clg"): {
+    ("points/zone.points.json", "zone_temp_sp_clg"): {
         "qudt_unit": "DEG_C",
         "property_class": "QuantifiableActuatableProperty",
         "quantitykind": "Temperature",
@@ -137,72 +146,28 @@ REVIEWED_MAPPING_EXPECTATIONS = {
         "medium": "Fluid-Air",
         "aspects": ["Aspect-Setpoint"],
     },
-    ("points/vav.points.json", "zone_temp_sp_htg"): {
+    ("points/zone.points.json", "zone_temp_sp_htg"): {
         "qudt_unit": "DEG_C",
         "property_class": "QuantifiableActuatableProperty",
         "quantitykind": "Temperature",
         "unit": "DEG_C",
         "medium": "Fluid-Air",
         "aspects": ["Aspect-Setpoint"],
+    },
+    ("points/zone.points.json", "occ_sensor"): {
+        "qudt_unit": None,
+        "property_class": "EnumeratedObservableProperty",
+        "quantitykind": None,
+        "unit": None,
+        "medium": None,
+        "aspects": [],
+        "enumerationkind": "Binary-OccupiedUnoccupied",
     },
 }
 
 
-class _DuplicateKeyError(ValueError):
-    pass
-
-
-class _NonFiniteNumberError(ValueError):
-    pass
-
-
-def _object_without_duplicates(pairs):
-    value = {}
-    for key, item in pairs:
-        if key in value:
-            raise _DuplicateKeyError(f"duplicate object key {key!r}")
-        value[key] = item
-    return value
-
-
-def _reject_nonfinite(value):
-    raise _NonFiniteNumberError(f"non-finite number {value!r} is forbidden")
-
-
 def _read_json(repo_root, relative_path, errors):
-    label = relative_path.as_posix()
-    try:
-        raw = (repo_root / relative_path).read_bytes()
-    except FileNotFoundError:
-        errors.append(f"{label}: file is missing")
-        return None
-    except OSError:
-        errors.append(f"{label}: unable to read file")
-        return None
-    try:
-        value = json.loads(
-            raw.decode("utf-8"),
-            object_pairs_hook=_object_without_duplicates,
-            parse_constant=_reject_nonfinite,
-        )
-    except UnicodeDecodeError:
-        errors.append(f"{label}: file is not UTF-8")
-        return None
-    except _DuplicateKeyError as exc:
-        errors.append(f"{label}: {exc}")
-        return None
-    except _NonFiniteNumberError as exc:
-        errors.append(f"{label}: {exc}")
-        return None
-    except json.JSONDecodeError as exc:
-        errors.append(
-            f"{label}: invalid JSON at line {exc.lineno}, column {exc.colno}"
-        )
-        return None
-    if not isinstance(value, dict):
-        errors.append(f"{label}: must contain a JSON object")
-        return None
-    return value
+    return read_json_object(repo_root, relative_path, errors)
 
 
 def _check_keys(value, required, optional, label, errors):
@@ -375,24 +340,15 @@ def _validate_s223(value, point, label, errors):
     return property_class
 
 
-def _validate_point(point, index, path, seen_names, reviewed_points, errors):
+def _validate_point(point, index, path, reviewed_points, errors):
     dictionary_label = path.as_posix()
     label = f"{dictionary_label}: points[{index}]"
     if not isinstance(point, dict):
-        errors.append(f"{label}: must be an object")
         return
     _check_keys(point, POINT_REQUIRED_KEYS, POINT_OPTIONAL_KEYS, label, errors)
 
     name = point.get("name")
-    if not isinstance(name, str) or not name.strip() or NAME_RE.fullmatch(name) is None:
-        errors.append(f"{label}.name: must be a lower-case snake_case identifier")
-    else:
-        if name in seen_names:
-            errors.append(
-                f"{label}.name: duplicate {name!r}; first used at index {seen_names[name]}"
-            )
-        else:
-            seen_names[name] = index
+    if isinstance(name, str) and NAME_RE.fullmatch(name) is not None:
         reviewed_points[(dictionary_label, name)] = (index, point)
 
     if not _nonempty_string(point.get("description")):
@@ -435,40 +391,13 @@ def _validate_dictionary(
     if value is None:
         return
     label = path.as_posix()
-    _check_keys(
-        value,
-        TOP_LEVEL_REQUIRED_KEYS,
-        TOP_LEVEL_OPTIONAL_KEYS,
-        label,
-        errors,
-    )
-    if value.get("schema") != POINT_SCHEMA:
-        errors.append(f"{label}: schema must be {POINT_SCHEMA!r}")
-
-    expected_equipment = path.name.removesuffix(".points.json")
-    equipment = value.get("equipment")
-    if (
-        not isinstance(equipment, str)
-        or not equipment.strip()
-        or NAME_RE.fullmatch(equipment) is None
-    ):
-        errors.append(f"{label}: equipment must be a lower-case snake_case identifier")
-    elif equipment != expected_equipment:
-        errors.append(
-            f"{label}: equipment must match filename stem {expected_equipment!r}"
-        )
-    if "notes" in value and not isinstance(value["notes"], str):
-        errors.append(f"{label}: notes must be a string")
-
     _validate_namespaces(value.get("namespaces"), label, namespace_expectations, errors)
 
     points = value.get("points")
     if not isinstance(points, list):
-        errors.append(f"{label}: points must be an array")
         return
-    seen_names = {}
     for index, point in enumerate(points):
-        _validate_point(point, index, path, seen_names, reviewed_points, errors)
+        _validate_point(point, index, path, reviewed_points, errors)
 
 
 def _validate_reviewed_mappings(reviewed_points, errors):
@@ -491,7 +420,10 @@ def _validate_reviewed_mappings(reviewed_points, errors):
         if not isinstance(s223, dict):
             errors.append(f"{label}: reviewed mapping requires an s223 object")
             continue
-        for field in ("property_class", "quantitykind", "unit", "medium", "aspects"):
+        fields = ("property_class", "quantitykind", "unit", "medium", "aspects")
+        if "enumerationkind" in expected:
+            fields += ("enumerationkind",)
+        for field in fields:
             if s223.get(field) != expected[field]:
                 errors.append(
                     f"{label}: s223.{field} must be {expected[field]!r}, "
@@ -504,23 +436,18 @@ def _validate(repo_root):
     repo_root = Path(repo_root)
     errors = []
     namespace_expectations = _load_namespace_expectations(repo_root, errors)
-    try:
-        point_paths = sorted((repo_root / POINTS_ROOT).glob("*.points.json"))
-    except OSError:
-        errors.append(f"{POINTS_ROOT.as_posix()}: unable to discover point dictionaries")
-        point_paths = []
-    if not point_paths:
-        errors.append(f"{POINTS_ROOT.as_posix()}: no *.points.json dictionaries found")
+    corpus = load_point_corpus(repo_root)
+    errors.extend(corpus.errors)
 
     reviewed_points = {}
-    for absolute_path in point_paths:
-        relative_path = absolute_path.relative_to(repo_root)
-        value = _read_json(repo_root, relative_path, errors)
+    for path_string in corpus.paths:
+        relative_path = Path(path_string)
+        value = corpus.documents.get(path_string)
         _validate_dictionary(
             value, relative_path, namespace_expectations, reviewed_points, errors
         )
     reviewed_count = _validate_reviewed_mappings(reviewed_points, errors)
-    return sorted(errors), len(point_paths), reviewed_count
+    return sorted(errors), len(corpus.paths), reviewed_count
 
 
 def validate(repo_root=REPO_ROOT):

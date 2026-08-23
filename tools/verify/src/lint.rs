@@ -5,6 +5,8 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
+use crate::point_resolution::PointResolver;
+
 const CARD_SCHEMA: &str = "cxf-library/fault-card/v1";
 const STATUSES: &[&str] = &["draft", "verified", "adopted", "deprecated"];
 const METHODS: &[&str] = &["rule", "statistical", "ml", "meta"];
@@ -133,28 +135,16 @@ pub fn lint_fault_dir(dir: &Path, repo_root: &Path) -> Result<LintReport, String
     }
 
     // --- point dictionary ---
-    let dict_path = repo_root.join("points").join(format!("{equip_dir}.points.json"));
-    match std::fs::read(&dict_path)
-        .map_err(|e| e.to_string())
-        .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).map_err(|e| e.to_string()))
-    {
-        Ok(dict) => {
-            let names: BTreeSet<String> = dict
-                .get("points")
-                .and_then(|p| p.as_array())
-                .map(|pts| {
-                    pts.iter()
-                        .filter_map(|p| p.get("name").and_then(|n| n.as_str()).map(str::to_string))
-                        .collect()
-                })
-                .unwrap_or_default();
+    let dict_path = format!("points/{equip_dir}.points.json");
+    match PointResolver::load(repo_root) {
+        Ok(resolver) => {
             for p in &card_points {
-                if !names.contains(p) {
-                    errors.push(format!("point `{p}` not in {}", dict_path.display()));
+                if let Err(error) = resolver.resolve_bare(&dict_path, p) {
+                    errors.push(format!("point `{p}`: {error}"));
                 }
             }
         }
-        Err(e) => errors.push(format!("{}: {e}", dict_path.display())),
+        Err(error) => errors.push(format!("point dictionaries: {error}")),
     }
 
     // --- clusters and playbooks ---

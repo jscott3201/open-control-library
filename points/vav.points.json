@@ -1,5 +1,5 @@
 {
-  "schema": "cxf-library/points/v1",
+  "schema": "cxf-library/points/v2",
   "equipment": "vav",
   "namespaces": {
     "brick": {
@@ -23,66 +23,25 @@
       "verified_version": "QUDT 3.1.4"
     }
   },
-  "notes": "VAV terminal unit point dictionary. Zone-level points grep-verified against Brick 1.4.4 (equipment anchor: brick:Variable_Air_Volume_Box_With_Reheat); 223P patterns follow the AHU dictionary's property-class conventions but no VAV reference-model instance has been checked, so 223P attachments are pattern guidance. satisfied_zone_fraction is host-derived (see zone_reheat_fraction precedent). Airflow unit is L/s throughout; hosts on CFM convert at binding.",
-  "points": [
+  "imports": [
+    "points/zone.points.json"
+  ],
+  "aliases": [
     {
       "name": "zone_temp",
-      "description": "Zone air temperature",
-      "kind": "real",
-      "unit": "°C",
-      "qudt_unit": "DEG_C",
-      "brick": "Zone_Air_Temperature_Sensor",
-      "s223": {
-        "pattern": "Sensor observes QuantifiableObservableProperty on the Zone (DomainSpace) via hasProperty",
-        "property_class": "QuantifiableObservableProperty",
-        "quantitykind": "Temperature",
-        "unit": "DEG_C",
-        "medium": "Fluid-Air",
-        "aspects": []
-      },
-      "provisional": false,
-      "notes": "brick:Zone_Air_Temperature_Sensor grep-verified in Brick 1.4.4. 223P attachment is to the zone DomainSpace rather than the VAV box; no reference-model instance checked for the zone-side pattern, but the property class and quantitykind (Temperature, DEG_C) follow the AHU temperature points."
+      "target": "points/zone.points.json#zone_temp"
     },
     {
       "name": "zone_temp_sp_htg",
-      "description": "Zone heating temperature setpoint",
-      "kind": "real",
-      "unit": "°C",
-      "qudt_unit": "DEG_C",
-      "brick": "Zone_Air_Heating_Temperature_Setpoint",
-      "s223": {
-        "pattern": "QuantifiableActuatableProperty (setpoint) on the Zone via hasProperty",
-        "property_class": "QuantifiableActuatableProperty",
-        "quantitykind": "Temperature",
-        "unit": "DEG_C",
-        "medium": "Fluid-Air",
-        "aspects": [
-          "Aspect-Setpoint"
-        ]
-      },
-      "provisional": false,
-      "notes": "brick:Zone_Air_Heating_Temperature_Setpoint grep-verified in Brick 1.4.4. Bind the ACTIVE (occupied-mode) heating setpoint the loop is controlling to, not a schedule default — same active-setpoint convention as the AHU dictionary's sat_sp."
+      "target": "points/zone.points.json#zone_temp_sp_htg"
     },
     {
       "name": "zone_temp_sp_clg",
-      "description": "Zone cooling temperature setpoint",
-      "kind": "real",
-      "unit": "°C",
-      "qudt_unit": "DEG_C",
-      "brick": "Zone_Air_Cooling_Temperature_Setpoint",
-      "s223": {
-        "pattern": "QuantifiableActuatableProperty (setpoint) on the Zone via hasProperty",
-        "property_class": "QuantifiableActuatableProperty",
-        "quantitykind": "Temperature",
-        "unit": "DEG_C",
-        "medium": "Fluid-Air",
-        "aspects": [
-          "Aspect-Setpoint"
-        ]
-      },
-      "provisional": false,
-      "notes": "brick:Zone_Air_Cooling_Temperature_Setpoint grep-verified in Brick 1.4.4. Active-setpoint convention as zone_temp_sp_htg."
-    },
+      "target": "points/zone.points.json#zone_temp_sp_clg"
+    }
+  ],
+  "notes": "VAV terminal unit point dictionary. Zone-level points grep-verified against Brick 1.4.4 (equipment anchor: brick:Variable_Air_Volume_Box_With_Reheat); 223P patterns follow the AHU dictionary's property-class conventions but no VAV reference-model instance has been checked, so 223P attachments are pattern guidance. satisfied_zone_fraction is host-derived (see zone_reheat_fraction precedent). Airflow unit is L/s throughout; hosts on CFM convert at binding.",
+  "points": [
     {
       "name": "zone_airflow",
       "description": "VAV box measured supply airflow",

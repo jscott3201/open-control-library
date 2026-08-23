@@ -1,5 +1,5 @@
 {
-  "schema": "cxf-library/points/v1",
+  "schema": "cxf-library/points/v2",
   "equipment": "sys",
   "namespaces": {
     "brick": {
@@ -19,7 +19,16 @@
       "verified_version": "QUDT 3.1.4"
     }
   },
-  "notes": "System-level / cross-equipment point dictionary. The sensor-health rules (SYS-0005/SYS-0009/SYS-0010) bind ROLE POINTS, not canonical equipment points — the documented exception to the canonical-name convention (SCHEMA.md points contract; decided 2026-08-17, internal sensor-health design note §3). The reference's own SYS-0005 card does the same ('varies by application'). The host's instance configuration records which real point each role is bound to; that same record drives the adjudicates NO_EVAL fan-out. Role entries carry brick/s223 null — the semantics belong to whatever the role is bound to. The reference ch.16 waste/schedule rules (SYS-0001..SYS-0004, SYS-0007, SYS-0008) bind CANONICAL cross-equipment points (grounded below); SYS-0006 binds the physical_sensor/virtual_value role pair. Points that also exist in equipment dicts (oat, sf_status, rht_vlv_cmd) are duplicated here with matched groundings because lint resolves a card's points against its own family dictionary.",
+  "imports": [
+    "points/zone.points.json"
+  ],
+  "aliases": [
+    {
+      "name": "occ_sensor",
+      "target": "points/zone.points.json#occ_sensor"
+    }
+  ],
+  "notes": "System-level / cross-equipment point dictionary. The sensor-health rules (SYS-0005/SYS-0009/SYS-0010) bind ROLE POINTS, not canonical equipment points — the documented exception to the canonical-name convention (SCHEMA.md points contract; decided 2026-08-17, internal sensor-health design note §3). The reference's own SYS-0005 card does the same ('varies by application'). The host's instance configuration records which real point each role is bound to; that same record drives the adjudicates NO_EVAL fan-out. Role entries carry brick/s223 null — the semantics belong to whatever the role is bound to. The reference ch.16 waste/schedule rules (SYS-0001..SYS-0004, SYS-0007, SYS-0008) bind CANONICAL cross-equipment points (grounded below); SYS-0006 binds the physical_sensor/virtual_value role pair. Points that also exist in equipment dictionaries remain duplicated here when their ownership is contextual (oat, sf_status, rht_vlv_cmd). occ_sensor is a compatibility alias to the canonical zone point.",
   "points": [
     {
       "name": "sensor_value",
@@ -184,23 +193,6 @@
         "enumerationkind": "Binary-OnOff"
       },
       "notes": "Brick 1.4.4 has no lighting-specific run status class; On_Off_Status on the lighting equipment/zone is the closest grounding."
-    },
-    {
-      "name": "occ_sensor",
-      "description": "Occupancy sensor state (TRUE = occupied detected)",
-      "kind": "bool",
-      "unit": "bool",
-      "qudt_unit": null,
-      "brick": "Occupancy_Sensor",
-      "s223": {
-        "pattern": "EnumeratedObservableProperty on the occupancy Sensor via hasProperty",
-        "property_class": "EnumeratedObservableProperty",
-        "quantitykind": null,
-        "unit": null,
-        "medium": null,
-        "aspects": [],
-        "enumerationkind": "Binary-OccupiedUnoccupied"
-      }
     },
     {
       "name": "ef_status",
