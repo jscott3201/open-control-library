@@ -1,0 +1,171 @@
+{
+  "schema": "cxf-library/routine-interface/v2",
+  "canonical_id": "G36-05-16-SYNTHETIC-SCHEMA-TEST",
+  "revision": 1,
+  "types": [
+    {
+      "id": "temperature",
+      "kind": "alias",
+      "primitive": "real",
+      "quantity": "thermodynamic_temperature",
+      "unit": "K",
+      "display_unit": "degC"
+    },
+    {
+      "id": "air_flow",
+      "kind": "alias",
+      "primitive": "real",
+      "quantity": "volume_flow_rate",
+      "unit": "m3/s"
+    },
+    {
+      "id": "operating_mode",
+      "kind": "enum",
+      "members": [
+        {"id": "occupied", "symbol": "OCCUPIED"},
+        {"id": "warm-up", "symbol": "WARM_UP"},
+        {"id": "unoccupied", "symbol": "UNOCCUPIED"}
+      ]
+    }
+  ],
+  "dimensions": [
+    {
+      "id": "fixed_pair",
+      "extent": {"kind": "fixed", "value": 2}
+    },
+    {
+      "id": "zones",
+      "extent": {"kind": "parameter", "parameter": "zone_count"}
+    }
+  ],
+  "parameters": [
+    {
+      "id": "sample_period_s",
+      "type": {"kind": "primitive", "primitive": "real"},
+      "shape": {"kind": "scalar"},
+      "configurability": "fixed",
+      "default": 60.0,
+      "constraints": {"minimum": 0.1, "maximum": 3600.0}
+    },
+    {
+      "id": "fixed_gains",
+      "type": {"kind": "primitive", "primitive": "real"},
+      "shape": {"kind": "array", "dimensions": ["fixed_pair"]},
+      "configurability": "fixed",
+      "default": [1.0, 0.5]
+    },
+    {
+      "id": "zone_count",
+      "type": {"kind": "primitive", "primitive": "integer"},
+      "shape": {"kind": "scalar"},
+      "configurability": "configurable",
+      "constraints": {"minimum": 1, "maximum": 8}
+    },
+    {
+      "id": "enable_trim",
+      "type": {"kind": "primitive", "primitive": "boolean"},
+      "shape": {"kind": "scalar"},
+      "configurability": "configurable",
+      "default": true
+    },
+    {
+      "id": "initial_mode",
+      "type": {"kind": "named", "type": "operating_mode"},
+      "shape": {"kind": "scalar"},
+      "configurability": "configurable",
+      "default": "occupied"
+    },
+    {
+      "id": "optional_gain",
+      "type": {"kind": "primitive", "primitive": "real"},
+      "shape": {"kind": "scalar"},
+      "configurability": "configurable",
+      "default": 1.0,
+      "constraints": {"minimum": 0.0, "maximum": 2.0}
+    },
+    {
+      "id": "zone_offsets",
+      "type": {"kind": "named", "type": "temperature"},
+      "shape": {"kind": "array", "dimensions": ["zones"]},
+      "configurability": "configurable"
+    },
+    {
+      "id": "matrix_weights",
+      "type": {"kind": "primitive", "primitive": "real"},
+      "shape": {"kind": "array", "dimensions": ["zones", "fixed_pair"]},
+      "configurability": "configurable"
+    }
+  ],
+  "connectors": [
+    {
+      "id": "zone_temperatures",
+      "direction": "input",
+      "type": {"kind": "named", "type": "temperature"},
+      "shape": {"kind": "array", "dimensions": ["zones"]},
+      "presence": {"kind": "always"}
+    },
+    {
+      "id": "supply_air_flow",
+      "direction": "input",
+      "type": {"kind": "named", "type": "air_flow"},
+      "shape": {"kind": "scalar"},
+      "presence": {"kind": "always"}
+    },
+    {
+      "id": "trim_request",
+      "direction": "input",
+      "type": {"kind": "primitive", "primitive": "boolean"},
+      "shape": {"kind": "scalar"},
+      "presence": {
+        "kind": "when",
+        "guard": {
+          "op": "and",
+          "operands": [
+            {
+              "op": "eq",
+              "left": {"kind": "parameter", "parameter": "enable_trim"},
+              "right": {
+                "kind": "literal",
+                "type": {"kind": "primitive", "primitive": "boolean"},
+                "value": true
+              }
+            },
+            {
+              "op": "or",
+              "operands": [
+                {
+                  "op": "gt",
+                  "left": {"kind": "parameter", "parameter": "zone_count"},
+                  "right": {
+                    "kind": "literal",
+                    "type": {"kind": "primitive", "primitive": "integer"},
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "not",
+                  "operand": {
+                    "op": "eq",
+                    "left": {"kind": "parameter", "parameter": "initial_mode"},
+                    "right": {
+                      "kind": "literal",
+                      "type": {"kind": "named", "type": "operating_mode"},
+                      "value": "unoccupied"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "zone_commands",
+      "direction": "output",
+      "type": {"kind": "primitive", "primitive": "real"},
+      "shape": {"kind": "array", "dimensions": ["zones"]},
+      "presence": {"kind": "always"}
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "cxf-library/routine-specialization/v1",
+  "canonical_id": "G36-05-16-SYNTHETIC-SCHEMA-TEST",
+  "revision": 1,
+  "parameters": [
+    {"parameter": "zone_count", "value": 3},
+    {"parameter": "enable_trim", "value": false},
+    {"parameter": "initial_mode", "value": "warm-up"},
+    {"parameter": "zone_offsets", "value": [0.0, 0.5, -0.5]},
+    {
+      "parameter": "matrix_weights",
+      "value": [[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]]
+    }
+  ],
+  "members": [
+    {
+      "dimension": "zones",
+      "members": ["north-zone", "south-zone", "core-zone"]
+    }
+  ]
+}

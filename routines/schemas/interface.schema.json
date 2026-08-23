@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-control-library.example/schemas/routine-interface-v2.json",
+  "title": "Open Control Library canonical routine interface",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "canonical_id", "revision", "types", "dimensions", "parameters", "connectors"],
+  "properties": {
+    "schema": {"const": "cxf-library/routine-interface/v2"},
+    "canonical_id": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/canonicalId"
+    },
+    "revision": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/revision"
+    },
+    "types": {
+      "type": "array",
+      "items": {
+        "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/typeDefinition"
+      }
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/dimension"
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/parameter"
+      }
+    },
+    "connectors": {
+      "type": "array",
+      "items": {
+        "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/connector"
+      }
+    }
+  }
+}

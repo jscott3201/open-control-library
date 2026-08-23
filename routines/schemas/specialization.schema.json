@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-control-library.example/schemas/routine-specialization-v1.json",
+  "title": "Open Control Library routine specialization input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "canonical_id", "revision", "parameters", "members"],
+  "properties": {
+    "schema": {"const": "cxf-library/routine-specialization/v1"},
+    "canonical_id": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/canonicalId"
+    },
+    "revision": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/revision"
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/parameterAssignment"
+      }
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMembers"
+      }
+    }
+  }
+}

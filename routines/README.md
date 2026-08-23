@@ -1,9 +1,9 @@
 # Routine catalog
 
-Status: **source-inventoried and non-executable**.
+Status: **schema-defined and non-executable**.
 
-The L1 catalog separates planning, source evidence, and future routine
-inventories:
+The catalog separates planning, source evidence, schema contracts, and future
+routine inventories:
 
 - `g36/scope.json` records 22 Section 5 planning anchors and their intended
   destinations. Scope IDs are not canonical class IDs, and the destinations do
@@ -12,9 +12,11 @@ inventories:
   upstream G36 source root in separate release and development snapshots.
   `g36/LICENSE-BUILDINGS.html` retains the legal notice shared by both pins.
 - `registry.json` is the canonical class inventory. It remains empty until the
-  class and subsequence inventory is defined.
+  first production class rows are implemented.
 - `generated-registry.json` is the only future executable deployment inventory.
   It remains empty until the deployment bundle contract and specializer exist.
+- `schemas/` defines future class manifests, typed interfaces, and
+  specialization inputs. It does not contain production class instances.
 
 `g36/coverage.json` references the scope manifest, remains `planned`, and makes
 no implementation or completeness claims.
@@ -46,12 +48,26 @@ python3 tools/lint/g36_source.py --check \
 
 Run the remaining catalog gates from the repository root:
 
+`requirements-routine-schemas.txt` pins `jsonschema==4.26.0` and
+`referencing==0.37.0`.
+
 ```sh
-python3 -m unittest discover -s tools/lint/tests -v
-python3 tools/lint/routines.py
+python3 -m venv /tmp/cxf-routine-schemas
+/tmp/cxf-routine-schemas/bin/python -m pip install \
+  --requirement tools/lint/requirements-routine-schemas.txt
+/tmp/cxf-routine-schemas/bin/python -m unittest \
+  tools.lint.tests.test_routine_schemas -v
+/tmp/cxf-routine-schemas/bin/python tools/lint/routine_schemas.py
+/tmp/cxf-routine-schemas/bin/python -m unittest discover \
+  -s tools/lint/tests -v
+/tmp/cxf-routine-schemas/bin/python tools/lint/routines.py
 cargo run --manifest-path tools/verify/Cargo.toml -- --routines
 ```
 
-Canonical typed artifact schemas, generated deployment bundles, semantic
-sidecars, source-to-family and class mapping, specialization, and executable
-deployments remain deferred.
+Canonical IDs name parameterized engineering classes, never fixed parameter
+variants or source locations. Local types and enums belong to one interface.
+The schemas cover scalar and rank-one/rank-two typed values,
+parameter-controlled dimensions, stable repeated-member IDs, and
+parameter-only optional-connector guards. They do not evaluate guards or
+define point semantics, connector bindings, source mapping instances,
+production specializations, generated deployments, or executable CXF.
