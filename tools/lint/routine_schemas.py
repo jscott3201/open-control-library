@@ -29,12 +29,20 @@ INTERFACE_ID = "https://open-control-library.example/schemas/routine-interface-v
 SPECIALIZATION_ID = (
     "https://open-control-library.example/schemas/routine-specialization-v1.json"
 )
+SEMANTIC_PROFILE_ID = (
+    "https://open-control-library.example/schemas/routine-semantic-profile-v1.json"
+)
+DERIVATION_MANIFEST_ID = (
+    "https://open-control-library.example/schemas/routine-derivation-manifest-v1.json"
+)
 
 SCHEMA_FILES = {
     "common.schema.json": COMMON_ID,
     "class-manifest.schema.json": CLASS_MANIFEST_ID,
     "interface.schema.json": INTERFACE_ID,
     "specialization.schema.json": SPECIALIZATION_ID,
+    "routine-semantic-profile.schema.json": SEMANTIC_PROFILE_ID,
+    "routine-derivation-manifest.schema.json": DERIVATION_MANIFEST_ID,
 }
 FIXTURE_SCHEMAS = {
     "class-manifest.json": CLASS_MANIFEST_ID,
@@ -44,6 +52,7 @@ FIXTURE_SCHEMAS = {
 DEPENDENCIES = {
     "jsonschema": "4.26.0",
     "referencing": "0.37.0",
+    "rdflib": "7.1.4",
 }
 CANONICAL_RE = re.compile(
     r"^G36-05-(?P<section>0[1-9]|1[0-9]|2[0-2])-(?P<slug>[A-Z]+(?:-[A-Z]+)*)$"
@@ -147,12 +156,15 @@ def _check_refs(schemas_by_id, schema_name, schema, errors):
             errors.append(f"{label}: {location} must be a string")
             continue
         resource_id, fragment = urldefrag(reference)
-        if resource_id not in SCHEMA_FILES.values():
+        if not resource_id:
+            target_schema = schema
+        elif resource_id not in SCHEMA_FILES.values():
             errors.append(
                 f"{label}: {location} references forbidden resource {resource_id or reference!r}"
             )
             continue
-        target_schema = schemas_by_id.get(resource_id)
+        else:
+            target_schema = schemas_by_id.get(resource_id)
         if target_schema is None:
             errors.append(
                 f"{label}: {location} references unavailable local resource {resource_id}"
@@ -863,7 +875,10 @@ def main(repo_root=REPO_ROOT, argv=None):
     if errors:
         print("\n".join(errors))
         return 1
-    print("routine schema lint: 4 schemas, 3 synthetic fixtures OK")
+    print(
+        f"routine schema lint: {len(SCHEMA_FILES)} schemas, "
+        f"{len(FIXTURE_SCHEMAS)} synthetic fixtures OK"
+    )
     return 0
 
 

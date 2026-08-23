@@ -15,8 +15,13 @@ routine inventories:
   first production class rows are implemented.
 - `generated-registry.json` is the only future executable deployment inventory.
   It remains empty until the deployment bundle contract and specializer exist.
-- `schemas/` defines future class manifests, typed interfaces, and
-  specialization inputs. It does not contain production class instances.
+- `schemas/` contains six governed schemas for future class manifests, typed
+  interfaces, specialization inputs, semantic profiles, and derivation
+  manifests. It contains no production instances.
+- `ontology/ontology-pins.json` fixes the Brick 1.4.4, ASHRAE 223
+  1.0.0-ppr.2.1 compatibility, QUDT 3.1.4, and local OCL identities.
+  `ontology/ocl-vocabulary.ttl` is the hashed Library-owned vocabulary for
+  software and derivation concepts.
 
 `g36/coverage.json` references the scope manifest, remains `planned`, and makes
 no implementation or completeness claims.
@@ -48,8 +53,8 @@ python3 tools/lint/g36_source.py --check \
 
 Run the remaining catalog gates from the repository root:
 
-`requirements-routine-schemas.txt` pins `jsonschema==4.26.0` and
-`referencing==0.37.0`.
+`requirements-routine-schemas.txt` pins `jsonschema==4.26.0`,
+`referencing==0.37.0`, and `rdflib==7.1.4`.
 
 ```sh
 python3 -m venv /tmp/cxf-routine-schemas
@@ -57,7 +62,10 @@ python3 -m venv /tmp/cxf-routine-schemas
   --requirement tools/lint/requirements-routine-schemas.txt
 /tmp/cxf-routine-schemas/bin/python -m unittest \
   tools.lint.tests.test_routine_schemas -v
+/tmp/cxf-routine-schemas/bin/python -m unittest \
+  tools.lint.tests.test_routine_semantics -v
 /tmp/cxf-routine-schemas/bin/python tools/lint/routine_schemas.py
+/tmp/cxf-routine-schemas/bin/python tools/lint/routine_semantics.py
 /tmp/cxf-routine-schemas/bin/python -m unittest discover \
   -s tools/lint/tests -v
 /tmp/cxf-routine-schemas/bin/python tools/lint/routines.py
@@ -69,5 +77,19 @@ variants or source locations. Local types and enums belong to one interface.
 The schemas cover scalar and rank-one/rank-two typed values,
 parameter-controlled dimensions, stable repeated-member IDs, and
 parameter-only optional-connector guards. They do not evaluate guards or
-define point semantics, connector bindings, source mapping instances,
-production specializations, generated deployments, or executable CXF.
+define production connector bindings, source mapping instances,
+specializations, generated deployments, or executable CXF.
+
+The semantic and derivation schemas are exercised only by synthetic fixtures
+under `tools/lint/tests/fixtures/routine_semantics/`. Validation is local and
+network-free. It checks closed syntax, local OCL terms, connector semantic-role,
+mapping-status and topology obligations, selected S223 class and aspect policy,
+member references, the shared ontology-pin authority, and the
+profile-to-derivation relationship. Connector dataflow does not reclassify an
+S223 property as observable or actuatable. The topology strings are authoring
+requirements, not building-instance certification. Validation does not certify
+external ontology term existence, resolve fixture point references against
+production dictionaries, compare a profile to a production interface, or
+validate a building instance. Production semantic profiles, derivation
+manifests, point migrations, SHACL certification, and routine classes remain
+deferred.

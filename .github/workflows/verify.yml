@@ -61,6 +61,7 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/lint/tests -v
           python3 tools/lint/routine_schemas.py
+          python3 tools/lint/routine_semantics.py
           python3 tools/lint/routines.py
 
       - name: Verify G36 source inventory

@@ -1,0 +1,81 @@
+@prefix ocl: <urn:open-control-library:ontology:> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ocl: a owl:Ontology ;
+  rdfs:label "Open Control Library semantic vocabulary" ;
+  owl:versionInfo "0.1.0-draft" .
+
+ocl:RoutineSemanticProfile a owl:Class .
+ocl:ConnectorSemanticRole a owl:Class .
+ocl:PhysicalPointBinding a owl:Class .
+ocl:SoftwareSignalBinding a owl:Class .
+ocl:DerivedSignalBinding a owl:Class .
+ocl:SoftwareSignal a owl:Class .
+ocl:DerivedSignal a owl:Class ; rdfs:subClassOf ocl:SoftwareSignal .
+ocl:DerivedAggregate a owl:Class ; rdfs:subClassOf ocl:DerivedSignal .
+ocl:DerivationManifest a owl:Class .
+ocl:DerivationFunction a owl:Class .
+ocl:DerivationInput a owl:Class .
+ocl:DerivationMember a owl:Class .
+ocl:DerivationExclusion a owl:Class .
+
+ocl:hasConnectorRole a owl:ObjectProperty .
+ocl:hasBinding a owl:ObjectProperty .
+ocl:brickMapping a owl:ObjectProperty .
+ocl:s223Mapping a owl:ObjectProperty .
+ocl:algorithm a owl:ObjectProperty .
+ocl:output a owl:ObjectProperty .
+ocl:input a owl:ObjectProperty .
+ocl:source a owl:ObjectProperty .
+ocl:signalId a owl:ObjectProperty ; rdfs:range ocl:SoftwareSignal .
+ocl:memberPopulation a owl:ObjectProperty .
+ocl:exclusion a owl:ObjectProperty .
+ocl:dataQualityPolicy a owl:ObjectProperty .
+ocl:readyCondition a owl:ObjectProperty .
+ocl:unitPolicy a owl:ObjectProperty .
+ocl:outputUnit a owl:ObjectProperty .
+ocl:outputScope a owl:ObjectProperty .
+ocl:resetBehavior a owl:ObjectProperty .
+
+ocl:artifactVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:localId a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:canonicalRoutineId a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:canonicalRoutineRevision a owl:DatatypeProperty ; rdfs:range xsd:integer .
+ocl:ontologyPins a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:connectorId a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:direction a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:g36PointRequirement a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:semanticRole a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:mappingStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:topologyRequirement a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:cardinality a owl:ObjectProperty .
+ocl:minimumCardinality a owl:DatatypeProperty ; rdfs:range xsd:integer .
+ocl:maximumCardinality a owl:DatatypeProperty ; rdfs:range xsd:integer .
+ocl:kind a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:canonicalPointRef a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:brickClass a owl:ObjectProperty .
+ocl:s223PropertyClass a owl:ObjectProperty .
+ocl:quantityKind a owl:ObjectProperty .
+ocl:unit a owl:ObjectProperty .
+ocl:enumerationKind a owl:ObjectProperty .
+ocl:s223Medium a owl:ObjectProperty .
+ocl:s223Aspect a owl:ObjectProperty .
+ocl:localClass a owl:ObjectProperty .
+ocl:outputId a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:derivationManifestRef a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:algorithmVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:sourceId a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:valueKind a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:memberId a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:excludedMember a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:exclusionReason a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:acceptedStatus a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:rejectedInputPolicy a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:minimumValidMembers a owl:DatatypeProperty ; rdfs:range xsd:integer .
+ocl:freshnessLimitSeconds a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+ocl:timeAlignmentWindowSeconds a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+ocl:requireAllInputsInDomain a owl:DatatypeProperty ; rdfs:range xsd:boolean .
+ocl:inputUnitsPolicy a owl:DatatypeProperty ; rdfs:range xsd:string .
+ocl:conversionPolicy a owl:DatatypeProperty ; rdfs:range xsd:string .

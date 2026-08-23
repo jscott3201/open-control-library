@@ -1,0 +1,182 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "brick": "https://brickschema.org/schema/Brick#",
+    "s223": "http://data.ashrae.org/standard223#",
+    "g36": "http://data.ashrae.org/standard223/1.0/extensions/g36#",
+    "qk": "http://qudt.org/vocab/quantitykind/",
+    "unit": "http://qudt.org/vocab/unit/",
+    "ocl": "urn:open-control-library:ontology:",
+    "schema": "ocl:artifactVersion",
+    "canonical_id": "ocl:canonicalRoutineId",
+    "revision": "ocl:canonicalRoutineRevision",
+    "ontology_pins": "ocl:ontologyPins",
+    "id": "ocl:localId",
+    "connector_roles": {"@id": "ocl:hasConnectorRole", "@container": "@set"},
+    "connector_id": "ocl:connectorId",
+    "direction": "ocl:direction",
+    "requirement": "ocl:g36PointRequirement",
+    "semantic_role": "ocl:semanticRole",
+    "mapping_status": "ocl:mappingStatus",
+    "topology_requirements": {"@id": "ocl:topologyRequirement", "@container": "@set"},
+    "cardinality": "ocl:cardinality",
+    "minimum": "ocl:minimumCardinality",
+    "maximum": "ocl:maximumCardinality",
+    "binding": "ocl:hasBinding",
+    "kind": "ocl:kind",
+    "canonical_point_ref": "ocl:canonicalPointRef",
+    "brick_mapping": "ocl:brickMapping",
+    "s223_mapping": "ocl:s223Mapping",
+    "brick_class": {"@id": "ocl:brickClass", "@type": "@id"},
+    "property_class": {"@id": "ocl:s223PropertyClass", "@type": "@id"},
+    "quantity_kind": {"@id": "ocl:quantityKind", "@type": "@id"},
+    "qudt_unit": {"@id": "ocl:unit", "@type": "@id"},
+    "enumeration_kind": {"@id": "ocl:enumerationKind", "@type": "@id"},
+    "medium": {"@id": "ocl:s223Medium", "@type": "@id"},
+    "aspects": {"@id": "ocl:s223Aspect", "@type": "@id", "@container": "@set"},
+    "local_class": {"@id": "ocl:localClass", "@type": "@id"},
+    "output_id": "ocl:outputId",
+    "derivation_manifest_ref": "ocl:derivationManifestRef",
+    "algorithm": "ocl:algorithm",
+    "version": "ocl:algorithmVersion",
+    "output": "ocl:output",
+    "inputs": {"@id": "ocl:input", "@container": "@list"},
+    "source_id": "ocl:sourceId",
+    "signal_id": {"@id": "ocl:signalId", "@type": "@id"},
+    "source": "ocl:source",
+    "value_kind": "ocl:valueKind",
+    "member_id": "ocl:memberId",
+    "members": {"@id": "ocl:memberPopulation", "@container": "@list"},
+    "exclusions": {"@id": "ocl:exclusion", "@container": "@set"},
+    "member_ids": {"@id": "ocl:excludedMember", "@container": "@set"},
+    "reason": "ocl:exclusionReason",
+    "data_quality": "ocl:dataQualityPolicy",
+    "accepted_statuses": {"@id": "ocl:acceptedStatus", "@container": "@set"},
+    "rejected_input": "ocl:rejectedInputPolicy",
+    "minimum_valid_members": "ocl:minimumValidMembers",
+    "freshness_limit_s": "ocl:freshnessLimitSeconds",
+    "time_alignment_window_s": "ocl:timeAlignmentWindowSeconds",
+    "ready_condition": "ocl:readyCondition",
+    "require_all_inputs_in_domain": "ocl:requireAllInputsInDomain",
+    "unit_policy": "ocl:unitPolicy",
+    "output_unit": {"@id": "ocl:outputUnit", "@type": "@id"},
+    "input_units": "ocl:inputUnitsPolicy",
+    "conversion": "ocl:conversionPolicy",
+    "output_scope": "ocl:outputScope",
+    "reset_behavior": "ocl:resetBehavior"
+  },
+  "@id": "urn:open-control-library:routine-semantic-profile:G36-05-16-SYNTHETIC-SEMANTIC-TEST:v1",
+  "@type": "ocl:RoutineSemanticProfile",
+  "schema": "cxf-library/routine-semantic-profile/v1",
+  "canonical_id": "G36-05-16-SYNTHETIC-SEMANTIC-TEST",
+  "revision": 1,
+  "ontology_pins": "routines/ontology/ontology-pins.json",
+  "connector_roles": [
+    {
+      "@id": "urn:open-control-library:connector-role:G36-05-16-SYNTHETIC-SEMANTIC-TEST:zone_air_temperatures",
+      "@type": "ocl:ConnectorSemanticRole",
+      "connector_id": "zone_air_temperatures",
+      "direction": "input",
+      "requirement": "R",
+      "semantic_role": "Zone air temperature observations used by the synthetic aggregate.",
+      "mapping_status": "verified",
+      "topology_requirements": [
+        "Each bound sensor must observe the zone identified by its stable member."
+      ],
+      "cardinality": {"minimum": 2, "maximum": 3},
+      "binding": {
+        "@type": "ocl:PhysicalPointBinding",
+        "kind": "physical-or-bms-point",
+        "canonical_point_ref": "points/synthetic.points.json#zone_air_temperature",
+        "brick_mapping": {
+          "brick_class": "brick:Zone_Air_Temperature_Sensor"
+        },
+        "s223_mapping": {
+          "property_class": "s223:QuantifiableObservableProperty",
+          "quantity_kind": "qk:Temperature",
+          "qudt_unit": "unit:DEG_C",
+          "medium": "s223:Fluid-Air",
+          "aspects": []
+        }
+      }
+    },
+    {
+      "@id": "urn:open-control-library:connector-role:G36-05-16-SYNTHETIC-SEMANTIC-TEST:zone_cooling_setpoint",
+      "@type": "ocl:ConnectorSemanticRole",
+      "connector_id": "zone_cooling_setpoint",
+      "direction": "input",
+      "requirement": "R",
+      "semantic_role": "Active zone cooling setpoint consumed by the synthetic routine.",
+      "mapping_status": "provisional",
+      "topology_requirements": [
+        "The setpoint must control the same zone identified by the bound point owner."
+      ],
+      "cardinality": {"minimum": 1, "maximum": 1},
+      "binding": {
+        "@type": "ocl:PhysicalPointBinding",
+        "kind": "physical-or-bms-point",
+        "canonical_point_ref": "points/synthetic.points.json#zone_cooling_setpoint",
+        "brick_mapping": {
+          "brick_class": "brick:Zone_Air_Cooling_Temperature_Setpoint"
+        },
+        "s223_mapping": {
+          "property_class": "s223:QuantifiableActuatableProperty",
+          "quantity_kind": "qk:Temperature",
+          "qudt_unit": "unit:DEG_C",
+          "medium": "s223:Fluid-Air",
+          "aspects": ["s223:Aspect-Setpoint"]
+        }
+      }
+    },
+    {
+      "@id": "urn:open-control-library:connector-role:G36-05-16-SYNTHETIC-SEMANTIC-TEST:system_mode",
+      "@type": "ocl:ConnectorSemanticRole",
+      "connector_id": "system_mode",
+      "direction": "input",
+      "requirement": "S",
+      "semantic_role": "System operating mode consumed by the synthetic routine.",
+      "mapping_status": "verified",
+      "topology_requirements": [],
+      "cardinality": {"minimum": 1, "maximum": 1},
+      "binding": {
+        "@type": "ocl:SoftwareSignalBinding",
+        "kind": "software-signal",
+        "local_class": "ocl:SoftwareSignal"
+      }
+    },
+    {
+      "@id": "urn:open-control-library:connector-role:G36-05-16-SYNTHETIC-SEMANTIC-TEST:zone_air_temperature_max",
+      "@type": "ocl:ConnectorSemanticRole",
+      "connector_id": "zone_air_temperature_max",
+      "direction": "input",
+      "requirement": "D",
+      "semantic_role": "Maximum zone air temperature derived for routine logic.",
+      "mapping_status": "verified",
+      "topology_requirements": [],
+      "cardinality": {"minimum": 1, "maximum": 1},
+      "binding": {
+        "@type": "ocl:DerivedSignalBinding",
+        "kind": "derived-signal",
+        "local_class": "ocl:DerivedAggregate",
+        "output_id": "zone_air_temperature_max",
+        "derivation_manifest_ref": "routine-derivation-manifest.jsonld#zone_air_temperature_max"
+      }
+    },
+    {
+      "@id": "urn:open-control-library:connector-role:G36-05-16-SYNTHETIC-SEMANTIC-TEST:reset_request",
+      "@type": "ocl:ConnectorSemanticRole",
+      "connector_id": "reset_request",
+      "direction": "output",
+      "requirement": "S",
+      "semantic_role": "Reset request emitted by the synthetic routine.",
+      "mapping_status": "verified",
+      "topology_requirements": [],
+      "cardinality": {"minimum": 1, "maximum": 1},
+      "binding": {
+        "@type": "ocl:SoftwareSignalBinding",
+        "kind": "software-signal",
+        "local_class": "ocl:SoftwareSignal"
+      }
+    }
+  ]
+}

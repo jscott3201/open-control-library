@@ -1,0 +1,48 @@
+{
+  "schema": "cxf-library/ontology-pins/v1",
+  "brick": {
+    "namespace": "https://brickschema.org/schema/Brick#",
+    "repository": "BrickSchema/Brick",
+    "release": "v1.4.4",
+    "commit": "4b5be60d27f9b4d96fe477f45513fa71afebe684",
+    "artifact_url": "https://github.com/BrickSchema/Brick/releases/download/v1.4.4/Brick.ttl",
+    "sha256": "b65720b7b9b64c646745c689777e6138c0d59ce0088df0aeb78fbd444d04d8e7"
+  },
+  "s223_compatibility": {
+    "core_namespace": "http://data.ashrae.org/standard223#",
+    "g36_extension_namespace": "http://data.ashrae.org/standard223/1.0/extensions/g36#",
+    "version": "1.0.0-ppr.2.1",
+    "repository": "open223/open223.info",
+    "commit": "97656845cab16183e64e9611c94f40a6fad95226",
+    "path": "223p-1.0.0-ppr2.1.ttl",
+    "git_blob_sha1": "c2ee998a1e0f5cc3e496ff9c20c30e01019ff250",
+    "artifact_url": "https://open223.info/223p-1.0.0-ppr2.1.ttl",
+    "sha256": "1f156f9938c0be430d2216e01e31bb183c438ba318d8d4a23d2f074ebcd6f573",
+    "qudt_import_observation": "http://qudt.org/3.1.8/shacl/qudt-all",
+    "status": "compatibility-baseline-not-final-standard"
+  },
+  "qudt": {
+    "quantitykind_namespace": "http://qudt.org/vocab/quantitykind/",
+    "unit_namespace": "http://qudt.org/vocab/unit/",
+    "repository": "qudt/qudt-public-repo",
+    "release": "v3.1.4",
+    "annotated_tag": "e6cba51f5769691a926e000cbeb044d4d5cd754e",
+    "commit": "5a19ef66a5b8d8c404f469244304afc7d9f83eaa",
+    "quantity_kinds": {
+      "path": "src/main/rdf/vocab/quantitykinds/VOCAB_QUDT-QUANTITY-KINDS-ALL.ttl",
+      "git_blob_sha1": "256b28f66ecc810d90327eee229d6db402a52ad1",
+      "sha256": "3e7027106b4f1abbfc6634ebe38b27500af59e79a0b941a49fd6a60819adb4cb"
+    },
+    "units": {
+      "path": "src/main/rdf/vocab/unit/VOCAB_QUDT-UNITS-ALL.ttl",
+      "git_blob_sha1": "ebf64443fe04d3036f770a6766e328112ba28657",
+      "sha256": "5c236e25c58a571f3110ac3ac0197f64fff0131498dab9eac2ff06932ed39e3b"
+    }
+  },
+  "local": {
+    "namespace": "urn:open-control-library:ontology:",
+    "version": "0.1.0-draft",
+    "path": "routines/ontology/ocl-vocabulary.ttl",
+    "sha256": "fcc79e8a100bee5fb96ae73472ea7887aeec5ea013e7cbc6f800068aa4451f0b"
+  }
+}
