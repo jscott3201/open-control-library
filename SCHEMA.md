@@ -229,6 +229,12 @@ software-signal, derived-signal, aggregate, derivation, and policy terms used by
 the governed fixtures. It has no imports. Its SHA-256 is part of the pin record;
 changing the Turtle bytes requires updating that hash in the same change.
 
+`routines/ontology/shacl/open-control-routine-shapes.ttl` is the governed SHACL
+Core graph for the two synthetic semantic fixtures. Shape identifiers use
+`urn:open-control-library:shacl:routine:`; every OCL term in the graph MUST be
+declared by `ocl-vocabulary.ttl`. The graph defines no SPARQL constraints,
+SHACL-AF rules, or SHACL-JS. Validation performs no imports or inference.
+
 #### Routine semantic profiles (`cxf-library/routine-semantic-profile/v1`)
 
 A semantic profile has a stable JSON-LD `@id`, type
@@ -304,12 +310,20 @@ added to a registry, coverage claim, source inventory, book, or production
 catalog destination.
 
 `tools/lint/routine_semantics.py` checks the closed pin record, recomputes the
-local-vocabulary hash, parses the Turtle from local bytes, applies the same
-six-resource in-memory schema registry, rejects unsafe JSON-LD constructs before
-RDFLib parsing, and validates semantic and derivation cross-document rules. Its
-two fixtures under `tools/lint/tests/fixtures/routine_semantics/` are synthetic.
-Their point references are syntax examples and are not resolved against
-production dictionaries or routine interfaces.
+local-vocabulary hash, parses local Turtle bytes, applies the same six-resource
+in-memory schema registry, and rejects unsafe JSON-LD constructs before RDFLib
+parsing. It passes each fixture's parsed graph independently to pySHACL 0.31.0
+with imports, inference, advanced features, JavaScript, and in-place mutation
+disabled. SHACL reports are normalized into sorted diagnostics; Python retains
+the uniqueness, member, unit-policy, and cross-document checks.
+
+The SHACL graph checks the RDF projection's expected local classes and
+predicates, nested node/cardinality/datatype/class structure, and closed current
+entities. It does not duplicate every JSON Schema lexical rule or the Python
+checks above. The two fixtures under
+`tools/lint/tests/fixtures/routine_semantics/` are synthetic. Their point
+references are syntax examples and are not resolved against production
+dictionaries or routine interfaces.
 
 No external ontology is vendored or fetched. Brick, S223, and QUDT CURIE checks
 therefore prove closed syntax and selected S223 class and aspect policy, not that

@@ -1,0 +1,915 @@
+@prefix ocl: <urn:open-control-library:ontology:> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix shape: <urn:open-control-library:shacl:routine:> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+shape:ProfileShape a sh:NodeShape ;
+  sh:targetClass ocl:RoutineSemanticProfile ;
+  sh:targetSubjectsOf ocl:hasConnectorRole ;
+  sh:class ocl:RoutineSemanticProfile ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:ProfileArtifactVersionProperty,
+    shape:ProfileCanonicalIdProperty,
+    shape:ProfileRevisionProperty,
+    shape:ProfileOntologyPinsProperty,
+    shape:ProfileConnectorRoleProperty ;
+  sh:message "Profile roots must have the governed RDF structure." .
+
+shape:ProfileArtifactVersionProperty a sh:PropertyShape ;
+  sh:path ocl:artifactVersion ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Profile artifactVersion must be one string literal." .
+
+shape:ProfileCanonicalIdProperty a sh:PropertyShape ;
+  sh:path ocl:canonicalRoutineId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Profile canonicalRoutineId must be one string literal." .
+
+shape:ProfileRevisionProperty a sh:PropertyShape ;
+  sh:path ocl:canonicalRoutineRevision ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:integer ;
+  sh:message "Profile canonicalRoutineRevision must be one integer literal." .
+
+shape:ProfileOntologyPinsProperty a sh:PropertyShape ;
+  sh:path ocl:ontologyPins ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Profile ontologyPins must be one string literal." .
+
+shape:ProfileConnectorRoleProperty a sh:PropertyShape ;
+  sh:path ocl:hasConnectorRole ;
+  sh:minCount 1 ;
+  sh:node shape:ConnectorRoleShape ;
+  sh:message "Profile connector roles must be governed connector-role nodes." .
+
+shape:ConnectorRoleShape a sh:NodeShape ;
+  sh:class ocl:ConnectorSemanticRole ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:ConnectorRoleIdProperty,
+    shape:ConnectorRoleDirectionProperty,
+    shape:ConnectorRoleRequirementProperty,
+    shape:ConnectorRoleSemanticRoleProperty,
+    shape:ConnectorRoleMappingStatusProperty,
+    shape:ConnectorRoleTopologyProperty,
+    shape:ConnectorRoleCardinalityProperty,
+    shape:ConnectorRoleBindingProperty ;
+  sh:message "Connector roles must have the governed RDF structure." .
+
+shape:ConnectorRoleIdProperty a sh:PropertyShape ;
+  sh:path ocl:connectorId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Connector role connectorId must be one string literal." .
+
+shape:ConnectorRoleDirectionProperty a sh:PropertyShape ;
+  sh:path ocl:direction ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Connector role direction must be one string literal." .
+
+shape:ConnectorRoleRequirementProperty a sh:PropertyShape ;
+  sh:path ocl:g36PointRequirement ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Connector role requirement must be one string literal." .
+
+shape:ConnectorRoleSemanticRoleProperty a sh:PropertyShape ;
+  sh:path ocl:semanticRole ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Connector role semanticRole must be one string literal." .
+
+shape:ConnectorRoleMappingStatusProperty a sh:PropertyShape ;
+  sh:path ocl:mappingStatus ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Connector role mappingStatus must be one string literal." .
+
+shape:ConnectorRoleTopologyProperty a sh:PropertyShape ;
+  sh:path ocl:topologyRequirement ;
+  sh:datatype xsd:string ;
+  sh:message "Connector role topology requirements must be string literals." .
+
+shape:ConnectorRoleCardinalityProperty a sh:PropertyShape ;
+  sh:path ocl:cardinality ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:CardinalityShape ;
+  sh:message "Connector role cardinality must be one governed node." .
+
+shape:ConnectorRoleBindingProperty a sh:PropertyShape ;
+  sh:path ocl:hasBinding ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:BindingShape ;
+  sh:message "Connector role binding must match one governed binding branch." .
+
+shape:CardinalityShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:CardinalityMinimumProperty,
+    shape:CardinalityMaximumProperty ;
+  sh:message "Cardinality nodes must have the governed RDF structure." .
+
+shape:CardinalityMinimumProperty a sh:PropertyShape ;
+  sh:path ocl:minimumCardinality ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:integer ;
+  sh:message "Cardinality minimum must be one integer literal." .
+
+shape:CardinalityMaximumProperty a sh:PropertyShape ;
+  sh:path ocl:maximumCardinality ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:integer ;
+  sh:message "Cardinality maximum must be one integer literal." .
+
+shape:BindingShape a sh:NodeShape ;
+  sh:or (
+    shape:PhysicalBindingShape
+    shape:SoftwareBindingShape
+    shape:DerivedBindingShape
+  ) ;
+  sh:message "Binding nodes must match the physical, software, or derived branch." .
+
+shape:PhysicalBindingShape a sh:NodeShape ;
+  sh:class ocl:PhysicalPointBinding ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:PhysicalBindingKindProperty,
+    shape:PhysicalBindingPointProperty,
+    shape:PhysicalBindingBrickProperty,
+    shape:PhysicalBindingS223Property ;
+  sh:message "Physical bindings must have the governed RDF structure." .
+
+shape:PhysicalBindingKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "physical-or-bms-point" ;
+  sh:message "Physical binding kind must be physical-or-bms-point." .
+
+shape:PhysicalBindingPointProperty a sh:PropertyShape ;
+  sh:path ocl:canonicalPointRef ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Physical binding canonicalPointRef must be one string literal." .
+
+shape:PhysicalBindingBrickProperty a sh:PropertyShape ;
+  sh:path ocl:brickMapping ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:BrickMappingShape ;
+  sh:message "Physical binding brickMapping must be one governed node." .
+
+shape:PhysicalBindingS223Property a sh:PropertyShape ;
+  sh:path ocl:s223Mapping ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:S223MappingShape ;
+  sh:message "Physical binding s223Mapping must be one governed node." .
+
+shape:SoftwareBindingShape a sh:NodeShape ;
+  sh:class ocl:SoftwareSignalBinding ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:SoftwareBindingKindProperty,
+    shape:SoftwareBindingClassProperty ;
+  sh:message "Software bindings must have the governed RDF structure." .
+
+shape:SoftwareBindingKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "software-signal" ;
+  sh:message "Software binding kind must be software-signal." .
+
+shape:SoftwareBindingClassProperty a sh:PropertyShape ;
+  sh:path ocl:localClass ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Software binding localClass must be one IRI." .
+
+shape:DerivedBindingShape a sh:NodeShape ;
+  sh:class ocl:DerivedSignalBinding ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:DerivedBindingKindProperty,
+    shape:DerivedBindingClassProperty,
+    shape:DerivedBindingOutputProperty,
+    shape:DerivedBindingManifestProperty ;
+  sh:message "Derived bindings must have the governed RDF structure." .
+
+shape:DerivedBindingKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "derived-signal" ;
+  sh:message "Derived binding kind must be derived-signal." .
+
+shape:DerivedBindingClassProperty a sh:PropertyShape ;
+  sh:path ocl:localClass ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Derived binding localClass must be one IRI." .
+
+shape:DerivedBindingOutputProperty a sh:PropertyShape ;
+  sh:path ocl:outputId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derived binding outputId must be one string literal." .
+
+shape:DerivedBindingManifestProperty a sh:PropertyShape ;
+  sh:path ocl:derivationManifestRef ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derived binding derivationManifestRef must be one string literal." .
+
+shape:BrickMappingShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:BrickMappingClassProperty ;
+  sh:message "Brick mapping nodes must have the governed RDF structure." .
+
+shape:BrickMappingClassProperty a sh:PropertyShape ;
+  sh:path ocl:brickClass ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Brick mapping brickClass must be one IRI." .
+
+shape:S223MappingShape a sh:NodeShape ;
+  sh:or (
+    shape:QuantifiableS223MappingShape
+    shape:EnumeratedS223MappingShape
+  ) ;
+  sh:message "S223 mappings must match a quantifiable or enumerated branch." .
+
+shape:QuantifiableS223MappingShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:S223PropertyClassProperty,
+    shape:S223QuantityKindProperty,
+    shape:S223UnitProperty,
+    shape:S223MediumProperty,
+    shape:S223AspectProperty ;
+  sh:message "Quantifiable S223 mappings must have the governed RDF structure." .
+
+shape:EnumeratedS223MappingShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:S223PropertyClassProperty,
+    shape:S223EnumerationKindProperty,
+    shape:S223MediumProperty,
+    shape:S223AspectProperty ;
+  sh:message "Enumerated S223 mappings must have the governed RDF structure." .
+
+shape:S223PropertyClassProperty a sh:PropertyShape ;
+  sh:path ocl:s223PropertyClass ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "S223 mapping property class must be one IRI." .
+
+shape:S223QuantityKindProperty a sh:PropertyShape ;
+  sh:path ocl:quantityKind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Quantifiable S223 mapping quantity kind must be one IRI." .
+
+shape:S223UnitProperty a sh:PropertyShape ;
+  sh:path ocl:unit ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Quantifiable S223 mapping unit must be one IRI." .
+
+shape:S223EnumerationKindProperty a sh:PropertyShape ;
+  sh:path ocl:enumerationKind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Enumerated S223 mapping enumeration kind must be one IRI." .
+
+shape:S223MediumProperty a sh:PropertyShape ;
+  sh:path ocl:s223Medium ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "S223 mapping medium, when present, must be one IRI." .
+
+shape:S223AspectProperty a sh:PropertyShape ;
+  sh:path ocl:s223Aspect ;
+  sh:nodeKind sh:IRI ;
+  sh:message "S223 mapping aspects must be IRIs." .
+
+shape:ManifestShape a sh:NodeShape ;
+  sh:targetClass ocl:DerivationManifest ;
+  sh:targetSubjectsOf ocl:algorithm ;
+  sh:class ocl:DerivationManifest ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:ManifestArtifactVersionProperty,
+    shape:ManifestCanonicalIdProperty,
+    shape:ManifestRevisionProperty,
+    shape:ManifestOntologyPinsProperty,
+    shape:ManifestAlgorithmProperty,
+    shape:ManifestOutputProperty,
+    shape:ManifestInputListProperty,
+    shape:ManifestInputEntityProperty,
+    shape:ManifestMemberListProperty,
+    shape:ManifestMemberEntityProperty,
+    shape:ManifestExclusionProperty,
+    shape:ManifestDataQualityProperty,
+    shape:ManifestFreshnessProperty,
+    shape:ManifestAlignmentProperty,
+    shape:ManifestReadyProperty,
+    shape:ManifestUnitPolicyProperty,
+    shape:ManifestOutputScopeProperty,
+    shape:ManifestResetProperty ;
+  sh:message "Derivation manifest roots must have the governed RDF structure." .
+
+shape:ManifestArtifactVersionProperty a sh:PropertyShape ;
+  sh:path ocl:artifactVersion ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Manifest artifactVersion must be one string literal." .
+
+shape:ManifestCanonicalIdProperty a sh:PropertyShape ;
+  sh:path ocl:canonicalRoutineId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Manifest canonicalRoutineId must be one string literal." .
+
+shape:ManifestRevisionProperty a sh:PropertyShape ;
+  sh:path ocl:canonicalRoutineRevision ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:integer ;
+  sh:message "Manifest canonicalRoutineRevision must be one integer literal." .
+
+shape:ManifestOntologyPinsProperty a sh:PropertyShape ;
+  sh:path ocl:ontologyPins ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Manifest ontologyPins must be one string literal." .
+
+shape:ManifestAlgorithmProperty a sh:PropertyShape ;
+  sh:path ocl:algorithm ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:AlgorithmShape ;
+  sh:message "Manifest algorithm must be one governed node." .
+
+shape:ManifestOutputProperty a sh:PropertyShape ;
+  sh:path ocl:output ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:OutputShape ;
+  sh:message "Manifest output must be one governed node." .
+
+shape:ManifestInputListProperty a sh:PropertyShape ;
+  sh:path ocl:input ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:message "Manifest inputs must project to one RDF list container." .
+
+shape:ManifestInputEntityProperty a sh:PropertyShape ;
+  sh:path ( ocl:input [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;
+  sh:minCount 1 ;
+  sh:node shape:InputShape ;
+  sh:message "Manifest input list members must be governed input nodes." .
+
+shape:ManifestMemberListProperty a sh:PropertyShape ;
+  sh:path ocl:memberPopulation ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:message "Manifest members must project to one RDF list container." .
+
+shape:ManifestMemberEntityProperty a sh:PropertyShape ;
+  sh:path ( ocl:memberPopulation [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;
+  sh:minCount 1 ;
+  sh:node shape:MemberShape ;
+  sh:message "Manifest member list entries must be governed member nodes." .
+
+shape:ManifestExclusionProperty a sh:PropertyShape ;
+  sh:path ocl:exclusion ;
+  sh:node shape:ExclusionShape ;
+  sh:message "Manifest exclusions must be governed exclusion nodes." .
+
+shape:ManifestDataQualityProperty a sh:PropertyShape ;
+  sh:path ocl:dataQualityPolicy ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:DataQualityShape ;
+  sh:message "Manifest dataQualityPolicy must be one governed node." .
+
+shape:ManifestFreshnessProperty a sh:PropertyShape ;
+  sh:path ocl:freshnessLimitSeconds ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:NumericLiteralShape ;
+  sh:message "Manifest freshnessLimitSeconds must be one numeric literal." .
+
+shape:ManifestAlignmentProperty a sh:PropertyShape ;
+  sh:path ocl:timeAlignmentWindowSeconds ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:NumericLiteralShape ;
+  sh:message "Manifest timeAlignmentWindowSeconds must be one numeric literal." .
+
+shape:NumericLiteralShape a sh:NodeShape ;
+  sh:or (
+    shape:IntegerNumericLiteralShape
+    shape:DecimalNumericLiteralShape
+    shape:DoubleNumericLiteralShape
+  ) ;
+  sh:message "Numeric literals must use an integer, decimal, or double datatype." .
+
+shape:IntegerNumericLiteralShape a sh:NodeShape ;
+  sh:datatype xsd:integer ;
+  sh:message "Integer numeric literals must use xsd:integer." .
+
+shape:DecimalNumericLiteralShape a sh:NodeShape ;
+  sh:datatype xsd:decimal ;
+  sh:message "Decimal numeric literals must use xsd:decimal." .
+
+shape:DoubleNumericLiteralShape a sh:NodeShape ;
+  sh:datatype xsd:double ;
+  sh:message "Double numeric literals must use xsd:double." .
+
+shape:ManifestReadyProperty a sh:PropertyShape ;
+  sh:path ocl:readyCondition ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:ReadyShape ;
+  sh:message "Manifest readyCondition must be one governed node." .
+
+shape:ManifestUnitPolicyProperty a sh:PropertyShape ;
+  sh:path ocl:unitPolicy ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:UnitPolicyShape ;
+  sh:message "Manifest unitPolicy must be one governed node." .
+
+shape:ManifestOutputScopeProperty a sh:PropertyShape ;
+  sh:path ocl:outputScope ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:OutputScopeShape ;
+  sh:message "Manifest outputScope must match one governed branch." .
+
+shape:ManifestResetProperty a sh:PropertyShape ;
+  sh:path ocl:resetBehavior ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:ResetShape ;
+  sh:message "Manifest resetBehavior must match one governed branch." .
+
+shape:AlgorithmShape a sh:NodeShape ;
+  sh:class ocl:DerivationFunction ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:AlgorithmVersionProperty ;
+  sh:message "Derivation algorithms must have the governed RDF structure." .
+
+shape:AlgorithmVersionProperty a sh:PropertyShape ;
+  sh:path ocl:algorithmVersion ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Algorithm version must be one string literal." .
+
+shape:OutputShape a sh:NodeShape ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:OutputTypeProperty,
+    shape:OutputIdProperty ;
+  sh:message "Derivation outputs must have the governed RDF structure." .
+
+shape:OutputTypeProperty a sh:PropertyShape ;
+  sh:path rdf:type ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:in ( ocl:DerivedSignal ocl:DerivedAggregate ) ;
+  sh:message "Derivation output type must be DerivedSignal or DerivedAggregate." .
+
+shape:OutputIdProperty a sh:PropertyShape ;
+  sh:path ocl:localId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derivation output localId must be one string literal." .
+
+shape:InputShape a sh:NodeShape ;
+  sh:class ocl:DerivationInput ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:InputIdProperty,
+    shape:InputSourceIdProperty,
+    shape:InputSourceProperty ;
+  sh:message "Derivation inputs must have the governed RDF structure." .
+
+shape:InputIdProperty a sh:PropertyShape ;
+  sh:path ocl:localId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derivation input localId must be one string literal." .
+
+shape:InputSourceIdProperty a sh:PropertyShape ;
+  sh:path ocl:sourceId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derivation input sourceId must be one string literal." .
+
+shape:InputSourceProperty a sh:PropertyShape ;
+  sh:path ocl:source ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:node shape:SourceShape ;
+  sh:message "Derivation input source must match one governed source branch." .
+
+shape:SourceShape a sh:NodeShape ;
+  sh:or (
+    shape:CanonicalPointSourceShape
+    shape:SoftwareSourceShape
+    shape:ConnectorSourceShape
+  ) ;
+  sh:message "Source nodes must match the canonical-point, software, or connector branch." .
+
+shape:CanonicalPointSourceShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:CanonicalPointSourceKindProperty,
+    shape:SourcePointProperty,
+    shape:SourceValueKindProperty,
+    shape:SourceUnitProperty,
+    shape:SourceMemberProperty ;
+  sh:message "Canonical-point sources must have the governed RDF structure." .
+
+shape:SoftwareSourceShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:SoftwareSourceKindProperty,
+    shape:SourceSignalProperty,
+    shape:SourceLocalClassProperty,
+    shape:SourceValueKindProperty,
+    shape:SourceUnitProperty,
+    shape:SourceMemberProperty ;
+  sh:message "Software sources must have the governed RDF structure." .
+
+shape:ConnectorSourceShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:ConnectorSourceKindProperty,
+    shape:SourceConnectorProperty,
+    shape:SourceDirectionProperty,
+    shape:SourceValueKindProperty,
+    shape:SourceUnitProperty,
+    shape:SourceMemberProperty ;
+  sh:message "Connector sources must have the governed RDF structure." .
+
+shape:CanonicalPointSourceKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "canonical-point" ;
+  sh:message "Canonical-point source kind must be canonical-point." .
+
+shape:SoftwareSourceKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "software-signal" ;
+  sh:message "Software source kind must be software-signal." .
+
+shape:ConnectorSourceKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "connector" ;
+  sh:message "Connector source kind must be connector." .
+
+shape:SourcePointProperty a sh:PropertyShape ;
+  sh:path ocl:canonicalPointRef ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Canonical-point source reference must be one string literal." .
+
+shape:SourceSignalProperty a sh:PropertyShape ;
+  sh:path ocl:signalId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Software source signalId must be one IRI." .
+
+shape:SourceLocalClassProperty a sh:PropertyShape ;
+  sh:path ocl:localClass ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Software source localClass must be one IRI." .
+
+shape:SourceConnectorProperty a sh:PropertyShape ;
+  sh:path ocl:connectorId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Connector source connectorId must be one string literal." .
+
+shape:SourceDirectionProperty a sh:PropertyShape ;
+  sh:path ocl:direction ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Connector source direction must be one string literal." .
+
+shape:SourceValueKindProperty a sh:PropertyShape ;
+  sh:path ocl:valueKind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Source valueKind must be one string literal." .
+
+shape:SourceUnitProperty a sh:PropertyShape ;
+  sh:path ocl:unit ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Source unit, when present, must be one IRI." .
+
+shape:SourceMemberProperty a sh:PropertyShape ;
+  sh:path ocl:memberId ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Source memberId, when present, must be one string literal." .
+
+shape:MemberShape a sh:NodeShape ;
+  sh:class ocl:DerivationMember ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:MemberIdProperty ;
+  sh:message "Derivation members must have the governed RDF structure." .
+
+shape:MemberIdProperty a sh:PropertyShape ;
+  sh:path ocl:localId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derivation member localId must be one string literal." .
+
+shape:ExclusionShape a sh:NodeShape ;
+  sh:class ocl:DerivationExclusion ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property shape:ExclusionIdProperty,
+    shape:ExclusionMemberProperty,
+    shape:ExclusionReasonProperty ;
+  sh:message "Derivation exclusions must have the governed RDF structure." .
+
+shape:ExclusionIdProperty a sh:PropertyShape ;
+  sh:path ocl:localId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derivation exclusion localId must be one string literal." .
+
+shape:ExclusionMemberProperty a sh:PropertyShape ;
+  sh:path ocl:excludedMember ;
+  sh:minCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derivation exclusion members must be string literals." .
+
+shape:ExclusionReasonProperty a sh:PropertyShape ;
+  sh:path ocl:exclusionReason ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Derivation exclusion reason must be one string literal." .
+
+shape:DataQualityShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:DataQualityStatusProperty,
+    shape:DataQualityRejectedProperty,
+    shape:DataQualityMinimumProperty ;
+  sh:message "Data-quality policies must have the governed RDF structure." .
+
+shape:DataQualityStatusProperty a sh:PropertyShape ;
+  sh:path ocl:acceptedStatus ;
+  sh:minCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Data-quality accepted statuses must be string literals." .
+
+shape:DataQualityRejectedProperty a sh:PropertyShape ;
+  sh:path ocl:rejectedInputPolicy ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Data-quality rejected-input policy must be one string literal." .
+
+shape:DataQualityMinimumProperty a sh:PropertyShape ;
+  sh:path ocl:minimumValidMembers ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:integer ;
+  sh:message "Data-quality minimumValidMembers must be one integer literal." .
+
+shape:ReadyShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:ReadyMinimumProperty,
+    shape:ReadyDomainProperty ;
+  sh:message "Readiness policies must have the governed RDF structure." .
+
+shape:ReadyMinimumProperty a sh:PropertyShape ;
+  sh:path ocl:minimumValidMembers ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:integer ;
+  sh:message "Readiness minimumValidMembers must be one integer literal." .
+
+shape:ReadyDomainProperty a sh:PropertyShape ;
+  sh:path ocl:requireAllInputsInDomain ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:boolean ;
+  sh:message "Readiness domain requirement must be one boolean literal." .
+
+shape:UnitPolicyShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:UnitPolicyOutputProperty,
+    shape:UnitPolicyInputProperty,
+    shape:UnitPolicyConversionProperty ;
+  sh:message "Unit policies must have the governed RDF structure." .
+
+shape:UnitPolicyOutputProperty a sh:PropertyShape ;
+  sh:path ocl:outputUnit ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:nodeKind sh:IRI ;
+  sh:message "Unit-policy outputUnit must be one IRI." .
+
+shape:UnitPolicyInputProperty a sh:PropertyShape ;
+  sh:path ocl:inputUnitsPolicy ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Unit-policy inputUnitsPolicy must be one string literal." .
+
+shape:UnitPolicyConversionProperty a sh:PropertyShape ;
+  sh:path ocl:conversionPolicy ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Unit-policy conversionPolicy must be one string literal." .
+
+shape:OutputScopeShape a sh:NodeShape ;
+  sh:or (
+    shape:RoutineOutputScopeShape
+    shape:PopulationOutputScopeShape
+    shape:MemberOutputScopeShape
+  ) ;
+  sh:message "Output scopes must match the routine, population, or member branch." .
+
+shape:RoutineOutputScopeShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:RoutineOutputScopeKindProperty ;
+  sh:message "Routine output scopes must have the governed RDF structure." .
+
+shape:PopulationOutputScopeShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:PopulationOutputScopeKindProperty ;
+  sh:message "Population output scopes must have the governed RDF structure." .
+
+shape:MemberOutputScopeShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:MemberOutputScopeKindProperty,
+    shape:MemberOutputScopeMemberProperty ;
+  sh:message "Member output scopes must have the governed RDF structure." .
+
+shape:RoutineOutputScopeKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "routine" ;
+  sh:message "Routine output-scope kind must be routine." .
+
+shape:PopulationOutputScopeKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "population" ;
+  sh:message "Population output-scope kind must be population." .
+
+shape:MemberOutputScopeKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "member" ;
+  sh:message "Member output-scope kind must be member." .
+
+shape:MemberOutputScopeMemberProperty a sh:PropertyShape ;
+  sh:path ocl:memberId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Member output scope memberId must be one string literal." .
+
+shape:ResetShape a sh:NodeShape ;
+  sh:or (
+    shape:StatelessResetShape
+    shape:NotReadyResetShape
+    shape:SourceResetShape
+  ) ;
+  sh:message "Reset behavior must match the stateless, not-ready, or source branch." .
+
+shape:StatelessResetShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:StatelessResetKindProperty ;
+  sh:message "Stateless reset behavior must have the governed RDF structure." .
+
+shape:NotReadyResetShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:NotReadyResetKindProperty ;
+  sh:message "Not-ready reset behavior must have the governed RDF structure." .
+
+shape:SourceResetShape a sh:NodeShape ;
+  sh:nodeKind sh:BlankNodeOrIRI ;
+  sh:closed true ;
+  sh:property shape:SourceResetKindProperty,
+    shape:SourceResetSourceProperty ;
+  sh:message "Source reset behavior must have the governed RDF structure." .
+
+shape:StatelessResetKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "stateless" ;
+  sh:message "Stateless reset kind must be stateless." .
+
+shape:NotReadyResetKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "on-not-ready" ;
+  sh:message "Not-ready reset kind must be on-not-ready." .
+
+shape:SourceResetKindProperty a sh:PropertyShape ;
+  sh:path ocl:kind ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:hasValue "source" ;
+  sh:message "Source reset kind must be source." .
+
+shape:SourceResetSourceProperty a sh:PropertyShape ;
+  sh:path ocl:sourceId ;
+  sh:minCount 1 ;
+  sh:maxCount 1 ;
+  sh:datatype xsd:string ;
+  sh:message "Source reset sourceId must be one string literal." .

@@ -8,8 +8,13 @@ from pathlib import Path
 from urllib.parse import urldefrag
 
 from jsonschema import Draft202012Validator
-from rdflib import Graph, URIRef
+from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, RDF
+
+try:
+    from pyshacl import validate as _pyshacl_validate
+except ImportError:
+    _pyshacl_validate = None
 
 try:
     from tools.lint import routine_schemas
@@ -21,15 +26,41 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ONTOLOGY_ROOT = Path("routines/ontology")
 PIN_PATH = ONTOLOGY_ROOT / "ontology-pins.json"
 VOCABULARY_PATH = ONTOLOGY_ROOT / "ocl-vocabulary.ttl"
+SHACL_ROOT = ONTOLOGY_ROOT / "shacl"
+SHAPE_PATH = SHACL_ROOT / "open-control-routine-shapes.ttl"
 FIXTURE_ROOT = Path("tools/lint/tests/fixtures/routine_semantics")
 PROFILE_FIXTURE = "routine-semantic-profile.jsonld"
 DERIVATION_FIXTURE = "routine-derivation-manifest.jsonld"
 ONTOLOGY_FILES = frozenset((PIN_PATH.name, VOCABULARY_PATH.name))
+SHACL_FILES = frozenset((SHAPE_PATH.name,))
 FIXTURE_SCHEMAS = {
     PROFILE_FIXTURE: routine_schemas.SEMANTIC_PROFILE_ID,
     DERIVATION_FIXTURE: routine_schemas.DERIVATION_MANIFEST_ID,
 }
 LOCAL_NAMESPACE = "urn:open-control-library:ontology:"
+SHAPE_NAMESPACE = "urn:open-control-library:shacl:routine:"
+SH = Namespace("http://www.w3.org/ns/shacl#")
+XSD_NAMESPACE = "http://www.w3.org/2001/XMLSchema#"
+FORBIDDEN_SHACL_TERMS = frozenset(
+    (
+        SH.JSConstraint,
+        SH.JSFunction,
+        SH.JSRule,
+        SH.JSTarget,
+        SH.SPARQLConstraint,
+        SH.SPARQLFunction,
+        SH.SPARQLRule,
+        SH.SPARQLTarget,
+        SH.TripleRule,
+        SH.ask,
+        SH.construct,
+        SH.js,
+        SH.rule,
+        SH.select,
+        SH.sparql,
+        SH.target,
+    )
+)
 ALLOWED_ASPECTS = frozenset(
     (
         "s223:Aspect-Setpoint",
@@ -217,6 +248,156 @@ def _parse_vocabulary(raw, errors):
                 f"{label}: class/property subject {subject} is outside the local namespace"
             )
     return graph
+
+
+def _shape_term_label(term):
+    namespaces = (
+        (LOCAL_NAMESPACE, "ocl:"),
+        (SHAPE_NAMESPACE, "shape:"),
+        (str(SH), "sh:"),
+        (str(RDF), "rdf:"),
+        (XSD_NAMESPACE, "xsd:"),
+    )
+    text = str(term)
+    for namespace, prefix in namespaces:
+        if text.startswith(namespace):
+            return prefix + text.removeprefix(namespace)
+    return f"<{text}>"
+
+
+def _parse_shapes(raw, vocabulary, errors):
+    if raw is None or vocabulary is None:
+        return None
+    label = SHAPE_PATH.as_posix()
+    start = len(errors)
+    try:
+        graph = Graph().parse(data=raw, format="turtle", publicID=SHAPE_NAMESPACE)
+    except Exception:
+        errors.append(f"{label}: Turtle parse failed")
+        return None
+
+    if any(graph.triples((None, OWL.imports, None))):
+        errors.append(f"{label}: owl:imports is forbidden")
+
+    used_terms = {
+        term
+        for triple in graph
+        for term in triple
+        if isinstance(term, URIRef)
+    }
+    for term in sorted(used_terms & FORBIDDEN_SHACL_TERMS, key=str):
+        errors.append(
+            f"{label}: SHACL Core graph uses forbidden term {_shape_term_label(term)}"
+        )
+
+    owned_types = frozenset((OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty))
+    declared = {
+        subject
+        for subject, _, object_type in vocabulary.triples((None, RDF.type, None))
+        if object_type in owned_types
+    }
+    for term in sorted(
+        (
+            term
+            for term in used_terms
+            if str(term).startswith(LOCAL_NAMESPACE) and term not in declared
+        ),
+        key=str,
+    ):
+        errors.append(
+            f"{label}: OCL term {_shape_term_label(term)} is absent from the governed vocabulary"
+        )
+
+    for shape_type in (SH.NodeShape, SH.PropertyShape):
+        for subject in sorted(graph.subjects(RDF.type, shape_type), key=str):
+            if not isinstance(subject, URIRef) or not str(subject).startswith(
+                SHAPE_NAMESPACE
+            ):
+                errors.append(f"{label}: every source shape must have a stable shape IRI")
+            if not any(graph.objects(subject, SH.message)):
+                errors.append(
+                    f"{label}: source shape {_shape_term_label(subject)} requires sh:message"
+                )
+
+    for name in ("ProfileShape", "ManifestShape"):
+        shape = URIRef(SHAPE_NAMESPACE + name)
+        if (shape, RDF.type, SH.NodeShape) not in graph:
+            errors.append(f"{label}: required source shape shape:{name} is missing")
+    return graph if len(errors) == start else None
+
+
+def _report_term(term):
+    if term is None:
+        return "-"
+    if isinstance(term, BNode):
+        return "<blank-node>"
+    if isinstance(term, URIRef):
+        return _shape_term_label(term)
+    if isinstance(term, Literal):
+        lexical = json.dumps(str(term), ensure_ascii=False)
+        if term.language:
+            return f"{lexical}@{term.language}"
+        if term.datatype:
+            return f"{lexical}^^{_shape_term_label(term.datatype)}"
+        return lexical
+    return json.dumps(str(term), ensure_ascii=False)
+
+
+def _normalize_shacl_report(report_graph, label):
+    diagnostics = set()
+    results = set(report_graph.subjects(RDF.type, SH.ValidationResult))
+    for result in results:
+        messages = sorted(
+            " ".join(str(message).split())
+            for message in report_graph.objects(result, SH.resultMessage)
+        )
+        message = " | ".join(messages) or "SHACL constraint violation."
+        diagnostics.add(
+            f"{label}: SHACL violation: "
+            f"focus={_report_term(report_graph.value(result, SH.focusNode))}; "
+            f"path={_report_term(report_graph.value(result, SH.resultPath))}; "
+            f"value={_report_term(report_graph.value(result, SH.value))}; "
+            f"source_shape={_report_term(report_graph.value(result, SH.sourceShape))}; "
+            f"constraint={_report_term(report_graph.value(result, SH.sourceConstraintComponent))}; "
+            f"message={message}"
+        )
+    return sorted(diagnostics)
+
+
+def _validate_shacl_graph(data_graph, shapes_graph, label, errors):
+    if _pyshacl_validate is None:
+        errors.append(f"dependency pyshacl could not be imported")
+        return
+    validation_shapes = Graph()
+    for triple in shapes_graph:
+        validation_shapes.add(triple)
+    try:
+        conforms, report_graph, _ = _pyshacl_validate(
+            data_graph,
+            shacl_graph=validation_shapes,
+            ont_graph=None,
+            inference="none",
+            advanced=False,
+            js=False,
+            do_owl_imports=False,
+            inplace=False,
+            abort_on_first=False,
+            allow_infos=False,
+            allow_warnings=False,
+            sparql_mode=False,
+        )
+    except Exception as exc:
+        errors.append(f"{label}: SHACL validation error: {type(exc).__name__}")
+        return
+    if not isinstance(report_graph, Graph):
+        errors.append(f"{label}: SHACL validation failed")
+        return
+    diagnostics = _normalize_shacl_report(report_graph, label)
+    if not conforms and not diagnostics:
+        errors.append(f"{label}: SHACL validation failed without report violations")
+        return
+    if not conforms:
+        errors.extend(diagnostics)
 
 
 def _check_local_class(value, label, graph, errors):
@@ -575,8 +756,13 @@ def validate(repo_root=REPO_ROOT):
     """Return deterministic offline semantic-contract errors."""
     repo_root = Path(repo_root)
     errors = routine_schemas._dependency_errors()
+    if _pyshacl_validate is None and not any(
+        error.startswith("dependency pyshacl") for error in errors
+    ):
+        errors.append("dependency pyshacl could not be imported")
     schemas_by_id, registry = routine_schemas._load_schemas(repo_root, errors)
     _govern_files(repo_root, ONTOLOGY_ROOT, ONTOLOGY_FILES, errors)
+    _govern_files(repo_root, SHACL_ROOT, SHACL_FILES, errors)
     _govern_files(repo_root, FIXTURE_ROOT, FIXTURE_SCHEMAS, errors)
     _check_fixture_placement(repo_root, errors)
 
@@ -594,6 +780,9 @@ def validate(repo_root=REPO_ROOT):
                 f"found {actual_hash}"
             )
     vocabulary = _parse_vocabulary(vocabulary_raw, errors)
+
+    shapes_raw = _read_utf8_bytes(repo_root, SHAPE_PATH, errors)
+    shapes = _parse_shapes(shapes_raw, vocabulary, errors)
 
     fixtures = {}
     safety = {}
@@ -618,8 +807,21 @@ def validate(repo_root=REPO_ROOT):
                     f"{routine_schemas._instance_path(error)}: {error.message}"
                 )
 
+    rdf_graphs = {}
     for name, document in fixtures.items():
-        _parse_jsonld(document, FIXTURE_ROOT / name, safety.get(name, False), errors)
+        graph = _parse_jsonld(
+            document, FIXTURE_ROOT / name, safety.get(name, False), errors
+        )
+        if graph is not None:
+            rdf_graphs[name] = graph
+
+    if shapes is not None and _pyshacl_validate is not None:
+        for name in FIXTURE_SCHEMAS:
+            graph = rdf_graphs.get(name)
+            if graph is not None:
+                _validate_shacl_graph(
+                    graph, shapes, (FIXTURE_ROOT / name).as_posix(), errors
+                )
 
     profile = fixtures.get(PROFILE_FIXTURE)
     manifest = fixtures.get(DERIVATION_FIXTURE)
@@ -639,7 +841,10 @@ def main(repo_root=REPO_ROOT, argv=None):
     if errors:
         print("\n".join(errors))
         return 1
-    print("routine semantic lint: ontology pins, local vocabulary, 2 schemas, 2 synthetic fixtures OK")
+    print(
+        "routine semantic lint: ontology pins, local vocabulary, 1 SHACL graph, "
+        "2 schemas, 2 synthetic fixtures OK"
+    )
     return 0
 
 

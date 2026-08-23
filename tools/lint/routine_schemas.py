@@ -51,6 +51,7 @@ FIXTURE_SCHEMAS = {
 }
 DEPENDENCIES = {
     "jsonschema": "4.26.0",
+    "pyshacl": "0.31.0",
     "referencing": "0.37.0",
     "rdflib": "7.1.4",
 }

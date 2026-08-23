@@ -2,13 +2,15 @@ import contextlib
 import copy
 import io
 import json
+import re
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from rdflib import Literal, Namespace, URIRef
+from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib.namespace import RDF, XSD
 
 from tools.lint import routine_semantics
 
@@ -19,6 +21,10 @@ SCHEMA_FILES = tuple(
 )
 ONTOLOGY_FILES = tuple(
     f"routines/ontology/{name}" for name in sorted(routine_semantics.ONTOLOGY_FILES)
+)
+SHACL_FILES = tuple(
+    f"routines/ontology/shacl/{name}"
+    for name in sorted(routine_semantics.SHACL_FILES)
 )
 FIXTURE_FILES = tuple(
     f"tools/lint/tests/fixtures/routine_semantics/{name}"
@@ -33,7 +39,7 @@ class RoutineSemanticTests(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary_directory.name)
-        for relative_path in SCHEMA_FILES + ONTOLOGY_FILES + FIXTURE_FILES:
+        for relative_path in SCHEMA_FILES + ONTOLOGY_FILES + SHACL_FILES + FIXTURE_FILES:
             self.restore(relative_path)
         (self.root / "routines/g36").mkdir(parents=True)
 
@@ -75,6 +81,30 @@ class RoutineSemanticTests(unittest.TestCase):
             self.fail(f"{relative_path} did not produce an RDF graph")
         return document, graph
 
+    def parse_shapes(self):
+        errors = []
+        vocabulary = routine_semantics._parse_vocabulary(
+            (self.root / routine_semantics.VOCABULARY_PATH).read_bytes(), errors
+        )
+        shapes = routine_semantics._parse_shapes(
+            (self.root / routine_semantics.SHAPE_PATH).read_bytes(),
+            vocabulary,
+            errors,
+        )
+        self.assertEqual(errors, [])
+        if shapes is None:
+            self.fail("governed SHACL graph did not parse")
+        return shapes
+
+    def validate_graph(self, graph, fixture_path):
+        errors = []
+        routine_semantics._validate_shacl_graph(
+            graph, self.parse_shapes(), fixture_path, errors
+        )
+        self.assertEqual(errors, sorted(errors))
+        self.assertFalse(any("Traceback" in error for error in errors))
+        return errors
+
     def assert_error(self, expected):
         errors = routine_semantics.validate(self.root)
         self.assertTrue(
@@ -86,15 +116,28 @@ class RoutineSemanticTests(unittest.TestCase):
         return errors
 
     def test_production_contracts_are_clean_repeatable_and_network_free(self):
+        fixture_bytes = {
+            path: (PRODUCT_ROOT / path).read_bytes() for path in FIXTURE_FILES
+        }
         with mock.patch(
             "rdflib.plugins.shared.jsonld.context.source_to_json",
-            side_effect=AssertionError("network access attempted"),
+            side_effect=AssertionError("JSON-LD context loading attempted"),
+        ), mock.patch(
+            "rdflib.parser._urlopen",
+            side_effect=AssertionError("URL opening attempted"),
+        ), mock.patch(
+            "urllib.request.urlopen",
+            side_effect=AssertionError("URL opening attempted"),
         ):
             self.assertEqual(routine_semantics.validate(PRODUCT_ROOT), [])
             first = routine_semantics.validate(self.root)
             second = routine_semantics.validate(self.root)
         self.assertEqual(first, [])
         self.assertEqual(second, first)
+        self.assertEqual(
+            fixture_bytes,
+            {path: (PRODUCT_ROOT / path).read_bytes() for path in FIXTURE_FILES},
+        )
 
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
@@ -102,7 +145,7 @@ class RoutineSemanticTests(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertEqual(
             output.getvalue(),
-            "routine semantic lint: ontology pins, local vocabulary, 2 schemas, 2 synthetic fixtures OK\n",
+            "routine semantic lint: ontology pins, local vocabulary, 1 SHACL graph, 2 schemas, 2 synthetic fixtures OK\n",
         )
 
     def test_json_loader_rejects_malformed_duplicate_nonfinite_and_non_utf8(self):
@@ -135,6 +178,7 @@ class RoutineSemanticTests(unittest.TestCase):
             "routines/schemas/routine-semantic-profile.schema.json",
             "routines/ontology/ontology-pins.json",
             "routines/ontology/ocl-vocabulary.ttl",
+            "routines/ontology/shacl/open-control-routine-shapes.ttl",
             PROFILE_PATH,
         )
         for relative_path in missing_paths:
@@ -148,6 +192,7 @@ class RoutineSemanticTests(unittest.TestCase):
         extras = (
             "routines/schemas/extra.schema.json",
             "routines/ontology/extra.ttl",
+            "routines/ontology/shacl/extra.ttl",
             "tools/lint/tests/fixtures/routine_semantics/extra.jsonld",
         )
         for relative_path in extras:
@@ -264,6 +309,27 @@ class RoutineSemanticTests(unittest.TestCase):
             (unit_policy, OCL.conversionPolicy, Literal("none")), graph
         )
 
+    def test_fractional_freshness_and_alignment_are_valid_rdf_numbers(self):
+        self.mutate(
+            MANIFEST_PATH,
+            lambda value: value.update(
+                freshness_limit_s=0.5,
+                time_alignment_window_s=0.5,
+            ),
+        )
+        self.assertEqual(routine_semantics.validate(self.root), [])
+
+        manifest, graph = self.parse_jsonld(MANIFEST_PATH)
+        manifest_id = URIRef(manifest["@id"])
+        self.assertEqual(
+            graph.value(manifest_id, OCL.freshnessLimitSeconds).datatype,
+            XSD.double,
+        )
+        self.assertEqual(
+            graph.value(manifest_id, OCL.timeAlignmentWindowSeconds).datatype,
+            XSD.double,
+        )
+
     def test_software_source_signal_id_is_preserved_as_an_iri(self):
         signal_id = "urn:open-control-library:software-signal:north-zone-temperature"
         self.mutate(
@@ -314,6 +380,210 @@ class RoutineSemanticTests(unittest.TestCase):
         path = self.root / "routines/ontology/ocl-vocabulary.ttl"
         path.write_text("@prefix ocl: <urn:open-control-library:ontology:> .\nocl: [", encoding="utf-8")
         self.assert_error("Turtle parse failed")
+
+    def test_shape_graph_fails_closed_for_malformed_importing_and_advanced_content(self):
+        path = self.root / routine_semantics.SHAPE_PATH
+        original = path.read_bytes()
+        cases = (
+            (b"@prefix shape: <urn:open-control-library:shacl:routine:> .\nshape: [", "Turtle parse failed"),
+            (b"\n<urn:test> <http://www.w3.org/2002/07/owl#imports> <https://example.com/shapes> .\n", "owl:imports is forbidden"),
+            (b"\n<urn:test> <http://www.w3.org/ns/shacl#sparql> <urn:test:constraint> .\n", "forbidden term sh:sparql"),
+            (b"\xff", "file is not UTF-8"),
+        )
+        for content, expected in cases:
+            with self.subTest(expected=expected):
+                path.write_bytes(content if content.startswith(b"@prefix") else original + content)
+                self.assert_error(expected)
+                path.write_bytes(original)
+
+    def test_shape_ocl_terms_must_exist_in_the_governed_vocabulary(self):
+        path = self.root / routine_semantics.SHAPE_PATH
+        path.write_bytes(
+            path.read_bytes()
+            + b"\n<urn:open-control-library:shacl:routine:ProfileShape> "
+            + b"<urn:open-control-library:ontology:undeclaredPredicate> \"x\" .\n"
+        )
+        self.assert_error(
+            "OCL term ocl:undeclaredPredicate is absent from the governed vocabulary"
+        )
+
+    def test_shacl_receives_only_graphs_with_disabled_execution_features(self):
+        real_validate = routine_semantics._pyshacl_validate
+        self.assertIsNotNone(real_validate)
+        calls = []
+
+        def checked_validate(data_graph, *args, **kwargs):
+            self.assertIsInstance(data_graph, Graph)
+            self.assertIsInstance(kwargs["shacl_graph"], Graph)
+            self.assertEqual(args, ())
+            self.assertEqual(
+                {key: kwargs[key] for key in kwargs if key != "shacl_graph"},
+                {
+                    "ont_graph": None,
+                    "inference": "none",
+                    "advanced": False,
+                    "js": False,
+                    "do_owl_imports": False,
+                    "inplace": False,
+                    "abort_on_first": False,
+                    "allow_infos": False,
+                    "allow_warnings": False,
+                    "sparql_mode": False,
+                },
+            )
+            data_before = frozenset(data_graph)
+            result = real_validate(data_graph, **kwargs)
+            self.assertEqual(frozenset(data_graph), data_before)
+            calls.append(data_graph)
+            return result
+
+        with mock.patch.object(
+            routine_semantics, "_pyshacl_validate", side_effect=checked_validate
+        ):
+            self.assertEqual(routine_semantics.validate(self.root), [])
+        self.assertEqual(len(calls), 2)
+        self.assertIsNot(calls[0], calls[1])
+
+        _, data_graph = self.parse_jsonld(PROFILE_PATH)
+        shapes_graph = self.parse_shapes()
+        data_before = frozenset(data_graph)
+        shapes_before = frozenset(shapes_graph)
+        errors = []
+        routine_semantics._validate_shacl_graph(
+            data_graph, shapes_graph, PROFILE_PATH, errors
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(frozenset(data_graph), data_before)
+        self.assertEqual(frozenset(shapes_graph), shapes_before)
+
+    def test_profile_rdf_mutations_have_stable_shacl_diagnostics(self):
+        fixture_bytes = (self.root / PROFILE_PATH).read_bytes()
+
+        def role(graph, connector_id="zone_air_temperatures"):
+            return next(
+                subject
+                for subject in graph.subjects(OCL.connectorId, Literal(connector_id))
+            )
+
+        def remove_required(graph, document):
+            graph.remove((role(graph), OCL.semanticRole, None))
+
+        def replace_class(graph, document):
+            subject = role(graph)
+            graph.remove((subject, RDF.type, OCL.ConnectorSemanticRole))
+            graph.add((subject, RDF.type, OCL.DerivationInput))
+
+        def add_unexpected(graph, document):
+            graph.add((role(graph), OCL.unexpectedPredicate, Literal("unexpected")))
+
+        def replace_datatype(graph, document):
+            graph.set(
+                (
+                    URIRef(document["@id"]),
+                    OCL.canonicalRoutineRevision,
+                    Literal("one"),
+                )
+            )
+
+        cases = (
+            (remove_required, "source_shape=shape:ConnectorRoleSemanticRoleProperty"),
+            (replace_class, "source_shape=shape:ConnectorRoleShape"),
+            (add_unexpected, "source_shape=shape:ConnectorRoleShape"),
+            (replace_datatype, "source_shape=shape:ProfileRevisionProperty"),
+        )
+        for mutation, expected in cases:
+            with self.subTest(expected=expected):
+                document, graph = self.parse_jsonld(PROFILE_PATH)
+                mutation(graph, document)
+                triples = frozenset(graph)
+                first = self.validate_graph(graph, PROFILE_PATH)
+                second = self.validate_graph(graph, PROFILE_PATH)
+                self.assertEqual(first, second)
+                self.assertEqual(frozenset(graph), triples)
+                self.assertTrue(any(expected in error for error in first), first)
+                self.assertIsNone(re.search(r"\bN[0-9a-f]{16,}\b", "\n".join(first)))
+        self.assertEqual((self.root / PROFILE_PATH).read_bytes(), fixture_bytes)
+
+    def test_manifest_rdf_mutations_have_stable_shacl_diagnostics(self):
+        fixture_bytes = (self.root / MANIFEST_PATH).read_bytes()
+
+        def remove_required(graph, document):
+            root = URIRef(document["@id"])
+            graph.remove((graph.value(root, OCL.algorithm), OCL.algorithmVersion, None))
+
+        def replace_class(graph, document):
+            subject = next(graph.subjects(RDF.type, OCL.DerivationInput))
+            graph.remove((subject, RDF.type, OCL.DerivationInput))
+            graph.add((subject, RDF.type, OCL.DerivationMember))
+
+        def add_unexpected(graph, document):
+            root = URIRef(document["@id"])
+            policy = graph.value(root, OCL.dataQualityPolicy)
+            graph.add((policy, OCL.unexpectedPredicate, Literal("unexpected")))
+
+        def replace_datatype(graph, document):
+            root = URIRef(document["@id"])
+            ready = graph.value(root, OCL.readyCondition)
+            graph.set((ready, OCL.minimumValidMembers, Literal("two")))
+
+        cases = (
+            (remove_required, "source_shape=shape:AlgorithmVersionProperty"),
+            (replace_class, "source_shape=shape:InputShape"),
+            (add_unexpected, "source_shape=shape:DataQualityShape"),
+            (replace_datatype, "source_shape=shape:ReadyMinimumProperty"),
+        )
+        for mutation, expected in cases:
+            with self.subTest(expected=expected):
+                document, graph = self.parse_jsonld(MANIFEST_PATH)
+                mutation(graph, document)
+                triples = frozenset(graph)
+                first = self.validate_graph(graph, MANIFEST_PATH)
+                second = self.validate_graph(graph, MANIFEST_PATH)
+                self.assertEqual(first, second)
+                self.assertEqual(frozenset(graph), triples)
+                self.assertTrue(any(expected in error for error in first), first)
+                self.assertFalse(any("focus=N" in error for error in first))
+                self.assertFalse(any("value=N" in error for error in first))
+        self.assertEqual((self.root / MANIFEST_PATH).read_bytes(), fixture_bytes)
+
+    def test_dependency_validation_failure_and_runtime_errors_are_stable(self):
+        missing = ["dependency pyshacl==0.31.0 is not installed"]
+        with mock.patch.object(
+            routine_semantics.routine_schemas,
+            "_dependency_errors",
+            return_value=missing.copy(),
+        ), mock.patch.object(routine_semantics, "_pyshacl_validate", None):
+            self.assertEqual(routine_semantics.validate(self.root), missing)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = routine_semantics.main(self.root)
+        self.assertEqual(result, 1)
+        self.assertEqual(output.getvalue(), missing[0] + "\n")
+
+        _, graph = self.parse_jsonld(PROFILE_PATH)
+        shapes = self.parse_shapes()
+        cases = (
+            (RuntimeError("volatile details"), "SHACL validation error: RuntimeError"),
+            ((False, object(), "volatile report text"), "SHACL validation failed"),
+        )
+        for outcome, expected in cases:
+            with self.subTest(expected=expected):
+                errors = []
+                patched = (
+                    mock.patch.object(
+                        routine_semantics, "_pyshacl_validate", side_effect=outcome
+                    )
+                    if isinstance(outcome, Exception)
+                    else mock.patch.object(
+                        routine_semantics, "_pyshacl_validate", return_value=outcome
+                    )
+                )
+                with patched:
+                    routine_semantics._validate_shacl_graph(
+                        graph, shapes, PROFILE_PATH, errors
+                    )
+                self.assertEqual(errors, [f"{PROFILE_PATH}: {expected}"])
+                self.assertNotIn("volatile", errors[0])
 
     def test_duplicate_role_source_and_member_ids_are_rejected(self):
         profile_original = (self.root / PROFILE_PATH).read_bytes()
