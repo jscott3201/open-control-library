@@ -22,7 +22,8 @@ cxf-library/
 ├── routines/                    # planned control-routine catalog
 │   ├── registry.json            # canonical class inventory
 │   ├── generated-registry.json  # executable deployment inventory
-│   ├── schemas/                 # canonical class/interface input schemas
+│   ├── ontology/                # immutable ontology pins and local vocabulary
+│   ├── schemas/                 # six governed routine contract schemas
 │   └── g36/                     # G36 pins, source inventory, scope, and coverage
 ├── tools/verify/                # Rust harness: loads each rule into the engine, runs vectors
 ```
@@ -55,8 +56,9 @@ next free number, honoring any reservation.
 Routine contracts are independent of fault contracts. Nothing in this section
 changes a fault schema identifier or fault behavior. The routine catalog is
 schema-defined and non-executable. The current contract defines future
-canonical class, interface, and specialization input shapes without adding a
-production class, source mapping, specialization, or executable deployment.
+canonical class, interface, specialization, semantic-profile, and derivation
+shapes without adding a production class, source mapping, semantic profile,
+derivation manifest, specialization, or executable deployment.
 
 Pin ownership is split by purpose:
 
@@ -94,7 +96,7 @@ and row schemas are not defined by this version.
 
 ### Canonical routine schema resources
 
-This schema set governs four JSON Schema Draft 2020-12 resources:
+This schema set governs six JSON Schema Draft 2020-12 resources:
 
 | Path | `$id` |
 |---|---|
@@ -102,12 +104,16 @@ This schema set governs four JSON Schema Draft 2020-12 resources:
 | `routines/schemas/class-manifest.schema.json` | `https://open-control-library.example/schemas/routine-class-manifest-v1.json` |
 | `routines/schemas/interface.schema.json` | `https://open-control-library.example/schemas/routine-interface-v2.json` |
 | `routines/schemas/specialization.schema.json` | `https://open-control-library.example/schemas/routine-specialization-v1.json` |
+| `routines/schemas/routine-semantic-profile.schema.json` | `https://open-control-library.example/schemas/routine-semantic-profile-v1.json` |
+| `routines/schemas/routine-derivation-manifest.schema.json` | `https://open-control-library.example/schemas/routine-derivation-manifest-v1.json` |
 
 Each resource declares
-`https://json-schema.org/draft/2020-12/schema`. References use only the four
-absolute IDs above and resolve from an in-memory registry. Validation performs
-no network or filesystem retrieval for schema references. Objects are closed
-unless stated otherwise.
+`https://json-schema.org/draft/2020-12/schema`. References use same-resource
+fragments or the six absolute IDs above and resolve from an in-memory registry.
+Validation performs no network or filesystem retrieval for schema references.
+Objects are closed unless stated otherwise. Semantic-only definitions belong to
+the semantic-profile resource; `routine-common-v1` remains the existing routine
+class/interface contract.
 
 Canonical class IDs have the form
 `G36-05-(01..22)-<UPPERCASE-HYPHENATED-CLASS-SLUG>`. Scope IDs are invalid
@@ -200,6 +206,86 @@ Specialization is input only. It contains no connector bindings, point IDs,
 resolved connector set, source map, generated CXF, runtime state, engine
 identity, or deployment identity.
 
+#### Ontology identities and local vocabulary
+
+`routines/ontology/ontology-pins.json` is the sole product ontology-pin record.
+It has the closed identifier `cxf-library/ontology-pins/v1` and records these
+immutable authorities:
+
+| Authority | Identity |
+|---|---|
+| Brick | namespace `https://brickschema.org/schema/Brick#`; `BrickSchema/Brick` release `v1.4.4`; commit `4b5be60d27f9b4d96fe477f45513fa71afebe684`; release `Brick.ttl` SHA-256 `b65720b7b9b64c646745c689777e6138c0d59ce0088df0aeb78fbd444d04d8e7` |
+| ASHRAE 223 compatibility | core namespace `http://data.ashrae.org/standard223#`; G36 extension `http://data.ashrae.org/standard223/1.0/extensions/g36#`; version `1.0.0-ppr.2.1`; `open223/open223.info` commit `97656845cab16183e64e9611c94f40a6fad95226`; blob `c2ee998a1e0f5cc3e496ff9c20c30e01019ff250`; artifact SHA-256 `1f156f9938c0be430d2216e01e31bb183c438ba318d8d4a23d2f074ebcd6f573` |
+| QUDT | quantity-kind namespace `http://qudt.org/vocab/quantitykind/`; unit namespace `http://qudt.org/vocab/unit/`; `qudt/qudt-public-repo` release `v3.1.4`; tag object `e6cba51f5769691a926e000cbeb044d4d5cd754e`; commit `5a19ef66a5b8d8c404f469244304afc7d9f83eaa`; exact quantity-kind and unit paths, blobs, and SHA-256 values in the pin record |
+| OCL | namespace `urn:open-control-library:ontology:`; version `0.1.0-draft`; checked-in path `routines/ontology/ocl-vocabulary.ttl`; byte hash in the pin record |
+
+The S223 artifact imports `<http://qudt.org/3.1.8/shacl/qudt-all>`. The pin
+record keeps that as a compatibility observation. It does not replace the
+Library's QUDT 3.1.4 authority, and the S223 artifact is not represented as the
+final published standard.
+
+`ocl-vocabulary.ttl` contains only Library-owned profile, connector-binding,
+software-signal, derived-signal, aggregate, derivation, and policy terms used by
+the governed fixtures. It has no imports. Its SHA-256 is part of the pin record;
+changing the Turtle bytes requires updating that hash in the same change.
+
+#### Routine semantic profiles (`cxf-library/routine-semantic-profile/v1`)
+
+A semantic profile has a stable JSON-LD `@id`, type
+`ocl:RoutineSemanticProfile`, canonical class ID and revision, the exact
+`routines/ontology/ontology-pins.json` reference, and one or more connector
+roles. Its context is one closed embedded object. String, list, nested, remote,
+or imported contexts are invalid.
+
+Connector role IDs use the interface connector-ID syntax and are unique. Each
+role has a bounded nonempty `semantic_role`, a `mapping_status` of `verified` or
+`provisional`, and a closed list of bounded topology requirements. `verified`
+means the author reviewed the mapping against the named pin evidence;
+`provisional` marks a mapping that still needs review. Neither value certifies a
+building instance. A physical role requires at least one location, topology, or
+ownership obligation; software and derived roles may use an empty list.
+
+Direction is connector dataflow (`input` or `output`) and does not determine the
+S223 property class. For example, an active setpoint may be an input while its
+property remains actuatable. Requirement is `R`, `A`, `O`, `N`, `S`, `D`, or
+`P`; cardinality records integer `minimum` and `maximum` values with minimum not
+greater than maximum. Bindings are a closed union:
+
+- `physical-or-bms-point` carries one
+  `points/<family>.points.json#<point_key>` reference plus closed Brick and S223
+  mappings;
+- `software-signal` carries an OCL class and no physical ontology mapping; and
+- `derived-signal` carries an OCL class, output ID, and local derivation-manifest
+  reference.
+
+Physical mappings allow only the reviewed directional S223 property classes:
+`s223:QuantifiableObservableProperty`,
+`s223:QuantifiableActuatableProperty`,
+`s223:EnumeratedObservableProperty`, and
+`s223:EnumeratedActuatableProperty`. Quantifiable mappings require a QUDT
+quantity kind and unit. Enumerated mappings require an enumeration kind. Both
+mapping variants record the S223 medium as a CURIE or explicit `null`. Allowed
+aspects are `s223:Aspect-Setpoint`, `s223:Aspect-Delta`, and
+`s223:Aspect-Maximum`; `s223:EnumeratedProperty` is invalid. Topology strings
+are structural authoring obligations, not topology instances or SHACL results.
+
+#### Derivation manifests (`cxf-library/routine-derivation-manifest/v1`)
+
+A derivation manifest identifies one `ocl:DerivedSignal` or
+`ocl:DerivedAggregate` output. It records the canonical class revision, an
+exact `routines/ontology/ontology-pins.json` reference, an immutable function ID
+and version, ordered typed inputs with stable source IDs, stable members,
+exclusions, data-quality handling, freshness and alignment limits in seconds,
+readiness and in-domain policy, output unit and conversion policy, output scope,
+and reset behavior.
+
+Member-linked inputs, exclusions, member output scopes, and source-triggered
+resets must resolve inside the manifest. IDs are unique. Data-quality and ready
+minimums cannot exceed the member population and must agree. A profile's
+derived output ID and manifest fragment must equal the manifest output ID; a
+manifest output must be referenced by exactly one derived connector role in the
+synthetic fixture pair.
+
 #### Schema validation boundary
 
 The schemas enforce required and closed shapes, discriminators, ID patterns,
@@ -208,7 +294,7 @@ adds deterministic cross-document checks for uniqueness, section coherence,
 reference existence and kind, finite and compatible values, dimensions,
 rectangular arrays, guards, and specialization completeness. It rejects
 duplicate JSON keys and non-finite numbers before schema validation, checks all
-four schema resources with `Draft202012Validator.check_schema`, and reports
+six schema resources with `Draft202012Validator.check_schema`, and reports
 sorted errors without a traceback for expected failures.
 
 The linter validates one coherent fixture set under
@@ -216,6 +302,22 @@ The linter validates one coherent fixture set under
 test-only contract evidence. They MUST NOT appear below `routines/g36/` or be
 added to a registry, coverage claim, source inventory, book, or production
 catalog destination.
+
+`tools/lint/routine_semantics.py` checks the closed pin record, recomputes the
+local-vocabulary hash, parses the Turtle from local bytes, applies the same
+six-resource in-memory schema registry, rejects unsafe JSON-LD constructs before
+RDFLib parsing, and validates semantic and derivation cross-document rules. Its
+two fixtures under `tools/lint/tests/fixtures/routine_semantics/` are synthetic.
+Their point references are syntax examples and are not resolved against
+production dictionaries or routine interfaces.
+
+No external ontology is vendored or fetched. Brick, S223, and QUDT CURIE checks
+therefore prove closed syntax and selected S223 class and aspect policy, not that
+every external term exists in its pinned ontology. Connector semantic-role and
+topology requirements are authoring evidence, not building-instance evidence.
+Production profiles must later be paired with typed interfaces, canonical point
+dictionaries, ontology-term evidence, and building-instance validation before
+any semantic-conformance claim.
 
 ### `routines/g36/source-inventory.json` (`cxf-library/g36-source-inventory/v1`)
 
@@ -338,10 +440,11 @@ absent.
 
 ### Deferred routine contracts
 
-Production class manifests, interfaces, and specialization inputs remain
-deferred, as do source-to-family and class mapping instances, point semantics,
-semantic sidecars, a specializer, resolved connectors, generated deployment
-bundle schemas and rows, source maps, vectors, generated CXF, and execution.
+Production class manifests, interfaces, specialization inputs, semantic
+profiles, and derivation manifests remain deferred, as do source-to-family and
+class mapping instances, point migrations, a specializer, resolved connectors,
+generated deployment bundle schemas and rows, source maps, vectors, generated
+CXF, building-instance conformance, and execution.
 
 ## Design stance (why the pieces split this way)
 

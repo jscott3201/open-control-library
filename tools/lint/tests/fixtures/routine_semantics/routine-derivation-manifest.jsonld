@@ -1,0 +1,160 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "brick": "https://brickschema.org/schema/Brick#",
+    "s223": "http://data.ashrae.org/standard223#",
+    "g36": "http://data.ashrae.org/standard223/1.0/extensions/g36#",
+    "qk": "http://qudt.org/vocab/quantitykind/",
+    "unit": "http://qudt.org/vocab/unit/",
+    "ocl": "urn:open-control-library:ontology:",
+    "schema": "ocl:artifactVersion",
+    "canonical_id": "ocl:canonicalRoutineId",
+    "revision": "ocl:canonicalRoutineRevision",
+    "ontology_pins": "ocl:ontologyPins",
+    "connector_roles": {"@id": "ocl:hasConnectorRole", "@container": "@set"},
+    "connector_id": "ocl:connectorId",
+    "direction": "ocl:direction",
+    "requirement": "ocl:g36PointRequirement",
+    "semantic_role": "ocl:semanticRole",
+    "mapping_status": "ocl:mappingStatus",
+    "topology_requirements": {"@id": "ocl:topologyRequirement", "@container": "@set"},
+    "cardinality": "ocl:cardinality",
+    "minimum": "ocl:minimumCardinality",
+    "maximum": "ocl:maximumCardinality",
+    "binding": "ocl:hasBinding",
+    "kind": "ocl:kind",
+    "canonical_point_ref": "ocl:canonicalPointRef",
+    "brick_mapping": "ocl:brickMapping",
+    "s223_mapping": "ocl:s223Mapping",
+    "brick_class": {"@id": "ocl:brickClass", "@type": "@id"},
+    "property_class": {"@id": "ocl:s223PropertyClass", "@type": "@id"},
+    "quantity_kind": {"@id": "ocl:quantityKind", "@type": "@id"},
+    "qudt_unit": {"@id": "ocl:unit", "@type": "@id"},
+    "enumeration_kind": {"@id": "ocl:enumerationKind", "@type": "@id"},
+    "medium": {"@id": "ocl:s223Medium", "@type": "@id"},
+    "aspects": {"@id": "ocl:s223Aspect", "@type": "@id", "@container": "@set"},
+    "local_class": {"@id": "ocl:localClass", "@type": "@id"},
+    "output_id": "ocl:outputId",
+    "derivation_manifest_ref": "ocl:derivationManifestRef",
+    "algorithm": "ocl:algorithm",
+    "version": "ocl:algorithmVersion",
+    "output": "ocl:output",
+    "inputs": {"@id": "ocl:input", "@container": "@list"},
+    "source_id": "ocl:sourceId",
+    "source": "ocl:source",
+    "value_kind": "ocl:valueKind",
+    "member_id": "ocl:memberId",
+    "members": {"@id": "ocl:memberPopulation", "@container": "@list"},
+    "exclusions": {"@id": "ocl:exclusion", "@container": "@set"},
+    "member_ids": {"@id": "ocl:excludedMember", "@container": "@set"},
+    "reason": "ocl:exclusionReason",
+    "data_quality": "ocl:dataQualityPolicy",
+    "freshness_limit_s": "ocl:freshnessLimitSeconds",
+    "time_alignment_window_s": "ocl:timeAlignmentWindowSeconds",
+    "ready_condition": "ocl:readyCondition",
+    "unit_policy": "ocl:unitPolicy",
+    "output_scope": "ocl:outputScope",
+    "reset_behavior": "ocl:resetBehavior"
+  },
+  "@id": "urn:open-control-library:derivation-manifest:G36-05-16-SYNTHETIC-SEMANTIC-TEST:zone_air_temperature_max:v1",
+  "@type": "ocl:DerivationManifest",
+  "schema": "cxf-library/routine-derivation-manifest/v1",
+  "canonical_id": "G36-05-16-SYNTHETIC-SEMANTIC-TEST",
+  "revision": 1,
+  "ontology_pins": "routines/ontology/ontology-pins.json",
+  "algorithm": {
+    "@id": "urn:open-control-library:algorithm:synthetic-member-maximum",
+    "@type": "ocl:DerivationFunction",
+    "version": "1.0.0"
+  },
+  "output": {
+    "@id": "urn:open-control-library:derived-output:G36-05-16-SYNTHETIC-SEMANTIC-TEST:zone_air_temperature_max",
+    "@type": "ocl:DerivedAggregate",
+    "id": "zone_air_temperature_max"
+  },
+  "inputs": [
+    {
+      "@id": "urn:open-control-library:derivation-input:north-zone-temperature",
+      "@type": "ocl:DerivationInput",
+      "id": "north_zone_temperature",
+      "source_id": "urn:open-control-library:source:north-zone-temperature",
+      "source": {
+        "kind": "canonical-point",
+        "canonical_point_ref": "points/synthetic.points.json#zone_air_temperature",
+        "value_kind": "real",
+        "qudt_unit": "unit:DEG_C",
+        "member_id": "north-zone"
+      }
+    },
+    {
+      "@id": "urn:open-control-library:derivation-input:south-zone-temperature",
+      "@type": "ocl:DerivationInput",
+      "id": "south_zone_temperature",
+      "source_id": "urn:open-control-library:source:south-zone-temperature",
+      "source": {
+        "kind": "canonical-point",
+        "canonical_point_ref": "points/synthetic.points.json#zone_air_temperature",
+        "value_kind": "real",
+        "qudt_unit": "unit:DEG_C",
+        "member_id": "south-zone"
+      }
+    },
+    {
+      "@id": "urn:open-control-library:derivation-input:service-zone-temperature",
+      "@type": "ocl:DerivationInput",
+      "id": "service_zone_temperature",
+      "source_id": "urn:open-control-library:source:service-zone-temperature",
+      "source": {
+        "kind": "canonical-point",
+        "canonical_point_ref": "points/synthetic.points.json#zone_air_temperature",
+        "value_kind": "real",
+        "qudt_unit": "unit:DEG_C",
+        "member_id": "service-zone"
+      }
+    }
+  ],
+  "members": [
+    {
+      "@id": "urn:open-control-library:derivation-member:north-zone",
+      "@type": "ocl:DerivationMember",
+      "id": "north-zone"
+    },
+    {
+      "@id": "urn:open-control-library:derivation-member:south-zone",
+      "@type": "ocl:DerivationMember",
+      "id": "south-zone"
+    },
+    {
+      "@id": "urn:open-control-library:derivation-member:service-zone",
+      "@type": "ocl:DerivationMember",
+      "id": "service-zone"
+    }
+  ],
+  "exclusions": [
+    {
+      "@id": "urn:open-control-library:derivation-exclusion:service-zone",
+      "@type": "ocl:DerivationExclusion",
+      "id": "exclude_service_zone",
+      "member_ids": ["service-zone"],
+      "reason": "operator-excluded"
+    }
+  ],
+  "data_quality": {
+    "accepted_statuses": ["good"],
+    "rejected_input": "exclude-member",
+    "minimum_valid_members": 2
+  },
+  "freshness_limit_s": 300,
+  "time_alignment_window_s": 60,
+  "ready_condition": {
+    "minimum_valid_members": 2,
+    "require_all_inputs_in_domain": false
+  },
+  "unit_policy": {
+    "output_unit": "unit:DEG_C",
+    "input_units": "same-as-output",
+    "conversion": "none"
+  },
+  "output_scope": {"kind": "population"},
+  "reset_behavior": {"kind": "stateless"}
+}

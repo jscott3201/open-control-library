@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json",
+  "title": "Open Control Library routine semantic profile",
+  "$defs": {
+    "absoluteUrn": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 256,
+      "pattern": "^urn:[A-Za-z0-9][A-Za-z0-9:._~/#-]+$"
+    },
+    "canonicalPointRef": {
+      "type": "string",
+      "maxLength": 256,
+      "pattern": "^points/[a-z][a-z0-9-]*\\.points\\.json#[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+    },
+    "oclClass": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^ocl:[A-Z][A-Za-z0-9]*$"
+    },
+    "valueKind": {
+      "enum": ["real", "integer", "boolean", "enumeration"]
+    },
+    "semanticContext": {
+      "const": {
+        "@version": 1.1,
+        "brick": "https://brickschema.org/schema/Brick#",
+        "s223": "http://data.ashrae.org/standard223#",
+        "g36": "http://data.ashrae.org/standard223/1.0/extensions/g36#",
+        "qk": "http://qudt.org/vocab/quantitykind/",
+        "unit": "http://qudt.org/vocab/unit/",
+        "ocl": "urn:open-control-library:ontology:",
+        "schema": "ocl:artifactVersion",
+        "canonical_id": "ocl:canonicalRoutineId",
+        "revision": "ocl:canonicalRoutineRevision",
+        "ontology_pins": "ocl:ontologyPins",
+        "connector_roles": {"@id": "ocl:hasConnectorRole", "@container": "@set"},
+        "connector_id": "ocl:connectorId",
+        "direction": "ocl:direction",
+        "requirement": "ocl:g36PointRequirement",
+        "semantic_role": "ocl:semanticRole",
+        "mapping_status": "ocl:mappingStatus",
+        "topology_requirements": {"@id": "ocl:topologyRequirement", "@container": "@set"},
+        "cardinality": "ocl:cardinality",
+        "minimum": "ocl:minimumCardinality",
+        "maximum": "ocl:maximumCardinality",
+        "binding": "ocl:hasBinding",
+        "kind": "ocl:kind",
+        "canonical_point_ref": "ocl:canonicalPointRef",
+        "brick_mapping": "ocl:brickMapping",
+        "s223_mapping": "ocl:s223Mapping",
+        "brick_class": {"@id": "ocl:brickClass", "@type": "@id"},
+        "property_class": {"@id": "ocl:s223PropertyClass", "@type": "@id"},
+        "quantity_kind": {"@id": "ocl:quantityKind", "@type": "@id"},
+        "qudt_unit": {"@id": "ocl:unit", "@type": "@id"},
+        "enumeration_kind": {"@id": "ocl:enumerationKind", "@type": "@id"},
+        "medium": {"@id": "ocl:s223Medium", "@type": "@id"},
+        "aspects": {"@id": "ocl:s223Aspect", "@type": "@id", "@container": "@set"},
+        "local_class": {"@id": "ocl:localClass", "@type": "@id"},
+        "output_id": "ocl:outputId",
+        "derivation_manifest_ref": "ocl:derivationManifestRef",
+        "algorithm": "ocl:algorithm",
+        "version": "ocl:algorithmVersion",
+        "output": "ocl:output",
+        "inputs": {"@id": "ocl:input", "@container": "@list"},
+        "source_id": "ocl:sourceId",
+        "source": "ocl:source",
+        "value_kind": "ocl:valueKind",
+        "member_id": "ocl:memberId",
+        "members": {"@id": "ocl:memberPopulation", "@container": "@list"},
+        "exclusions": {"@id": "ocl:exclusion", "@container": "@set"},
+        "member_ids": {"@id": "ocl:excludedMember", "@container": "@set"},
+        "reason": "ocl:exclusionReason",
+        "data_quality": "ocl:dataQualityPolicy",
+        "freshness_limit_s": "ocl:freshnessLimitSeconds",
+        "time_alignment_window_s": "ocl:timeAlignmentWindowSeconds",
+        "ready_condition": "ocl:readyCondition",
+        "unit_policy": "ocl:unitPolicy",
+        "output_scope": "ocl:outputScope",
+        "reset_behavior": "ocl:resetBehavior"
+      }
+    },
+    "semanticText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "\\S"
+    },
+    "cardinality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum", "maximum"],
+      "properties": {
+        "minimum": {"type": "integer", "minimum": 0},
+        "maximum": {"type": "integer", "minimum": 1}
+      }
+    },
+    "brickMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["brick_class"],
+      "properties": {
+        "brick_class": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^brick:[A-Za-z][A-Za-z0-9_]*$"
+        }
+      }
+    },
+    "quantifiableS223Mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["property_class", "quantity_kind", "qudt_unit", "medium", "aspects"],
+      "properties": {
+        "property_class": {
+          "enum": [
+            "s223:QuantifiableObservableProperty",
+            "s223:QuantifiableActuatableProperty"
+          ]
+        },
+        "quantity_kind": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^qk:[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "qudt_unit": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^unit:[A-Za-z0-9][A-Za-z0-9_-]*$"
+        },
+        "medium": {
+          "type": ["string", "null"],
+          "maxLength": 128,
+          "pattern": "^s223:[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "aspects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "s223:Aspect-Setpoint",
+              "s223:Aspect-Delta",
+              "s223:Aspect-Maximum"
+            ]
+          }
+        }
+      }
+    },
+    "enumeratedS223Mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["property_class", "enumeration_kind", "medium", "aspects"],
+      "properties": {
+        "property_class": {
+          "enum": [
+            "s223:EnumeratedObservableProperty",
+            "s223:EnumeratedActuatableProperty"
+          ]
+        },
+        "enumeration_kind": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^s223:[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "medium": {
+          "type": ["string", "null"],
+          "maxLength": 128,
+          "pattern": "^s223:[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "aspects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "s223:Aspect-Setpoint",
+              "s223:Aspect-Delta",
+              "s223:Aspect-Maximum"
+            ]
+          }
+        }
+      }
+    },
+    "physicalBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "@type",
+        "kind",
+        "canonical_point_ref",
+        "brick_mapping",
+        "s223_mapping"
+      ],
+      "properties": {
+        "@type": {"const": "ocl:PhysicalPointBinding"},
+        "kind": {"const": "physical-or-bms-point"},
+        "canonical_point_ref": {
+          "$ref": "#/$defs/canonicalPointRef"
+        },
+        "brick_mapping": {"$ref": "#/$defs/brickMapping"},
+        "s223_mapping": {
+          "oneOf": [
+            {"$ref": "#/$defs/quantifiableS223Mapping"},
+            {"$ref": "#/$defs/enumeratedS223Mapping"}
+          ]
+        }
+      }
+    },
+    "softwareBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["@type", "kind", "local_class"],
+      "properties": {
+        "@type": {"const": "ocl:SoftwareSignalBinding"},
+        "kind": {"const": "software-signal"},
+        "local_class": {
+          "$ref": "#/$defs/oclClass"
+        }
+      }
+    },
+    "derivedBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "@type",
+        "kind",
+        "local_class",
+        "output_id",
+        "derivation_manifest_ref"
+      ],
+      "properties": {
+        "@type": {"const": "ocl:DerivedSignalBinding"},
+        "kind": {"const": "derived-signal"},
+        "local_class": {
+          "$ref": "#/$defs/oclClass"
+        },
+        "output_id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "derivation_manifest_ref": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*\\.jsonld#[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+        }
+      }
+    },
+    "connectorRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "@id",
+        "@type",
+        "connector_id",
+        "direction",
+        "requirement",
+        "semantic_role",
+        "mapping_status",
+        "topology_requirements",
+        "cardinality",
+        "binding"
+      ],
+      "properties": {
+        "@id": {
+          "$ref": "#/$defs/absoluteUrn"
+        },
+        "@type": {"const": "ocl:ConnectorSemanticRole"},
+        "connector_id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "direction": {"enum": ["input", "output"]},
+        "requirement": {"enum": ["R", "A", "O", "N", "S", "D", "P"]},
+        "semantic_role": {"$ref": "#/$defs/semanticText"},
+        "mapping_status": {"enum": ["verified", "provisional"]},
+        "topology_requirements": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/semanticText"}
+        },
+        "cardinality": {"$ref": "#/$defs/cardinality"},
+        "binding": {
+          "oneOf": [
+            {"$ref": "#/$defs/physicalBinding"},
+            {"$ref": "#/$defs/softwareBinding"},
+            {"$ref": "#/$defs/derivedBinding"}
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "binding": {
+                "properties": {
+                  "kind": {"const": "physical-or-bms-point"}
+                },
+                "required": ["kind"]
+              }
+            },
+            "required": ["binding"]
+          },
+          "then": {
+            "properties": {
+              "topology_requirements": {"minItems": 1}
+            }
+          }
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "@context",
+    "@id",
+    "@type",
+    "schema",
+    "canonical_id",
+    "revision",
+    "ontology_pins",
+    "connector_roles"
+  ],
+  "properties": {
+    "@context": {
+      "$ref": "#/$defs/semanticContext"
+    },
+    "@id": {
+      "$ref": "#/$defs/absoluteUrn"
+    },
+    "@type": {"const": "ocl:RoutineSemanticProfile"},
+    "schema": {"const": "cxf-library/routine-semantic-profile/v1"},
+    "canonical_id": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/canonicalId"
+    },
+    "revision": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/revision"
+    },
+    "ontology_pins": {"const": "routines/ontology/ontology-pins.json"},
+    "connector_roles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {"$ref": "#/$defs/connectorRole"}
+    }
+  }
+}

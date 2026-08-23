@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-control-library.example/schemas/routine-derivation-manifest-v1.json",
+  "title": "Open Control Library routine derivation manifest",
+  "$defs": {
+    "algorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["@id", "@type", "version"],
+      "properties": {
+        "@id": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+        },
+        "@type": {"const": "ocl:DerivationFunction"},
+        "version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[A-Za-z0-9.-]+)?$"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["@id", "@type", "id"],
+      "properties": {
+        "@id": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+        },
+        "@type": {"enum": ["ocl:DerivedSignal", "ocl:DerivedAggregate"]},
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        }
+      }
+    },
+    "canonicalPointSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "canonical_point_ref", "value_kind"],
+      "properties": {
+        "kind": {"const": "canonical-point"},
+        "canonical_point_ref": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/canonicalPointRef"
+        },
+        "value_kind": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/valueKind"
+        },
+        "qudt_unit": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^unit:[A-Za-z0-9][A-Za-z0-9_-]*$"
+        },
+        "member_id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMemberId"
+        }
+      }
+    },
+    "softwareSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "signal_id", "local_class", "value_kind"],
+      "properties": {
+        "kind": {"const": "software-signal"},
+        "signal_id": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+        },
+        "local_class": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/oclClass"
+        },
+        "value_kind": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/valueKind"
+        },
+        "qudt_unit": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^unit:[A-Za-z0-9][A-Za-z0-9_-]*$"
+        },
+        "member_id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMemberId"
+        }
+      }
+    },
+    "connectorSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "connector_id", "direction", "value_kind"],
+      "properties": {
+        "kind": {"const": "connector"},
+        "connector_id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "direction": {"enum": ["input", "output"]},
+        "value_kind": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/valueKind"
+        },
+        "qudt_unit": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^unit:[A-Za-z0-9][A-Za-z0-9_-]*$"
+        },
+        "member_id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMemberId"
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["@id", "@type", "id", "source_id", "source"],
+      "properties": {
+        "@id": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+        },
+        "@type": {"const": "ocl:DerivationInput"},
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "source_id": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+        },
+        "source": {
+          "oneOf": [
+            {"$ref": "#/$defs/canonicalPointSource"},
+            {"$ref": "#/$defs/softwareSource"},
+            {"$ref": "#/$defs/connectorSource"}
+          ]
+        }
+      }
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["@id", "@type", "id"],
+      "properties": {
+        "@id": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+        },
+        "@type": {"const": "ocl:DerivationMember"},
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMemberId"
+        }
+      }
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["@id", "@type", "id", "member_ids", "reason"],
+      "properties": {
+        "@id": {
+          "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+        },
+        "@type": {"const": "ocl:DerivationExclusion"},
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "member_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMemberId"
+          }
+        },
+        "reason": {
+          "enum": [
+            "missing",
+            "invalid-quality",
+            "stale",
+            "out-of-domain",
+            "operator-excluded"
+          ]
+        }
+      }
+    },
+    "dataQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted_statuses", "rejected_input", "minimum_valid_members"],
+      "properties": {
+        "accepted_statuses": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["good", "uncertain"]}
+        },
+        "rejected_input": {"enum": ["exclude-member", "not-ready", "fail"]},
+        "minimum_valid_members": {"type": "integer", "minimum": 1}
+      }
+    },
+    "readyCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_valid_members", "require_all_inputs_in_domain"],
+      "properties": {
+        "minimum_valid_members": {"type": "integer", "minimum": 1},
+        "require_all_inputs_in_domain": {"type": "boolean"}
+      }
+    },
+    "unitPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output_unit", "input_units", "conversion"],
+      "properties": {
+        "output_unit": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^unit:[A-Za-z0-9][A-Za-z0-9_-]*$"
+        },
+        "input_units": {"enum": ["same-as-output", "convert-to-output"]},
+        "conversion": {"enum": ["none", "algorithm-defined"]}
+      }
+    },
+    "outputScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {"kind": {"const": "routine"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {"kind": {"const": "population"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "member_id"],
+          "properties": {
+            "kind": {"const": "member"},
+            "member_id": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMemberId"
+            }
+          }
+        }
+      ]
+    },
+    "resetBehavior": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {"kind": {"const": "stateless"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {"kind": {"const": "on-not-ready"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "source_id"],
+          "properties": {
+            "kind": {"const": "source"},
+            "source_id": {
+              "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "@context",
+    "@id",
+    "@type",
+    "schema",
+    "canonical_id",
+    "revision",
+    "ontology_pins",
+    "algorithm",
+    "output",
+    "inputs",
+    "members",
+    "exclusions",
+    "data_quality",
+    "freshness_limit_s",
+    "time_alignment_window_s",
+    "ready_condition",
+    "unit_policy",
+    "output_scope",
+    "reset_behavior"
+  ],
+  "properties": {
+    "@context": {
+      "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/semanticContext"
+    },
+    "@id": {
+      "$ref": "https://open-control-library.example/schemas/routine-semantic-profile-v1.json#/$defs/absoluteUrn"
+    },
+    "@type": {"const": "ocl:DerivationManifest"},
+    "schema": {"const": "cxf-library/routine-derivation-manifest/v1"},
+    "canonical_id": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/canonicalId"
+    },
+    "revision": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/revision"
+    },
+    "ontology_pins": {"const": "routines/ontology/ontology-pins.json"},
+    "algorithm": {"$ref": "#/$defs/algorithm"},
+    "output": {"$ref": "#/$defs/output"},
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1024,
+      "items": {"$ref": "#/$defs/input"}
+    },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1024,
+      "items": {"$ref": "#/$defs/member"}
+    },
+    "exclusions": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {"$ref": "#/$defs/exclusion"}
+    },
+    "data_quality": {"$ref": "#/$defs/dataQuality"},
+    "freshness_limit_s": {"type": "number", "exclusiveMinimum": 0},
+    "time_alignment_window_s": {"type": "number", "minimum": 0},
+    "ready_condition": {"$ref": "#/$defs/readyCondition"},
+    "unit_policy": {"$ref": "#/$defs/unitPolicy"},
+    "output_scope": {"$ref": "#/$defs/outputScope"},
+    "reset_behavior": {"$ref": "#/$defs/resetBehavior"}
+  }
+}

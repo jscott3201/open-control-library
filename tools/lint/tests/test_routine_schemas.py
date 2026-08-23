@@ -75,7 +75,7 @@ class RoutineSchemaTests(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertEqual(
             output.getvalue(),
-            "routine schema lint: 4 schemas, 3 synthetic fixtures OK\n",
+            "routine schema lint: 6 schemas, 3 synthetic fixtures OK\n",
         )
 
     def test_json_loader_rejects_malformed_duplicates_and_nonfinite_numbers(self):
