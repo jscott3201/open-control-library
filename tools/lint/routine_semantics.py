@@ -83,7 +83,7 @@ EXPECTED_PINS = {
         "namespace": LOCAL_NAMESPACE,
         "version": "0.1.0-draft",
         "path": VOCABULARY_PATH.as_posix(),
-        "sha256": "abb29ebe89fee52f2c73e4ee1335d394e41f95a68f9c7b6d8803d991d17d17a1",
+        "sha256": "fcc79e8a100bee5fb96ae73472ea7887aeec5ea013e7cbc6f800068aa4451f0b",
     },
 }
 
@@ -159,6 +159,44 @@ def _check_jsonld_safety(value, label, errors, location="$"):
         for index, item in enumerate(value):
             _check_jsonld_safety(item, label, errors, f"{location}[{index}]")
     return len(errors) == start
+
+
+def _schema_property_names(value):
+    names = set()
+    if isinstance(value, dict):
+        properties = value.get("properties")
+        if isinstance(properties, dict):
+            names.update(name for name in properties if not name.startswith("@"))
+        for item in value.values():
+            names.update(_schema_property_names(item))
+    elif isinstance(value, list):
+        for item in value:
+            names.update(_schema_property_names(item))
+    return names
+
+
+def _check_context_coverage(schemas_by_id, errors):
+    profile_schema = schemas_by_id.get(routine_schemas.SEMANTIC_PROFILE_ID)
+    if not isinstance(profile_schema, dict):
+        return
+    context = (
+        profile_schema.get("$defs", {}).get("semanticContext", {}).get("const")
+    )
+    if not isinstance(context, dict):
+        return
+    property_names = set()
+    for schema_id in (
+        routine_schemas.SEMANTIC_PROFILE_ID,
+        routine_schemas.DERIVATION_MANIFEST_ID,
+    ):
+        schema = schemas_by_id.get(schema_id)
+        if isinstance(schema, dict):
+            property_names.update(_schema_property_names(schema))
+    label = "routines/schemas/routine-semantic-profile.schema.json"
+    for name in sorted(property_names - set(context)):
+        errors.append(
+            f"{label}: semanticContext has no JSON-LD mapping for schema property {name!r}"
+        )
 
 
 def _parse_vocabulary(raw, errors):
@@ -507,14 +545,17 @@ def _check_cross_document(profile, manifest, derived, errors):
 
 def _parse_jsonld(document, relative_path, safe, errors):
     if document is None or not safe:
-        return
+        return None
     label = relative_path.as_posix()
     try:
         payload = json.dumps(document, ensure_ascii=False, allow_nan=False)
         public_id = document.get("@id") if isinstance(document.get("@id"), str) else LOCAL_NAMESPACE
-        Graph().parse(data=payload, format="json-ld", publicID=public_id)
+        graph = Graph()
+        graph.parse(data=payload, format="json-ld", publicID=public_id)
+        return graph
     except Exception as exc:
         errors.append(f"{label}: JSON-LD parse failed: {exc}")
+        return None
 
 
 def _check_fixture_placement(repo_root, errors):
@@ -565,6 +606,7 @@ def validate(repo_root=REPO_ROOT):
         safety[name] = _check_jsonld_safety(document, path.as_posix(), errors)
 
     if schemas_by_id is not None and registry is not None:
+        _check_context_coverage(schemas_by_id, errors)
         for name, schema_id in FIXTURE_SCHEMAS.items():
             document = fixtures.get(name)
             if document is None:

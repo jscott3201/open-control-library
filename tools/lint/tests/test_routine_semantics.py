@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from rdflib import Literal, Namespace, URIRef
+
 from tools.lint import routine_semantics
 
 
@@ -23,6 +25,8 @@ FIXTURE_FILES = tuple(
     for name in routine_semantics.FIXTURE_SCHEMAS
 )
 PROFILE_PATH, MANIFEST_PATH = FIXTURE_FILES
+OCL = Namespace(routine_semantics.LOCAL_NAMESPACE)
+QUDT_UNIT = Namespace("http://qudt.org/vocab/unit/")
 
 
 class RoutineSemanticTests(unittest.TestCase):
@@ -56,6 +60,20 @@ class RoutineSemanticTests(unittest.TestCase):
         value = self.read_json(relative_path)
         change(value)
         self.write_json(relative_path, value)
+
+    def parse_jsonld(self, relative_path):
+        document = self.read_json(relative_path)
+        errors = []
+        safe = routine_semantics._check_jsonld_safety(
+            document, relative_path, errors
+        )
+        graph = routine_semantics._parse_jsonld(
+            document, Path(relative_path), safe, errors
+        )
+        self.assertEqual(errors, [])
+        if graph is None:
+            self.fail(f"{relative_path} did not produce an RDF graph")
+        return document, graph
 
     def assert_error(self, expected):
         errors = routine_semantics.validate(self.root)
@@ -191,6 +209,83 @@ class RoutineSemanticTests(unittest.TestCase):
                 ):
                     self.assert_error(expected)
                 (self.root / PROFILE_PATH).write_bytes(original)
+
+    def test_context_coverage_rejects_an_unmapped_schema_property(self):
+        schema_path = "routines/schemas/routine-semantic-profile.schema.json"
+        self.mutate(
+            schema_path,
+            lambda value: value["$defs"]["semanticContext"]["const"].pop("id"),
+        )
+        for fixture_path in (PROFILE_PATH, MANIFEST_PATH):
+            self.mutate(fixture_path, lambda value: value["@context"].pop("id"))
+        self.assert_error("semanticContext has no JSON-LD mapping for schema property 'id'")
+
+    def test_derivation_jsonld_preserves_ids_and_policy_values(self):
+        manifest, graph = self.parse_jsonld(MANIFEST_PATH)
+
+        expected_ids = {
+            "zone_air_temperature_max",
+            "north_zone_temperature",
+            "south_zone_temperature",
+            "service_zone_temperature",
+            "north-zone",
+            "south-zone",
+            "service-zone",
+            "exclude_service_zone",
+        }
+        self.assertEqual(
+            {str(value) for value in graph.objects(None, OCL.localId)}, expected_ids
+        )
+
+        manifest_id = URIRef(manifest["@id"])
+        data_quality = graph.value(manifest_id, OCL.dataQualityPolicy)
+        self.assertIsNotNone(data_quality)
+        self.assertIn((data_quality, OCL.acceptedStatus, Literal("good")), graph)
+        self.assertIn(
+            (data_quality, OCL.rejectedInputPolicy, Literal("exclude-member")),
+            graph,
+        )
+        self.assertIn((data_quality, OCL.minimumValidMembers, Literal(2)), graph)
+
+        ready = graph.value(manifest_id, OCL.readyCondition)
+        self.assertIsNotNone(ready)
+        self.assertIn((ready, OCL.minimumValidMembers, Literal(2)), graph)
+        self.assertIn(
+            (ready, OCL.requireAllInputsInDomain, Literal(False)), graph
+        )
+
+        unit_policy = graph.value(manifest_id, OCL.unitPolicy)
+        self.assertIsNotNone(unit_policy)
+        self.assertIn((unit_policy, OCL.outputUnit, QUDT_UNIT.DEG_C), graph)
+        self.assertIn(
+            (unit_policy, OCL.inputUnitsPolicy, Literal("same-as-output")), graph
+        )
+        self.assertIn(
+            (unit_policy, OCL.conversionPolicy, Literal("none")), graph
+        )
+
+    def test_software_source_signal_id_is_preserved_as_an_iri(self):
+        signal_id = "urn:open-control-library:software-signal:north-zone-temperature"
+        self.mutate(
+            MANIFEST_PATH,
+            lambda value: value["inputs"][0].update(
+                source={
+                    "kind": "software-signal",
+                    "signal_id": signal_id,
+                    "local_class": "ocl:SoftwareSignal",
+                    "value_kind": "real",
+                    "qudt_unit": "unit:DEG_C",
+                    "member_id": "north-zone",
+                }
+            ),
+        )
+        self.assertEqual(routine_semantics.validate(self.root), [])
+
+        manifest, graph = self.parse_jsonld(MANIFEST_PATH)
+        input_id = URIRef(manifest["inputs"][0]["@id"])
+        source = graph.value(input_id, OCL.source)
+        self.assertIsNotNone(source)
+        self.assertIn((source, OCL.signalId, URIRef(signal_id)), graph)
 
     def test_ontology_pin_constants_and_local_vocabulary_hash_are_enforced(self):
         pin_path = "routines/ontology/ontology-pins.json"

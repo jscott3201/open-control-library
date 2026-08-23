@@ -43,6 +43,6 @@
     "namespace": "urn:open-control-library:ontology:",
     "version": "0.1.0-draft",
     "path": "routines/ontology/ocl-vocabulary.ttl",
-    "sha256": "abb29ebe89fee52f2c73e4ee1335d394e41f95a68f9c7b6d8803d991d17d17a1"
+    "sha256": "fcc79e8a100bee5fb96ae73472ea7887aeec5ea013e7cbc6f800068aa4451f0b"
   }
 }
