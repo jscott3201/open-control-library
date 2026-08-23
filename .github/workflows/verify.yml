@@ -17,12 +17,32 @@ jobs:
         id: pin
         run: echo "rev=$(cat cxf-library/ENGINE_PIN)" >> "$GITHUB_OUTPUT"
 
+      - name: Read G36 source pins
+        id: g36-source-pins
+        run: |
+          echo "release=$(cat cxf-library/routines/g36/SOURCE_RELEASE_PIN)" >> "$GITHUB_OUTPUT"
+          echo "development=$(cat cxf-library/routines/g36/SOURCE_DEVELOPMENT_PIN)" >> "$GITHUB_OUTPUT"
+
       - name: Checkout open-control engine at pin
         uses: actions/checkout@v4
         with:
           repository: jscott3201/open-control-engine
           ref: ${{ steps.pin.outputs.rev }}
           path: open-control
+
+      - name: Checkout Modelica Buildings release source at pin
+        uses: actions/checkout@v4
+        with:
+          repository: lbl-srg/modelica-buildings
+          ref: ${{ steps.g36-source-pins.outputs.release }}
+          path: modelica-buildings-release
+
+      - name: Checkout Modelica Buildings development source at pin
+        uses: actions/checkout@v4
+        with:
+          repository: lbl-srg/modelica-buildings
+          ref: ${{ steps.g36-source-pins.outputs.development }}
+          path: modelica-buildings-development
 
       - name: svg fitment lint
         working-directory: cxf-library
@@ -37,6 +57,13 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/lint/tests -v
           python3 tools/lint/routines.py
+
+      - name: Verify G36 source inventory
+        working-directory: cxf-library
+        run: |
+          python3 tools/lint/g36_source.py --check \
+            --release-root ../modelica-buildings-release \
+            --development-root ../modelica-buildings-development
 
       - uses: dtolnay/rust-toolchain@stable
 
