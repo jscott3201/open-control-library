@@ -8,7 +8,7 @@
     },
     "s223": {
       "iri": "http://data.ashrae.org/standard223#",
-      "verified_version": "v1.0.0-2026"
+      "verified_version": "1.0.0-ppr.2.1"
     },
     "quantitykind": {
       "iri": "http://qudt.org/vocab/quantitykind/",
@@ -257,11 +257,13 @@
       "brick": "Valve_Position_Command",
       "s223": {
         "pattern": "QuantifiableActuatableProperty on the reheat Valve via hasProperty; Actuator actuates the valve",
-        "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
+        "property_class": "QuantifiableActuatableProperty",
+        "quantitykind": "DimensionlessRatio",
+        "unit": "PERCENT",
         "medium": null,
-        "aspects": []
+        "aspects": [
+          "Binary-Position"
+        ]
       },
       "notes": "Duplicate of points/vav.points.json rht_vlv_cmd — the reference files SYS-0007 under SYS but scopes it to VAV/FCU zones; bind per zone."
     },
@@ -277,7 +279,7 @@
         "property_class": "QuantifiableObservableProperty",
         "quantitykind": "Temperature",
         "unit": "DEG_C",
-        "medium": "Air",
+        "medium": "Fluid-Air",
         "aspects": []
       }
     }

@@ -8,11 +8,11 @@
     },
     "s223": {
       "iri": "http://data.ashrae.org/standard223#",
-      "verified_version": "v1.0.0-2026"
+      "verified_version": "1.0.0-ppr.2.1"
     },
     "s223_g36": {
       "iri": "http://data.ashrae.org/standard223/1.0/extensions/g36#",
-      "verified_version": "v1.0.0-2026"
+      "verified_version": "1.0.0-ppr.2.1"
     },
     "quantitykind": {
       "iri": "http://qudt.org/vocab/quantitykind/",
@@ -23,7 +23,7 @@
       "verified_version": "QUDT 3.1.4"
     }
   },
-  "notes": "All brick/s223 terms grep-verified against the published ontology files (Brick 1.4.4; ASHRAE 223 v1.0.0-2026 incl. its G36 extension) and, where noted, the official 223P G36 reference model guideline36-2021-A-9 (github.com/open223/models.open223.info). provisional=true marks mappings with genuine ambiguity or unattested 223P patterns; every s223 entry additionally awaits confirmation against the formal ASHRAE 223 standard text, which we do not yet hold.",
+  "notes": "Brick terms were checked against Brick 1.4.4. ASHRAE 223 terms were checked against the public-review artifact 223p-1.0.0-ppr2.1.ttl (owl:versionInfo 1.0.0-ppr.2.1), including its G36 extension and, where noted, the guideline36-2021-A-9 reference model (github.com/open223/models.open223.info). This artifact is a compatibility baseline, not the final published standard. provisional=true marks mappings with genuine ambiguity or unattested patterns; every s223 entry additionally awaits confirmation against the formal ASHRAE 223 standard text, which we do not yet hold.",
   "points": [
     {
       "name": "sat",
