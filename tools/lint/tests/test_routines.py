@@ -152,7 +152,7 @@ class RoutineLintTests(unittest.TestCase):
                 self.assert_error("missing schema")
                 self.restore_product_file(relative_path)
 
-    def test_l0_registries_require_empty_arrays(self):
+    def test_registries_require_empty_arrays_until_rows_are_implemented(self):
         cases = (
             ("routines/registry.json", "routines"),
             ("routines/generated-registry.json", "deployments"),
@@ -165,7 +165,9 @@ class RoutineLintTests(unittest.TestCase):
 
             with self.subTest(relative_path=relative_path, case="nonempty"):
                 self.mutate_json(relative_path, lambda value: value.update({key: [{}]}))
-                self.assert_error(f"{relative_path}: {key} must remain empty in L0")
+                self.assert_error(
+                    f"{relative_path}: {key} must remain empty until production catalog rows are implemented"
+                )
                 self.restore_product_file(relative_path)
 
     def test_scope_requires_exactly_22_object_rows_with_exact_keys(self):
@@ -277,7 +279,10 @@ class RoutineLintTests(unittest.TestCase):
             "profile": ("other", "profile must equal scope.json profile"),
             "status": ("implemented", "status must equal scope.json status"),
             "scope": ("other.json", "scope must be 'scope.json'"),
-            "claims": ([{}], "claims must remain empty in L0"),
+            "claims": (
+                [{}],
+                "claims must remain empty until coverage claims are implemented",
+            ),
         }
         for key, (replacement, expected) in cases.items():
             with self.subTest(key=key):
@@ -297,7 +302,9 @@ class RoutineLintTests(unittest.TestCase):
 
     def test_stale_executable_and_fixed_variant_artifacts_are_rejected(self):
         self.write_text("routines/g36/future/routine.cxf.jsonld", "{}\n")
-        self.assert_error("routine.cxf.jsonld: executable routine artifacts are forbidden in L0")
+        self.assert_error(
+            "routine.cxf.jsonld: executable routine artifacts are forbidden until generated deployments are implemented"
+        )
         shutil.rmtree(self.root / "routines/g36/future")
 
         self.write_text(

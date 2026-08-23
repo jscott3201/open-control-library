@@ -22,6 +22,7 @@ cxf-library/
 ├── routines/                    # planned control-routine catalog
 │   ├── registry.json            # canonical class inventory
 │   ├── generated-registry.json  # executable deployment inventory
+│   ├── schemas/                 # canonical class/interface input schemas
 │   └── g36/                     # G36 pins, source inventory, scope, and coverage
 ├── tools/verify/                # Rust harness: loads each rule into the engine, runs vectors
 ```
@@ -53,8 +54,9 @@ next free number, honoring any reservation.
 
 Routine contracts are independent of fault contracts. Nothing in this section
 changes a fault schema identifier or fault behavior. The routine catalog is
-planned and non-executable. L1 adds source-tree evidence without adding a
-canonical class or executable deployment.
+schema-defined and non-executable. The current contract defines future
+canonical class, interface, and specialization input shapes without adding a
+production class, source mapping, specialization, or executable deployment.
 
 Pin ownership is split by purpose:
 
@@ -73,21 +75,147 @@ retired and MUST be absent.
 
 `routines/registry.json` is the canonical class inventory. Its top-level object
 has exactly `schema` and `routines`; `schema` is
-`cxf-library/routine-registry/v2`. `routines` MUST be an array and MUST remain
-empty in L1. A scope anchor is not a canonical class. The source inventory
-defined below records Git blobs; it does not identify Modelica classes or
-subsequences.
+`cxf-library/routine-registry/v2`. `routines` MUST be an array and remains empty
+until production class rows are implemented. This registry remains the sole
+catalog inventory; the schemas below do not replace it. A scope anchor is not a
+canonical class. The source inventory defined below records Git blobs; it does
+not identify Modelica classes or subsequences.
 
 `routines/generated-registry.json` is the only inventory that may eventually
 drive routine execution. Its top-level object has exactly `schema` and
 `deployments`; `schema` is
 `cxf-library/generated-routine-registry/v1`. `deployments` MUST be an array and
-MUST remain empty in L1. The verifier's `--routines` mode reads this file,
-accepts the empty array, and rejects nonempty arrays until the generated
-deployment contract is implemented.
+remains empty until generated deployments are implemented. The verifier's
+`--routines` mode reads this file, accepts the empty array, and rejects nonempty
+arrays until that contract is implemented.
 
 Canonical IDs MUST NOT encode fixed parameter values. Generated deployment IDs
 and row schemas are not defined by this version.
+
+### Canonical routine schema resources
+
+This schema set governs four JSON Schema Draft 2020-12 resources:
+
+| Path | `$id` |
+|---|---|
+| `routines/schemas/common.schema.json` | `https://open-control-library.example/schemas/routine-common-v1.json` |
+| `routines/schemas/class-manifest.schema.json` | `https://open-control-library.example/schemas/routine-class-manifest-v1.json` |
+| `routines/schemas/interface.schema.json` | `https://open-control-library.example/schemas/routine-interface-v2.json` |
+| `routines/schemas/specialization.schema.json` | `https://open-control-library.example/schemas/routine-specialization-v1.json` |
+
+Each resource declares
+`https://json-schema.org/draft/2020-12/schema`. References use only the four
+absolute IDs above and resolve from an in-memory registry. Validation performs
+no network or filesystem retrieval for schema references. Objects are closed
+unless stated otherwise.
+
+Canonical class IDs have the form
+`G36-05-(01..22)-<UPPERCASE-HYPHENATED-CLASS-SLUG>`. Scope IDs are invalid
+canonical IDs. A canonical ID identifies a parameterized engineering class; it
+MUST be independent of source paths and revisions, fixed parameter values,
+ordering, hashes, and future generated content IDs. IDs are immutable and MUST
+NOT be reused. Immutability and reuse are authoring and review invariants; the
+checker has no historical registry against which to prove them. A positive
+integer `revision` records contract changes separately from identity.
+
+Parameter, connector, type, and dimension IDs use bounded lower-case
+snake_case. Stable repeated-member IDs use bounded lower-case hyphenated text
+beginning with a letter; a dense numeric index is not a stable member ID.
+Type, dimension, parameter, and connector IDs MUST be unique within their
+respective lists. Enum member IDs and symbols MUST be unique within their enum.
+
+#### Class manifests (`cxf-library/routine-class-manifest/v1`)
+
+A future class manifest has exactly `schema`, `id`, `revision`, `section`,
+`source`, and `artifacts`. `section` is `5.1` through `5.22`; its number MUST
+agree with the section encoded in `id`.
+
+`source` is a closed union selected by `kind`:
+
+- `upstream` records `snapshot` (`release` or `development`), an exact
+  lower-case 40-hex Git revision, a Modelica class path, and one or more file
+  locators. Each locator contains a safe path below
+  `Buildings/Controls/OBC/ASHRAE/G36/` and a `sha1:<40 lowercase hex>` Git blob
+  ID.
+- `independent` records one or more safe repository-relative source paths.
+
+Duplicate source paths, absolute paths, backslashes, control characters, and
+empty, `.`, or `..` segments are invalid. `artifacts` has exactly `interface`,
+`specialization_schema`, and `specialization_config`. Their safe relative paths
+share one non-root class directory and end in `interface.json`,
+`specialization.schema.json`, and `specialization.json`, respectively. This is
+an artifact-location contract, not a production source-to-class mapping.
+
+#### Interfaces (`cxf-library/routine-interface/v2`)
+
+An interface has exactly `schema`, `canonical_id`, `revision`, `types`,
+`dimensions`, `parameters`, and `connectors`. Types and enums are local to that
+interface; this contract defines no global type catalog.
+
+The primitive symbols are exactly `real`, `integer`, and `boolean`. String and
+runtime object types are excluded. A named alias selects one primitive and may
+record nonempty trimmed `quantity`, `unit`, and `display_unit` strings.
+These strings assert no QUDT, Brick, or ASHRAE 223 semantics. An enum declares
+a nonempty ordered list of unique stable member IDs and unique symbols. Enum
+values use the stable member IDs; no integer lowering code is assigned.
+
+A type use is either primitive or a reference to a local named type. A shape is
+either scalar or an array with an ordered list of one or two dimension IDs.
+Dimensions have unique IDs. Their extent is either a positive fixed integer or
+a reference to a scalar Integer parameter. Rank greater than two, zero extents,
+ragged matrices, and arithmetic dimension expressions are invalid.
+
+Parameters have unique IDs, a type use, shape, `fixed` or `configurable`
+configurability, an optional typed default, and optional numeric minimum and
+maximum constraints. A fixed parameter MUST have a default and cannot be
+assigned by specialization. A configurable parameter without a default MUST be
+assigned by specialization.
+
+Connectors have unique IDs, `input` or `output` direction, a type use, shape,
+and explicit presence. Presence is `always` or `when` with a closed guard AST.
+Guards support `and`, `or`, `not`, and `eq`, `ne`, `lt`, `lte`, `gt`, or `gte`
+comparisons. Operands are scalar parameter references or typed scalar literals.
+Ordering comparisons require numeric operands; Integer and Real operands are
+compatible. Runtime signals, connectors, time, point IDs, operating states,
+and host or fault logic cannot appear in guards. The checker validates guard
+structure, references, and operand compatibility but does not evaluate a guard
+or resolve optional branches.
+
+#### Specialization inputs (`cxf-library/routine-specialization/v1`)
+
+A specialization input has exactly `schema`, `canonical_id`, `revision`,
+`parameters`, and `members`. `parameters` is an ordered list of unique parameter
+IDs and JSON values. `members` binds each parameter-driven dimension ID to a
+nonempty ordered list of globally unique stable member IDs.
+
+The interface and specialization canonical ID and revision MUST agree with the
+class manifest. Specialization checks parameter existence, fixed-parameter
+override rejection, required configurable assignments, primitive and enum
+value compatibility, numeric bounds, concrete dimension extents, rectangular
+rank-one and rank-two values, and stable-member count. All numeric values MUST
+be finite. A parameter-driven dimension resolves only from a positive Integer
+effective value.
+
+Specialization is input only. It contains no connector bindings, point IDs,
+resolved connector set, source map, generated CXF, runtime state, engine
+identity, or deployment identity.
+
+#### Schema validation boundary
+
+The schemas enforce required and closed shapes, discriminators, ID patterns,
+primitive JSON types, and array-rank bounds. `tools/lint/routine_schemas.py`
+adds deterministic cross-document checks for uniqueness, section coherence,
+reference existence and kind, finite and compatible values, dimensions,
+rectangular arrays, guards, and specialization completeness. It rejects
+duplicate JSON keys and non-finite numbers before schema validation, checks all
+four schema resources with `Draft202012Validator.check_schema`, and reports
+sorted errors without a traceback for expected failures.
+
+The linter validates one coherent fixture set under
+`tools/lint/tests/fixtures/routine_schemas/`. Those documents are synthetic,
+test-only contract evidence. They MUST NOT appear below `routines/g36/` or be
+added to a registry, coverage claim, source inventory, book, or production
+catalog destination.
 
 ### `routines/g36/source-inventory.json` (`cxf-library/g36-source-inventory/v1`)
 
@@ -199,20 +327,21 @@ requiring placeholder directories.
 
 Coverage has exactly `schema`, `profile`, `status`, `scope`, and `claims`.
 `schema` is `cxf-library/g36-coverage/v2`; `profile` and `status` MUST equal
-`scope.json`; `scope` is `scope.json`; and `claims` MUST be an empty array in
-L1. Coverage does not repeat scope rows or inventory and makes no completeness,
-implementation, or evidence claim.
+`scope.json`; `scope` is `scope.json`; and `claims` remains empty until
+production coverage claims are implemented. Coverage does not repeat scope rows
+or inventory and makes no completeness, implementation, or evidence claim.
 
-No `routine.cxf.jsonld` may appear below `routines/g36/` in L1. The retired
+No `routine.cxf.jsonld` may appear below `routines/g36/` until generated
+deployments are implemented. The retired
 `routines/g36/generic/air-economizer-high-limits` fixed-variant path MUST be
 absent.
 
 ### Deferred routine contracts
 
-Canonical typed routine artifact schemas, the generated deployment bundle
-schema, source-to-family and class mapping, semantic sidecars, specialization,
-and executable deployments are deferred. This version defines no routine
-interface, vectors, source map, or executable CXF contract.
+Production class manifests, interfaces, and specialization inputs remain
+deferred, as do source-to-family and class mapping instances, point semantics,
+semantic sidecars, a specializer, resolved connectors, generated deployment
+bundle schemas and rows, source maps, vectors, generated CXF, and execution.
 
 ## Design stance (why the pieces split this way)
 

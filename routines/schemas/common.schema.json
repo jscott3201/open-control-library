@@ -1,0 +1,480 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-control-library.example/schemas/routine-common-v1.json",
+  "title": "Open Control Library routine schema definitions",
+  "$defs": {
+    "canonicalId": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^G36-05-(0[1-9]|1[0-9]|2[0-2])-[A-Z]+(-[A-Z]+)*$"
+    },
+    "section": {
+      "enum": [
+        "5.1",
+        "5.2",
+        "5.3",
+        "5.4",
+        "5.5",
+        "5.6",
+        "5.7",
+        "5.8",
+        "5.9",
+        "5.10",
+        "5.11",
+        "5.12",
+        "5.13",
+        "5.14",
+        "5.15",
+        "5.16",
+        "5.17",
+        "5.18",
+        "5.19",
+        "5.20",
+        "5.21",
+        "5.22"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "localId": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+    },
+    "stableMemberId": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    "enumSymbol": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"
+    },
+    "gitRevision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "gitBlobSha1": {
+      "type": "string",
+      "pattern": "^sha1:[0-9a-f]{40}$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "\\S"
+    },
+    "safeRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9._/-]*$"
+    },
+    "upstreamPath": {
+      "type": "string",
+      "maxLength": 512,
+      "pattern": "^Buildings/Controls/OBC/ASHRAE/G36/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$"
+    },
+    "modelicaClass": {
+      "type": "string",
+      "maxLength": 512,
+      "pattern": "^Buildings\\.Controls\\.OBC\\.ASHRAE\\.G36(\\.[A-Za-z_][A-Za-z0-9_]*)+$"
+    },
+    "primitive": {
+      "enum": ["real", "integer", "boolean"]
+    },
+    "typeUse": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "primitive"],
+          "properties": {
+            "kind": {"const": "primitive"},
+            "primitive": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/primitive"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "type"],
+          "properties": {
+            "kind": {"const": "named"},
+            "type": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+            }
+          }
+        }
+      ]
+    },
+    "shape": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {"const": "scalar"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "dimensions"],
+          "properties": {
+            "kind": {"const": "array"},
+            "dimensions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 2,
+              "items": {
+                "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "aliasType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "primitive"],
+      "properties": {
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "kind": {"const": "alias"},
+        "primitive": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/primitive"
+        },
+        "quantity": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/nonEmptyString"
+        },
+        "unit": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/nonEmptyString"
+        },
+        "display_unit": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "enumMember": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "symbol"],
+      "properties": {
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMemberId"
+        },
+        "symbol": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/enumSymbol"
+        }
+      }
+    },
+    "enumType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "members"],
+      "properties": {
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "kind": {"const": "enum"},
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/enumMember"
+          }
+        }
+      }
+    },
+    "typeDefinition": {
+      "oneOf": [
+        {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/aliasType"
+        },
+        {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/enumType"
+        }
+      ]
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "extent"],
+      "properties": {
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "extent": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {
+                "kind": {"const": "fixed"},
+                "value": {"type": "integer", "minimum": 1}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "parameter"],
+              "properties": {
+                "kind": {"const": "parameter"},
+                "parameter": {
+                  "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "numericConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"}
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "shape", "configurability"],
+      "properties": {
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "type": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/typeUse"
+        },
+        "shape": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/shape"
+        },
+        "configurability": {"enum": ["fixed", "configurable"]},
+        "default": true,
+        "constraints": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/numericConstraints"
+        }
+      }
+    },
+    "guardOperand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "parameter"],
+          "properties": {
+            "kind": {"const": "parameter"},
+            "parameter": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "type", "value"],
+          "properties": {
+            "kind": {"const": "literal"},
+            "type": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/typeUse"
+            },
+            "value": true
+          }
+        }
+      ]
+    },
+    "guard": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["op", "operands"],
+          "properties": {
+            "op": {"enum": ["and", "or"]},
+            "operands": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/guard"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["op", "operand"],
+          "properties": {
+            "op": {"const": "not"},
+            "operand": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/guard"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["op", "left", "right"],
+          "properties": {
+            "op": {"enum": ["eq", "ne", "lt", "lte", "gt", "gte"]},
+            "left": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/guardOperand"
+            },
+            "right": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/guardOperand"
+            }
+          }
+        }
+      ]
+    },
+    "presence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {"const": "always"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "guard"],
+          "properties": {
+            "kind": {"const": "when"},
+            "guard": {
+              "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/guard"
+            }
+          }
+        }
+      ]
+    },
+    "connector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "direction", "type", "shape", "presence"],
+      "properties": {
+        "id": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "direction": {"enum": ["input", "output"]},
+        "type": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/typeUse"
+        },
+        "shape": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/shape"
+        },
+        "presence": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/presence"
+        }
+      }
+    },
+    "fileLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "git_blob_sha1"],
+      "properties": {
+        "path": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/upstreamPath"
+        },
+        "git_blob_sha1": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/gitBlobSha1"
+        }
+      }
+    },
+    "upstreamSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "snapshot", "revision", "modelica_class", "files"],
+      "properties": {
+        "kind": {"const": "upstream"},
+        "snapshot": {"enum": ["release", "development"]},
+        "revision": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/gitRevision"
+        },
+        "modelica_class": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/modelicaClass"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/fileLocator"
+          }
+        }
+      }
+    },
+    "independentSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "paths"],
+      "properties": {
+        "kind": {"const": "independent"},
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/safeRelativePath"
+          }
+        }
+      }
+    },
+    "classArtifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["interface", "specialization_schema", "specialization_config"],
+      "properties": {
+        "interface": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/safeRelativePath"
+        },
+        "specialization_schema": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/safeRelativePath"
+        },
+        "specialization_config": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/safeRelativePath"
+        }
+      }
+    },
+    "parameterAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parameter", "value"],
+      "properties": {
+        "parameter": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "value": true
+      }
+    },
+    "stableMembers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension", "members"],
+      "properties": {
+        "dimension": {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/localId"
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/stableMemberId"
+          }
+        }
+      }
+    }
+  }
+}

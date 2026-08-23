@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the non-executable L0 routine catalog boundary."""
+"""Validate the non-executable routine catalog boundary."""
 
 import json
 import re
@@ -139,7 +139,9 @@ def _validate_empty_registry(value, path, expected_keys, schema, array_key, erro
         errors.append(f"{label}: {array_key} must be an array")
         return None
     if rows:
-        errors.append(f"{label}: {array_key} must remain empty in L0")
+        errors.append(
+            f"{label}: {array_key} must remain empty until production catalog rows are implemented"
+        )
     return len(rows)
 
 
@@ -262,7 +264,9 @@ def _validate_coverage(coverage, scope, errors):
     if not isinstance(claims, list):
         errors.append(f"{label}: claims must be an array")
     elif claims:
-        errors.append(f"{label}: claims must remain empty in L0")
+        errors.append(
+            f"{label}: claims must remain empty until coverage claims are implemented"
+        )
 
 
 def _validate_stale_artifacts(repo_root, errors):
@@ -278,7 +282,7 @@ def _validate_stale_artifacts(repo_root, errors):
         for graph_path in sorted(g36_root.rglob("routine.cxf.jsonld")):
             relative_path = graph_path.relative_to(repo_root).as_posix()
             errors.append(
-                f"{relative_path}: executable routine artifacts are forbidden in L0"
+                f"{relative_path}: executable routine artifacts are forbidden until generated deployments are implemented"
             )
 
 

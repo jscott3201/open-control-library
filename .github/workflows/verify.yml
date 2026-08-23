@@ -52,10 +52,15 @@ jobs:
         working-directory: cxf-library
         run: python3 tools/lint/registry.py
 
+      - name: Install routine schema lint dependencies
+        working-directory: cxf-library
+        run: python3 -m pip install --requirement tools/lint/requirements-routine-schemas.txt
+
       - name: routine catalog lint
         working-directory: cxf-library
         run: |
           python3 -m unittest discover -s tools/lint/tests -v
+          python3 tools/lint/routine_schemas.py
           python3 tools/lint/routines.py
 
       - name: Verify G36 source inventory

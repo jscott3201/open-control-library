@@ -1,7 +1,7 @@
 //! OCL graph conformance runner (SCHEMA.md "Verification").
 //!
 //! Fault modes retain their existing behavior. `--routines` validates the generated deployment
-//! registry; L0 accepts only the exact empty contract.
+//! registry; the current contract accepts only the exact empty registry.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -394,7 +394,7 @@ fn validate_generated_registry(bytes: &[u8]) -> Result<usize, String> {
     }
     if !registry.deployments.is_empty() {
         return Err(format!(
-            "generated routine registry must remain empty in L0; found {} deployment(s)",
+            "generated routine registry must remain empty until generated routine deployments are implemented; found {} deployment(s)",
             registry.deployments.len()
         ));
     }
@@ -610,7 +610,9 @@ mod tests {
             }"#,
         )
         .expect_err("nonempty generated registry must fail closed");
-        assert!(error.contains("must remain empty in L0; found 1 deployment(s)"));
+        assert!(error.contains(
+            "must remain empty until generated routine deployments are implemented; found 1 deployment(s)"
+        ));
     }
 }
 

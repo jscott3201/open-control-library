@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-control-library.example/schemas/routine-class-manifest-v1.json",
+  "title": "Open Control Library routine class manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "revision", "section", "source", "artifacts"],
+  "properties": {
+    "schema": {"const": "cxf-library/routine-class-manifest/v1"},
+    "id": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/canonicalId"
+    },
+    "revision": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/revision"
+    },
+    "section": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/section"
+    },
+    "source": {
+      "oneOf": [
+        {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/upstreamSource"
+        },
+        {
+          "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/independentSource"
+        }
+      ]
+    },
+    "artifacts": {
+      "$ref": "https://open-control-library.example/schemas/routine-common-v1.json#/$defs/classArtifacts"
+    }
+  }
+}
