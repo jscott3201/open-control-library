@@ -21,7 +21,8 @@ routine inventories:
 - `ontology/ontology-pins.json` fixes the Brick 1.4.4, ASHRAE 223
   1.0.0-ppr.2.1 compatibility, QUDT 3.1.4, and local OCL identities.
   `ontology/ocl-vocabulary.ttl` is the hashed Library-owned vocabulary for
-  software and derivation concepts.
+  software and derivation concepts. `ontology/shacl/` contains the SHACL Core
+  graph used against the synthetic fixtures' RDF projections.
 
 `g36/coverage.json` references the scope manifest, remains `planned`, and makes
 no implementation or completeness claims.
@@ -54,7 +55,7 @@ python3 tools/lint/g36_source.py --check \
 Run the remaining catalog gates from the repository root:
 
 `requirements-routine-schemas.txt` pins `jsonschema==4.26.0`,
-`referencing==0.37.0`, and `rdflib==7.1.4`.
+`pyshacl==0.31.0`, `referencing==0.37.0`, and `rdflib==7.1.4`.
 
 ```sh
 python3 -m venv /tmp/cxf-routine-schemas
@@ -82,14 +83,16 @@ specializations, generated deployments, or executable CXF.
 
 The semantic and derivation schemas are exercised only by synthetic fixtures
 under `tools/lint/tests/fixtures/routine_semantics/`. Validation is local and
-network-free. It checks closed syntax, local OCL terms, connector semantic-role,
-mapping-status and topology obligations, selected S223 class and aspect policy,
-member references, the shared ontology-pin authority, and the
-profile-to-derivation relationship. Connector dataflow does not reclassify an
-S223 property as observable or actuatable. The topology strings are authoring
-requirements, not building-instance certification. Validation does not certify
-external ontology term existence, resolve fixture point references against
-production dictionaries, compare a profile to a production interface, or
-validate a building instance. Production semantic profiles, derivation
-manifests, point migrations, SHACL certification, and routine classes remain
-deferred.
+network-free. JSON Schema and Python checks own closed JSON syntax, policy,
+uniqueness, references, and the profile-to-derivation relationship. The SHACL
+Core graph validates each RDF projection independently: expected local classes
+and predicates, nested node/cardinality/datatype/class structure, and closed
+current entities. It does not mirror every JSON lexical or cross-document rule.
+
+Connector dataflow does not reclassify an S223 property as observable or
+actuatable. Topology strings are authoring requirements, not building-instance
+certification. Validation does not certify external ontology term existence,
+resolve fixture point references against production dictionaries, compare a
+profile to a production interface, or validate a building instance. Production
+semantic profiles, derivation manifests, point migrations, building-instance
+SHACL certification, and routine classes remain deferred.
