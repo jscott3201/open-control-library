@@ -102,7 +102,7 @@ This schema set governs six JSON Schema Draft 2020-12 resources:
 |---|---|
 | `routines/schemas/common.schema.json` | `https://open-control-library.example/schemas/routine-common-v1.json` |
 | `routines/schemas/class-manifest.schema.json` | `https://open-control-library.example/schemas/routine-class-manifest-v1.json` |
-| `routines/schemas/interface.schema.json` | `https://open-control-library.example/schemas/routine-interface-v2.json` |
+| `routines/schemas/interface.schema.json` | `https://open-control-library.example/schemas/routine-interface-v3.json` |
 | `routines/schemas/specialization.schema.json` | `https://open-control-library.example/schemas/routine-specialization-v1.json` |
 | `routines/schemas/routine-semantic-profile.schema.json` | `https://open-control-library.example/schemas/routine-semantic-profile-v1.json` |
 | `routines/schemas/routine-derivation-manifest.schema.json` | `https://open-control-library.example/schemas/routine-derivation-manifest-v1.json` |
@@ -112,8 +112,8 @@ Each resource declares
 fragments or the six absolute IDs above and resolve from an in-memory registry.
 Validation performs no network or filesystem retrieval for schema references.
 Objects are closed unless stated otherwise. Semantic-only definitions belong to
-the semantic-profile resource; `routine-common-v1` remains the existing routine
-class/interface contract.
+the semantic-profile resource. `routine-common-v1` retains its unchanged reusable
+definitions; the interface v3 resource defines its revised dimension form locally.
 
 Canonical class IDs have the form
 `G36-05-(01..22)-<UPPERCASE-HYPHENATED-CLASS-SLUG>`. Scope IDs are invalid
@@ -152,7 +152,7 @@ share one non-root class directory and end in `interface.json`,
 `specialization.schema.json`, and `specialization.json`, respectively. This is
 an artifact-location contract, not a production source-to-class mapping.
 
-#### Interfaces (`cxf-library/routine-interface/v2`)
+#### Interfaces (`cxf-library/routine-interface/v3`)
 
 An interface has exactly `schema`, `canonical_id`, `revision`, `types`,
 `dimensions`, `parameters`, and `connectors`. Types and enums are local to that
@@ -167,9 +167,15 @@ values use the stable member IDs; no integer lowering code is assigned.
 
 A type use is either primitive or a reference to a local named type. A shape is
 either scalar or an array with an ordered list of one or two dimension IDs.
-Dimensions have unique IDs. Their extent is either a positive fixed integer or
-a reference to a scalar Integer parameter. Rank greater than two, zero extents,
-ragged matrices, and arithmetic dimension expressions are invalid.
+Dimensions have unique IDs. A fixed dimension declares a positive integer
+extent and a nonempty ordered `members` list whose count MUST equal that extent.
+A parameter-driven dimension references a scalar Integer parameter and MUST NOT
+declare canonical members; `routine-specialization/v1` owns its member list.
+Dimension members are authored stable identities, not identities derived from
+array ordinals. Authored list order is contract order. Within one interface and
+specialization pair, member IDs MUST be unique across every fixed and
+parameter-driven dimension. Rank greater than two, zero extents, ragged
+matrices, and arithmetic dimension expressions are invalid.
 
 Parameters have unique IDs, a type use, shape, `fixed` or `configurable`
 configurability, an optional typed default, and optional numeric minimum and
@@ -192,15 +198,17 @@ or resolve optional branches.
 A specialization input has exactly `schema`, `canonical_id`, `revision`,
 `parameters`, and `members`. `parameters` is an ordered list of unique parameter
 IDs and JSON values. `members` binds each parameter-driven dimension ID to a
-nonempty ordered list of globally unique stable member IDs.
+nonempty ordered list of stable member IDs. Fixed dimensions are invalid targets.
+These IDs MUST be unique across the specialization's member records and against
+the canonical members of every fixed dimension in the paired interface.
 
 The interface and specialization canonical ID and revision MUST agree with the
 class manifest. Specialization checks parameter existence, fixed-parameter
 override rejection, required configurable assignments, primitive and enum
 value compatibility, numeric bounds, concrete dimension extents, rectangular
-rank-one and rank-two values, and stable-member count. All numeric values MUST
-be finite. A parameter-driven dimension resolves only from a positive Integer
-effective value.
+rank-one and rank-two values, and parameter-driven member count. All numeric
+values MUST be finite. A parameter-driven dimension resolves only from a
+positive Integer effective value, and its member count MUST equal that value.
 
 Specialization is input only. It contains no connector bindings, point IDs,
 resolved connector set, source map, generated CXF, runtime state, engine

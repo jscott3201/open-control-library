@@ -1,5 +1,5 @@
 {
-  "schema": "cxf-library/routine-interface/v2",
+  "schema": "cxf-library/routine-interface/v3",
   "canonical_id": "G36-05-16-SYNTHETIC-SCHEMA-TEST",
   "revision": 1,
   "types": [
@@ -31,7 +31,8 @@
   "dimensions": [
     {
       "id": "fixed_pair",
-      "extent": {"kind": "fixed", "value": 2}
+      "extent": {"kind": "fixed", "value": 2},
+      "members": ["primary", "secondary"]
     },
     {
       "id": "zones",

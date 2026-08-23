@@ -78,6 +78,24 @@ class RoutineSchemaTests(unittest.TestCase):
             "routine schema lint: 6 schemas, 3 synthetic fixtures OK\n",
         )
 
+    def test_interface_v3_identity_and_fixed_member_order_are_exact(self):
+        schema = self.read_json("routines/schemas/interface.schema.json")
+        interface = self.read_json(FIXTURE_FILES[1])
+        expected_id = (
+            "https://open-control-library.example/schemas/routine-interface-v3.json"
+        )
+        self.assertEqual(routine_schemas.INTERFACE_ID, expected_id)
+        self.assertEqual(schema["$id"], expected_id)
+        self.assertEqual(
+            schema["properties"]["schema"]["const"],
+            "cxf-library/routine-interface/v3",
+        )
+        self.assertEqual(interface["schema"], "cxf-library/routine-interface/v3")
+        self.assertEqual(
+            interface["dimensions"][0]["members"], ["primary", "secondary"]
+        )
+        self.assertEqual(routine_schemas.validate(self.root), [])
+
     def test_json_loader_rejects_malformed_duplicates_and_nonfinite_numbers(self):
         path = self.root / FIXTURE_FILES[2]
         original = path.read_bytes()
@@ -340,6 +358,118 @@ class RoutineSchemaTests(unittest.TestCase):
         )
         self.assert_error("is not valid under any of the given schemas")
 
+    def test_fixed_dimension_requires_members_and_matching_count(self):
+        interface_path = FIXTURE_FILES[1]
+
+        self.mutate(
+            interface_path,
+            lambda value: value["dimensions"][0].pop("members"),
+        )
+        errors = self.assert_error("$.dimensions[0]:")
+        self.assertTrue(
+            any("is not valid under any of the given schemas" in error for error in errors)
+        )
+        self.restore(interface_path)
+
+        self.mutate(
+            interface_path,
+            lambda value: value["dimensions"][0].update(members=["primary"]),
+        )
+        self.assert_error("$.dimensions[0].members: expected 2 members, found 1")
+
+    def test_fixed_dimension_member_ids_are_globally_unique(self):
+        interface_path = FIXTURE_FILES[1]
+        specialization_path = FIXTURE_FILES[2]
+
+        self.mutate(
+            interface_path,
+            lambda value: value["dimensions"][0].update(
+                members=["primary", "primary"]
+            ),
+        )
+        self.assert_error(
+            "$.dimensions[0].members[1]: duplicate stable member 'primary'"
+        )
+        self.restore(interface_path)
+
+        self.mutate(
+            interface_path,
+            lambda value: value["dimensions"].append(
+                {
+                    "id": "other_pair",
+                    "extent": {"kind": "fixed", "value": 2},
+                    "members": ["tertiary", "primary"],
+                }
+            ),
+        )
+        self.assert_error(
+            "$.dimensions[2].members[1]: duplicate stable member 'primary'"
+        )
+        self.restore(interface_path)
+
+        self.mutate(
+            specialization_path,
+            lambda value: value["members"][0]["members"].__setitem__(0, "primary"),
+        )
+        self.assert_error(
+            "$.members[0].members[0]: duplicate stable member 'primary'"
+        )
+
+    def test_fixed_member_syntax_rejects_malformed_and_numeric_ids(self):
+        interface_path = FIXTURE_FILES[1]
+        original = (self.root / interface_path).read_bytes()
+        for member_id in ("1", "bad_member"):
+            with self.subTest(member_id=member_id):
+                self.mutate(
+                    interface_path,
+                    lambda value: value["dimensions"][0]["members"].__setitem__(
+                        0, member_id
+                    ),
+                )
+                errors = self.assert_error("$.dimensions[0]:")
+                self.assertTrue(
+                    any(
+                        "is not valid under any of the given schemas" in error
+                        for error in errors
+                    )
+                )
+                (self.root / interface_path).write_bytes(original)
+
+        self.mutate(
+            interface_path,
+            lambda value: value["dimensions"][0].update(
+                members=["primary2", "secondary-2"]
+            ),
+        )
+        self.assertEqual(routine_schemas.validate(self.root), [])
+
+    def test_dimension_member_ownership_is_closed(self):
+        interface_path = FIXTURE_FILES[1]
+        specialization_path = FIXTURE_FILES[2]
+
+        self.mutate(
+            interface_path,
+            lambda value: value["dimensions"][1].update(members=["north-zone"]),
+        )
+        errors = self.assert_error("$.dimensions[1]:")
+        self.assertTrue(
+            any("is not valid under any of the given schemas" in error for error in errors)
+        )
+        self.restore(interface_path)
+
+        self.mutate(
+            specialization_path,
+            lambda value: value["members"][0].update(dimension="fixed_pair"),
+        )
+        self.assert_error("dimension 'fixed_pair' is not parameter-driven")
+        self.restore(specialization_path)
+
+        self.mutate(
+            specialization_path,
+            lambda value: value.update(members=[]),
+        )
+        self.assert_error("parameter-driven dimension 'zones' requires stable members")
+
     def test_guards_reject_bad_operators_runtime_operands_and_type_errors(self):
         interface_path = FIXTURE_FILES[1]
         original = (self.root / interface_path).read_bytes()
@@ -558,13 +688,17 @@ class RoutineSchemaTests(unittest.TestCase):
             }
 
         self.mutate(interface_path, introduce_errors)
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            result = routine_schemas.main(self.root)
-        self.assertEqual(result, 1)
-        lines = output.getvalue().splitlines()
+        outputs = []
+        for _ in range(2):
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = routine_schemas.main(self.root)
+            self.assertEqual(result, 1)
+            outputs.append(output.getvalue())
+        self.assertEqual(outputs[0], outputs[1])
+        lines = outputs[0].splitlines()
         self.assertEqual(lines, sorted(lines))
-        self.assertNotIn("Traceback", output.getvalue())
+        self.assertNotIn("Traceback", outputs[0])
 
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
