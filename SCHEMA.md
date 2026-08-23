@@ -1,8 +1,9 @@
 # cxf-library Schema
 
-Normative contract for this library's layout and file formats. Version: **v1**
-(all per-file `schema:` fields reference this document). Changes to any contract
-in this file require bumping the affected `…/v1` identifier.
+Normative contract for this library's layout and file formats. Contract versions
+are per artifact: fault contracts remain v1 where named, and routine catalog
+artifacts use the identifiers in their section. Changes to any contract in this
+file require bumping the affected identifier.
 
 ## Layout
 
@@ -18,9 +19,10 @@ cxf-library/
 ├── faults/<equip>/README.md     # chapter index and status table
 ├── playbooks/<slug>.md          # remediation playbooks (shared across faults)
 ├── clusters/clusters.json       # fault clusters (syndromes with shared root cause)
-├── routines/                    # executable control-routine catalog
-│   ├── registry.json            # executable routine inventory
-│   └── g36/                     # G36 pins, coverage, and fixed-variant bundles
+├── routines/                    # planned control-routine catalog
+│   ├── registry.json            # canonical class inventory
+│   ├── generated-registry.json  # executable deployment inventory
+│   └── g36/                     # G36 source pins, scope, and coverage
 ├── tools/verify/                # Rust harness: loads each rule into the engine, runs vectors
 ```
 
@@ -50,176 +52,109 @@ next free number, honoring any reservation.
 ## Routine catalog
 
 Routine contracts are independent of fault contracts. Nothing in this section
-changes a fault schema identifier or fault behavior.
+changes a fault schema identifier or fault behavior. The L0 routine catalog is
+planned and non-executable.
 
 Pin ownership is split by purpose:
 
 - Root `ENGINE_PIN` is the runtime evaluator revision.
-- `routines/g36/DONOR_PIN` is the exact open-control-engine donor fixture and
-  golden revision.
-- `routines/g36/SOURCE_PIN` is the exact upstream Modelica Buildings source
-  revision.
+- `routines/g36/SOURCE_RELEASE_PIN` is the stable Modelica Buildings release
+  baseline.
+- `routines/g36/SOURCE_DEVELOPMENT_PIN` is the reviewed development source
+  baseline for material absent from the release.
 
-Each pin file contains one lowercase 40-hex Git commit. The pin files are the
-authoritative locations for these revisions.
+Each source pin file contains exactly one lowercase 40-hex Git commit followed
+by a newline, and the commits MUST differ. The pin files are the authoritative
+source identities. `routines/g36/DONOR_PIN` and `routines/g36/SOURCE_PIN` are
+retired and MUST be absent.
 
-### `routines/registry.json` (`cxf-library/routine-registry/v1`)
+### Catalog inventories
 
-The registry is an object with exactly two keys: `schema` and `routines`.
-`schema` is `cxf-library/routine-registry/v1`; `routines` is an array. The
-registry owns the executable routine inventory.
+`routines/registry.json` is the canonical class inventory. Its top-level object
+has exactly `schema` and `routines`; `schema` is
+`cxf-library/routine-registry/v2`. `routines` MUST be an array and MUST remain
+empty in L0. A scope anchor is not a canonical class. Actual class and
+subsequence identities are deferred to the pinned source inventory.
 
-Rows have exactly these keys:
+`routines/generated-registry.json` is the only inventory that may eventually
+drive routine execution. Its top-level object has exactly `schema` and
+`deployments`; `schema` is
+`cxf-library/generated-routine-registry/v1`. `deployments` MUST be an array and
+MUST remain empty in L0. The verifier's `--routines` mode reads this file,
+accepts the empty array, and rejects nonempty arrays until the generated
+deployment contract is implemented.
 
-| Field | Type | Contract |
-|---|---|---|
-| `id` | string | `<class-id>__<variant-id>` |
-| `class_id` | string | `G36-<DOMAIN>-<SLUG>` |
-| `variant_id` | string | lowercase kebab case |
-| `name` | string | display name |
-| `family` | string | routine family |
-| `level` | enum | `leaf` \| `controller` \| `fragment` |
-| `status` | enum | `draft` \| `ported` \| `engine_verified` \| `source_evidenced` \| `adopted` \| `deprecated` |
-| `path` | string | safe repository-relative POSIX path below `g36/` |
-| `canonical_class` | string\|null | nonempty canonical class for non-fragments; null for fragments |
-| `evidence_tier` | enum | `E0` through `E5` |
-| `completeness` | object | four-axis completeness declaration |
+Canonical IDs MUST NOT encode fixed parameter values. Generated deployment IDs
+and row schemas are not defined by this version.
 
-`<DOMAIN>` is one uppercase ASCII alphanumeric segment. `<SLUG>` is one or
-more uppercase ASCII alphanumeric segments separated by hyphens. Variant IDs
-contain lowercase ASCII alphanumeric segments separated by single hyphens.
-Routine IDs MUST equal the row's `<class_id>__<variant_id>`.
+### `routines/g36/scope.json` (`cxf-library/g36-scope/v1`)
 
-Registry paths MUST start with `g36/`. Absolute paths, backslashes, empty
-segments, `.` segments, and `..` segments are invalid. IDs and paths MUST each
-be unique, and rows MUST be sorted by `id`.
+The scope manifest makes the Section 5 planning boundary discoverable without
+claiming canonical classes. Its top-level object has exactly `schema`,
+`profile`, `status`, and `sections`:
 
-Every `completeness` object has exactly these keys:
-`donor_configuration`, `canonical_class`, `family_package`, and
-`guideline_profile`. Each value is `complete`, `partial`, `not_applicable`, or
-`unknown`.
+- `schema` is `cxf-library/g36-scope/v1`;
+- `profile` is `ASHRAE Guideline 36-2021 Section 5`;
+- `status` is `planned`; and
+- `sections` is an array of exactly 22 rows, ordered from `5.1` through `5.22`.
 
-### Executable variant bundle
+Each row has exactly `id`, `section`, `name`, `status`,
+`source_disposition`, and `destination`. IDs, sections, and destinations MUST
+each be unique. `name` is an independently written, nonempty display name and
+`status` is `planned`. Scope IDs identify planning anchors only; they MUST NOT
+be used as canonical class IDs.
 
-A registered path resolves below `routines/`. Each executable fixed-variant
-directory contains:
+The IDs, destinations, and reviewed planning dispositions are:
 
-- `card.md`: independently authored purpose, specialization, interface,
-  behavior, evidence, completeness, exclusions, and references;
-- `routine.cxf.jsonld`: the executable CXF graph;
-- `interface.json`: the scalar host interface;
-- `vectors.json`: deterministic scalar replay scenarios;
-- `diagram.svg`: an original signal-flow diagram;
-- `provenance.json`: pinned source, donor, runtime, and artifact evidence; and
-- optional `golden/` files preserved byte-for-byte from the donor.
+| Section | Scope ID | Destination | Source disposition |
+|---|---|---|---|
+| 5.1 | `G36-SCOPE-05-01` | `g36/shared/general` | `mixed` |
+| 5.2 | `G36-SCOPE-05-02` | `g36/zones/ventilation` | `upstream-partial` |
+| 5.3 | `G36-SCOPE-05-03` | `g36/zones/thermal` | `upstream-broad` |
+| 5.4 | `G36-SCOPE-05-04` | `g36/zone-groups` | `upstream-broad` |
+| 5.5 | `G36-SCOPE-05-05` | `g36/terminal-units/cooling-only` | `upstream-broad` |
+| 5.6 | `G36-SCOPE-05-06` | `g36/terminal-units/reheat` | `upstream-broad` |
+| 5.7 | `G36-SCOPE-05-07` | `g36/terminal-units/parallel-fan-cv` | `upstream-broad` |
+| 5.8 | `G36-SCOPE-05-08` | `g36/terminal-units/parallel-fan-vv` | `upstream-broad` |
+| 5.9 | `G36-SCOPE-05-09` | `g36/terminal-units/series-fan-cv` | `upstream-broad` |
+| 5.10 | `G36-SCOPE-05-10` | `g36/terminal-units/series-fan-vv` | `upstream-broad` |
+| 5.11 | `G36-SCOPE-05-11` | `g36/terminal-units/dual-duct-snap` | `upstream-broad` |
+| 5.12 | `G36-SCOPE-05-12` | `g36/terminal-units/dual-duct-mix-inlet` | `upstream-broad` |
+| 5.13 | `G36-SCOPE-05-13` | `g36/terminal-units/dual-duct-mix-discharge` | `upstream-broad` |
+| 5.14 | `G36-SCOPE-05-14` | `g36/terminal-units/dual-duct-cold-min` | `upstream-broad` |
+| 5.15 | `G36-SCOPE-05-15` | `g36/ahus/system-modes` | `upstream-embedded` |
+| 5.16 | `G36-SCOPE-05-16` | `g36/ahus/multizone-vav` | `upstream-broad` |
+| 5.17 | `G36-SCOPE-05-17` | `g36/ahus/dual-fan-dual-duct` | `independent-authoring` |
+| 5.18 | `G36-SCOPE-05-18` | `g36/ahus/single-zone-vav` | `upstream-broad` |
+| 5.19 | `G36-SCOPE-05-19` | `g36/exhaust-fans/constant-speed` | `independent-authoring` |
+| 5.20 | `G36-SCOPE-05-20` | `g36/plants/chilled-water` | `development-source` |
+| 5.21 | `G36-SCOPE-05-21` | `g36/plants/hot-water` | `independent-authoring` |
+| 5.22 | `G36-SCOPE-05-22` | `g36/fan-coil-units` | `upstream-partial` |
 
-The registry and bundle directories MUST be a bijection. A registered bundle
-has every required file, and no unregistered directory contains
-`routine.cxf.jsonld`. Modelica-derived non-fragment bundles also carry the
-preserved Buildings license and a third-party notice.
+These dispositions classify the L0 source plan; they do not identify a source
+class or prove implementation. Destinations are safe repository-relative POSIX
+paths below `g36/`. Absolute paths, backslashes, empty segments, `.` segments,
+and `..` segments are invalid. The manifest reserves destinations without
+requiring placeholder directories.
 
-### `interface.json` (`cxf-library/routine-interface/v1`)
+### `routines/g36/coverage.json` (`cxf-library/g36-coverage/v2`)
 
-The top-level object has exactly `schema`, `routine_id`, `tick_profile`, and
-`connectors`. `schema` is `cxf-library/routine-interface/v1`; `routine_id`
-matches the registry; `tick_profile` is `HostTick-v1`.
+Coverage has exactly `schema`, `profile`, `status`, `scope`, and `claims`.
+`schema` is `cxf-library/g36-coverage/v2`; `profile` and `status` MUST equal
+`scope.json`; `scope` is `scope.json`; and `claims` MUST be an empty array in
+L0. Coverage does not repeat scope rows or inventory and makes no completeness,
+implementation, or evidence claim.
 
-This v1 interface defines only scalar Real connectors. Each connector has
-exactly `id`, `direction`, `value_type`, `unit`, `quantity`, and `shape`.
-`id` is a unique ASCII identifier, `direction` is `input` or `output`,
-`value_type` is `real`, `unit` and `quantity` are nonempty strings, and
-`shape` is `scalar`. Connector declarations MUST equal the root CXF input and
-output declarations, including direction, type, unit, and quantity.
+No `routine.cxf.jsonld` may appear below `routines/g36/` in L0. The retired
+`routines/g36/generic/air-economizer-high-limits` fixed-variant path MUST be
+absent.
 
-`connectors` MUST be a nonempty array with at least one scalar Real output.
-Zero scalar Real inputs are valid. For an output-only interface, the CXF root
-omits `S231:hasInput`; each vector scenario uses an empty `inputs` object and
-retains a nonempty `expect` array.
+### Deferred routine contracts
 
-### `vectors.json` (`cxf-library/routine-vectors/v1`)
-
-The top-level object has exactly `schema`, `routine_id`, `clock`, and
-`scenarios`. `schema` is `cxf-library/routine-vectors/v1`, and `routine_id`
-matches the registry. `clock` has exactly positive finite `step_s` and finite
-non-negative `horizon_s` values.
-
-`scenarios` is a nonempty array. Each scenario has exactly `name`, `inputs`,
-and `expect`. Inputs use declared input connector IDs and are either finite
-scalar numbers or ordered steps of exactly `{t, value}`. Expectations have
-exactly `output`, `from_s`, `to_s`, `equals`, and `tolerance`; they use a
-declared output, finite scalar numbers, an inclusive window, and a
-non-negative absolute tolerance. Scenarios execute in fresh engines.
-
-Relative tolerance, CSV trace ingestion, non-scalar values, and controller
-trace semantics are not part of this contract.
-
-### `provenance.json` (`cxf-library/routine-provenance/v1`)
-
-The top-level object has exactly `schema`, `routine_id`, `runtime`, `donor`,
-`upstream`, `fixed_parameters`, `implementation`, `donor_columns`, `artifacts`,
-`evidence`, and `private_reference`.
-
-- `runtime` has exactly `repository`, `commit`, `tick_profile`, and
-  `content_id`. The commit equals `ENGINE_PIN`, the tick profile is
-  `HostTick-v1`, and `content_id` is the evaluator-derived identity. This
-  identity is separate from the stable human `routine_id`.
-- `donor` has exactly `repository` and `commit`; its commit equals `DONOR_PIN`.
-  `upstream` has exactly `repository`, `commit`, `canonical_class`, and
-  `source_file`. Its commit equals `SOURCE_PIN`, its canonical class equals the
-  registry row, and its source file is a safe nonempty upstream-relative path.
-- `fixed_parameters` is a nonempty object keyed by ASCII identifiers. Values
-  are JSON strings, numbers, booleans, or null; numbers MUST be finite. The
-  root CXF parameters MUST have the same keys and values.
-- `implementation` records a safe nonempty selected source branch and block
-  class. Its `parameters` object is keyed by ASCII identifiers and contains
-  finite scalar numbers. The root CXF contains exactly one block of that class
-  with exactly those parameters.
-- `donor_columns` has exactly `time` and `connectors`. `time` names the donor
-  reference time column. `connectors` maps every interface connector ID to one
-  unique donor column name, including mappings where donor and CXF names
-  differ. Column names are ASCII identifiers and the time column is distinct.
-- Each `artifacts` row has exactly `role`, `local_path`, `donor_path`, and
-  `sha256`. Roles are unique lowercase snake-case identifiers. Paths are safe
-  relative POSIX paths with no backslashes, empty or dot segments, or
-  traversal; paths within each column are unique. Local hashes MUST match the
-  files. When donor parity is requested, copied bytes MUST equal the files at
-  `donor_path`. E3 bundles include `graph`, `structural_oracle`, and
-  `donor_reference` roles plus at least one `provenance` or
-  `*_provenance` role. Exactly the `graph` artifact has local path
-  `routine.cxf.jsonld`; other artifact names and locations are bundle-owned.
-- The donor-reference artifact has one `# columns:` header and finite numeric
-  rows. Its mapped time values are non-negative and strictly increasing. It
-  contains the mapped time and every declared connector column. Routine
-  vectors MUST cover every mapped input and output value at every donor time;
-  donor-reference output expectations use point windows and zero tolerance.
-- `evidence` rows have exactly `tier`, `status`, and `artifact`. Evidence tiers
-  are ordered and contiguous from E0, statuses are `complete`, and artifact
-  paths are safe and present. The registry tier cannot exceed the highest
-  completed evidence tier.
-- `private_reference` has exactly `profile`, `audit_status`, and `sections`.
-  This scalar v1 requires `audit_status: not_used` and empty `sections`; no
-  private text or local path is recorded.
-
-Registry status, evidence tier, and completeness MUST not exceed the completed
-provenance evidence.
-
-### `routines/g36/coverage.json` (`cxf-library/g36-coverage/v1`)
-
-Coverage declares profile scope and claims; it does not repeat the registry's
-inventory. The top-level object has exactly `schema`, `profile`,
-`completeness`, `areas`, and `claims`. `schema` is
-`cxf-library/g36-coverage/v1`, and `profile` is a nonempty string.
-`completeness` uses the same exact four-axis object as a registry row.
-
-In this version, `areas` and `claims` MUST remain empty arrays. While the
-registry is empty, all four coverage completeness values MUST be `unknown`.
-For a nonempty registry, an aggregate axis may be `complete` only when every
-applicable registry row is `complete` for that axis. Pin fields and an
-`implemented_variants` inventory do not belong in coverage.
-
-Arrays, vectors or member lists, enum-domain behavior, optional connectors,
-host services beyond `HostTick-v1`, package acceptance or composition, and E4
-or E5 claims are deferred.
+Canonical typed routine artifact schemas, the generated deployment bundle
+schema, semantic sidecars, source inventory, specialization, and executable
+deployments are deferred. This version defines no routine interface, vectors,
+provenance, source map, or executable CXF contract.
 
 ## Design stance (why the pieces split this way)
 
