@@ -8,11 +8,11 @@
     },
     "s223": {
       "iri": "http://data.ashrae.org/standard223#",
-      "verified_version": "v1.0.0-2026"
+      "verified_version": "1.0.0-ppr.2.1"
     },
     "s223_g36": {
       "iri": "http://data.ashrae.org/standard223/1.0/extensions/g36#",
-      "verified_version": "v1.0.0-2026"
+      "verified_version": "1.0.0-ppr.2.1"
     },
     "quantitykind": {
       "iri": "http://qudt.org/vocab/quantitykind/",
@@ -35,9 +35,9 @@
       "s223": {
         "pattern": "Sensor observes QuantifiableObservableProperty on the Zone (DomainSpace) via hasProperty",
         "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
-        "medium": null,
+        "quantitykind": "Temperature",
+        "unit": "DEG_C",
+        "medium": "Fluid-Air",
         "aspects": []
       },
       "provisional": false,
@@ -52,11 +52,13 @@
       "brick": "Zone_Air_Heating_Temperature_Setpoint",
       "s223": {
         "pattern": "QuantifiableActuatableProperty (setpoint) on the Zone via hasProperty",
-        "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
-        "medium": null,
-        "aspects": []
+        "property_class": "QuantifiableActuatableProperty",
+        "quantitykind": "Temperature",
+        "unit": "DEG_C",
+        "medium": "Fluid-Air",
+        "aspects": [
+          "Aspect-Setpoint"
+        ]
       },
       "provisional": false,
       "notes": "brick:Zone_Air_Heating_Temperature_Setpoint grep-verified in Brick 1.4.4. Bind the ACTIVE (occupied-mode) heating setpoint the loop is controlling to, not a schedule default — same active-setpoint convention as the AHU dictionary's sat_sp."
@@ -70,11 +72,13 @@
       "brick": "Zone_Air_Cooling_Temperature_Setpoint",
       "s223": {
         "pattern": "QuantifiableActuatableProperty (setpoint) on the Zone via hasProperty",
-        "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
-        "medium": null,
-        "aspects": []
+        "property_class": "QuantifiableActuatableProperty",
+        "quantitykind": "Temperature",
+        "unit": "DEG_C",
+        "medium": "Fluid-Air",
+        "aspects": [
+          "Aspect-Setpoint"
+        ]
       },
       "provisional": false,
       "notes": "brick:Zone_Air_Cooling_Temperature_Setpoint grep-verified in Brick 1.4.4. Active-setpoint convention as zone_temp_sp_htg."
@@ -89,9 +93,9 @@
       "s223": {
         "pattern": "Sensor observes QuantifiableObservableProperty at the VAV box discharge via hasProperty",
         "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
-        "medium": null,
+        "quantitykind": "VolumeFlowRate",
+        "unit": "L-PER-SEC",
+        "medium": "Fluid-Air",
         "aspects": []
       },
       "provisional": false,
@@ -106,11 +110,13 @@
       "brick": "Supply_Air_Flow_Setpoint",
       "s223": {
         "pattern": "QuantifiableActuatableProperty (setpoint) on the VAV box via hasProperty",
-        "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
-        "medium": null,
-        "aspects": []
+        "property_class": "QuantifiableActuatableProperty",
+        "quantitykind": "VolumeFlowRate",
+        "unit": "L-PER-SEC",
+        "medium": "Fluid-Air",
+        "aspects": [
+          "Aspect-Setpoint"
+        ]
       },
       "provisional": false,
       "notes": "brick:Supply_Air_Flow_Setpoint grep-verified in Brick 1.4.4. The ACTIVE setpoint the damper loop tracks (after G36 min/max clamping), not the design value — VAV-0004 compares measured flow against what the loop is currently trying to do."
@@ -124,11 +130,13 @@
       "brick": "Min_Air_Flow_Setpoint_Limit",
       "s223": {
         "pattern": "QuantifiableActuatableProperty (configuration limit) on the VAV box via hasProperty",
-        "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
-        "medium": null,
-        "aspects": []
+        "property_class": "QuantifiableActuatableProperty",
+        "quantitykind": "VolumeFlowRate",
+        "unit": "L-PER-SEC",
+        "medium": "Fluid-Air",
+        "aspects": [
+          "Aspect-Setpoint"
+        ]
       },
       "provisional": false,
       "notes": "brick:Min_Air_Flow_Setpoint_Limit grep-verified in Brick 1.4.4 — the configured floor, distinct from the active setpoint. VAV-0001 reads it as a point so the rule can watch for bad commissioning values without a BAS config export."
@@ -143,8 +151,8 @@
       "s223": {
         "pattern": "Sensor observes QuantifiableActuatableProperty... position feedback on the box Damper via hasProperty",
         "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
+        "quantitykind": "DimensionlessRatio",
+        "unit": "PERCENT",
         "medium": null,
         "aspects": []
       },
@@ -160,11 +168,13 @@
       "brick": "Valve_Position_Command",
       "s223": {
         "pattern": "QuantifiableActuatableProperty on the reheat Valve via hasProperty; Actuator actuates the valve",
-        "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
+        "property_class": "QuantifiableActuatableProperty",
+        "quantitykind": "DimensionlessRatio",
+        "unit": "PERCENT",
         "medium": null,
-        "aspects": []
+        "aspects": [
+          "Binary-Position"
+        ]
       },
       "provisional": false,
       "notes": "brick:Valve_Position_Command grep-verified in Brick 1.4.4; attach isPointOf brick:Reheat_Valve (verified). This is the per-box point whose building-wide aggregate became the AHU dictionary's zone_reheat_fraction — the grounding promised with that entry lands here."
@@ -179,8 +189,8 @@
       "s223": {
         "pattern": "QuantifiableObservableProperty on the Zone via hasProperty",
         "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
+        "quantitykind": "DimensionlessRatio",
+        "unit": "PERCENT",
         "medium": null,
         "aspects": []
       },
@@ -229,9 +239,9 @@
       "s223": {
         "pattern": "Sensor observes QuantifiableObservableProperty at the terminal discharge",
         "property_class": "QuantifiableObservableProperty",
-        "quantitykind": null,
-        "unit": null,
-        "medium": null,
+        "quantitykind": "Temperature",
+        "unit": "DEG_C",
+        "medium": "Fluid-Air",
         "aspects": []
       },
       "provisional": false,

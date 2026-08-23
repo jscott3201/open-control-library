@@ -654,18 +654,26 @@ Target dialect: the open-control engine's composite subset
   rule graph.
 - A top-level `namespaces` map records the exact ontology IRIs and the versions
   the terms were verified against.
+- `routines/ontology/ontology-pins.json` is the point dictionaries' sole
+  immutable authority for Brick, S223 compatibility, and QUDT namespace IRIs
+  and version echoes.
 - `brick`: verified Brick class local name (namespace
   `https://brickschema.org/schema/Brick#`).
 - `s223`: object `{pattern, property_class, quantitykind, unit, medium,
   aspects, enumerationkind?}` using verified ASHRAE 223P terms
   (`enumerationkind` for enumerated properties). See
   the internal 223P point-modeling note (local-only, not distributed) for the modeling pattern.
-- Every term must be verified against the published ontology files — never
-  from memory. `provisional: true` additionally marks entries with genuine
-  ambiguity (class-choice judgment calls, unit conflicts, or patterns
+- Every term must be reviewed against the evidence named by the pin record —
+  never from memory. `provisional: true` additionally marks entries with
+  genuine ambiguity (class-choice judgment calls, unit conflicts, or patterns
   unattested in the standard's reference models); the per-point `notes` field
   records the specifics. All s223 entries also await confirmation against the
   formal ASHRAE 223 standard text once obtained.
+- `tools/lint/point_semantics.py` checks strict `points/v1` JSON and shape,
+  namespace echoes, command/setpoint direction, actuatable quantity and unit
+  requirements, and the bounded reviewed VAV/SYS mappings. It reads the local
+  pin record without network access. It does not verify arbitrary external
+  term existence, evaluate topology or SHACL, or certify building instances.
 
 ## `clusters/clusters.json` (`cxf-library/clusters/v1`)
 
