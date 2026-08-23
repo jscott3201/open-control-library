@@ -1,12 +1,7 @@
 {
-  "schema": "cxf-library/g36-coverage/v1",
-  "profile": "G36-2021-private-audit",
-  "completeness": {
-    "donor_configuration": "partial",
-    "canonical_class": "partial",
-    "family_package": "unknown",
-    "guideline_profile": "partial"
-  },
-  "areas": [],
+  "schema": "cxf-library/g36-coverage/v2",
+  "profile": "ASHRAE Guideline 36-2021 Section 5",
+  "status": "planned",
+  "scope": "scope.json",
   "claims": []
 }

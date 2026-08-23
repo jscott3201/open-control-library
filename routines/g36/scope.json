@@ -1,0 +1,183 @@
+{
+  "schema": "cxf-library/g36-scope/v1",
+  "profile": "ASHRAE Guideline 36-2021 Section 5",
+  "status": "planned",
+  "sections": [
+    {
+      "id": "G36-SCOPE-05-01",
+      "section": "5.1",
+      "name": "Shared control infrastructure",
+      "status": "planned",
+      "source_disposition": "mixed",
+      "destination": "g36/shared/general"
+    },
+    {
+      "id": "G36-SCOPE-05-02",
+      "section": "5.2",
+      "name": "Zone ventilation coordination",
+      "status": "planned",
+      "source_disposition": "upstream-partial",
+      "destination": "g36/zones/ventilation"
+    },
+    {
+      "id": "G36-SCOPE-05-03",
+      "section": "5.3",
+      "name": "Zone thermal coordination",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/zones/thermal"
+    },
+    {
+      "id": "G36-SCOPE-05-04",
+      "section": "5.4",
+      "name": "Zone group coordination",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/zone-groups"
+    },
+    {
+      "id": "G36-SCOPE-05-05",
+      "section": "5.5",
+      "name": "Cooling-only terminal units",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/cooling-only"
+    },
+    {
+      "id": "G36-SCOPE-05-06",
+      "section": "5.6",
+      "name": "Reheat terminal units",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/reheat"
+    },
+    {
+      "id": "G36-SCOPE-05-07",
+      "section": "5.7",
+      "name": "Parallel fan terminals with constant-volume fans",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/parallel-fan-cv"
+    },
+    {
+      "id": "G36-SCOPE-05-08",
+      "section": "5.8",
+      "name": "Parallel fan terminals with variable-volume fans",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/parallel-fan-vv"
+    },
+    {
+      "id": "G36-SCOPE-05-09",
+      "section": "5.9",
+      "name": "Series fan terminals with constant-volume fans",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/series-fan-cv"
+    },
+    {
+      "id": "G36-SCOPE-05-10",
+      "section": "5.10",
+      "name": "Series fan terminals with variable-volume fans",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/series-fan-vv"
+    },
+    {
+      "id": "G36-SCOPE-05-11",
+      "section": "5.11",
+      "name": "Snap-acting dual-duct terminals",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/dual-duct-snap"
+    },
+    {
+      "id": "G36-SCOPE-05-12",
+      "section": "5.12",
+      "name": "Dual-duct terminals with inlet mixing sensors",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/dual-duct-mix-inlet"
+    },
+    {
+      "id": "G36-SCOPE-05-13",
+      "section": "5.13",
+      "name": "Dual-duct terminals with discharge mixing sensors",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/dual-duct-mix-discharge"
+    },
+    {
+      "id": "G36-SCOPE-05-14",
+      "section": "5.14",
+      "name": "Dual-duct terminals with cold-duct minimum control",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/terminal-units/dual-duct-cold-min"
+    },
+    {
+      "id": "G36-SCOPE-05-15",
+      "section": "5.15",
+      "name": "Air-handler system modes",
+      "status": "planned",
+      "source_disposition": "upstream-embedded",
+      "destination": "g36/ahus/system-modes"
+    },
+    {
+      "id": "G36-SCOPE-05-16",
+      "section": "5.16",
+      "name": "Multizone VAV air handlers",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/ahus/multizone-vav"
+    },
+    {
+      "id": "G36-SCOPE-05-17",
+      "section": "5.17",
+      "name": "Dual-fan dual-duct air handlers",
+      "status": "planned",
+      "source_disposition": "independent-authoring",
+      "destination": "g36/ahus/dual-fan-dual-duct"
+    },
+    {
+      "id": "G36-SCOPE-05-18",
+      "section": "5.18",
+      "name": "Single-zone VAV air handlers",
+      "status": "planned",
+      "source_disposition": "upstream-broad",
+      "destination": "g36/ahus/single-zone-vav"
+    },
+    {
+      "id": "G36-SCOPE-05-19",
+      "section": "5.19",
+      "name": "Constant-speed exhaust fans",
+      "status": "planned",
+      "source_disposition": "independent-authoring",
+      "destination": "g36/exhaust-fans/constant-speed"
+    },
+    {
+      "id": "G36-SCOPE-05-20",
+      "section": "5.20",
+      "name": "Chilled-water plants",
+      "status": "planned",
+      "source_disposition": "development-source",
+      "destination": "g36/plants/chilled-water"
+    },
+    {
+      "id": "G36-SCOPE-05-21",
+      "section": "5.21",
+      "name": "Hot-water plants",
+      "status": "planned",
+      "source_disposition": "independent-authoring",
+      "destination": "g36/plants/hot-water"
+    },
+    {
+      "id": "G36-SCOPE-05-22",
+      "section": "5.22",
+      "name": "Fan-coil units",
+      "status": "planned",
+      "source_disposition": "upstream-partial",
+      "destination": "g36/fan-coil-units"
+    }
+  ]
+}

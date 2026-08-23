@@ -1,7 +1,7 @@
 //! OCL graph conformance runner (SCHEMA.md "Verification").
 //!
-//! Fault modes retain their existing behavior. `--routines` reads the routine registry and reuses
-//! the same fresh-engine scenario loop for each scalar routine bundle.
+//! Fault modes retain their existing behavior. `--routines` validates the generated deployment
+//! registry; L0 accepts only the exact empty contract.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -15,34 +15,15 @@ mod lint;
 #[derive(Deserialize)]
 struct Vectors {
     schema: String,
-    #[serde(default)]
-    routine_id: Option<String>,
     clock: Clock,
     scenarios: Vec<Scenario>,
 }
 
 #[derive(Deserialize)]
-struct RoutineRegistry {
+#[serde(deny_unknown_fields)]
+struct GeneratedRoutineRegistry {
     schema: String,
-    routines: Vec<RoutineRow>,
-}
-
-#[derive(Deserialize)]
-struct RoutineRow {
-    id: String,
-    path: String,
-}
-
-#[derive(Deserialize)]
-struct RoutineProvenance {
-    schema: String,
-    routine_id: String,
-    runtime: RoutineRuntime,
-}
-
-#[derive(Deserialize)]
-struct RoutineRuntime {
-    content_id: String,
+    deployments: Vec<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
@@ -250,11 +231,7 @@ fn prepare_scenario(
     Ok((engine, points, events))
 }
 
-fn run_scenario(
-    rule_bytes: &[u8],
-    clock: &Clock,
-    scenario: &Scenario,
-) -> Result<(), String> {
+fn run_scenario(rule_bytes: &[u8], clock: &Clock, scenario: &Scenario) -> Result<(), String> {
     let (mut engine, points, events) = prepare_scenario(rule_bytes, scenario)?;
 
     // Pre-resolve assertion outputs.
@@ -274,7 +251,9 @@ fn run_scenario(
                 .map_err(|e| format!("set_input({}) failed: {e}", ev.path))?;
             next_event += 1;
         }
-        engine.tick(t).map_err(|e| format!("tick({t}) failed: {e}"))?;
+        engine
+            .tick(t)
+            .map_err(|e| format!("tick({t}) failed: {e}"))?;
         for (path, exp) in &expects {
             if t < exp.from_s || t > exp.to_s {
                 continue;
@@ -371,7 +350,8 @@ fn trace_vectors(fault_dir: &Path, vectors_path: &Path) -> Result<TraceDocument,
     if vectors.scenarios.len() > 512 {
         return Err("trace request exceeds the 512-scenario safety limit".to_string());
     }
-    let samples_per_scenario = (vectors.clock.horizon_s / vectors.clock.step_s).floor() as usize + 1;
+    let samples_per_scenario =
+        (vectors.clock.horizon_s / vectors.clock.step_s).floor() as usize + 1;
     if !matches!(
         samples_per_scenario.checked_mul(vectors.scenarios.len()),
         Some(total) if total <= 1_000_000
@@ -403,136 +383,32 @@ fn trace_vectors(fault_dir: &Path, vectors_path: &Path) -> Result<TraceDocument,
     })
 }
 
-fn identify_content_id(graph_bytes: &[u8]) -> Result<String, String> {
-    let mut engine = Engine::in_memory();
-    engine
-        .load_cxf(graph_bytes)
-        .map_err(|e| format!("load_cxf failed while identifying content: {e}"))?;
-    engine
-        .export_cxf()
-        .map_err(|e| format!("export_cxf failed while identifying content: {e}"))?
-        .content_id_complete()
-        .map_err(|e| format!("content id unavailable: {e}"))
-}
-
-fn validate_routine_vectors(vectors: &Vectors, routine_id: &str) -> Result<(), String> {
-    if vectors.schema != "cxf-library/routine-vectors/v1" {
+fn validate_generated_registry(bytes: &[u8]) -> Result<usize, String> {
+    let registry: GeneratedRoutineRegistry = serde_json::from_slice(bytes)
+        .map_err(|error| format!("invalid generated routine registry: {error}"))?;
+    if registry.schema != "cxf-library/generated-routine-registry/v1" {
         return Err(format!(
-            "unsupported routine vectors schema `{}`",
-            vectors.schema
-        ));
-    }
-    if vectors.routine_id.as_deref() != Some(routine_id) {
-        return Err(format!(
-            "vectors routine_id {:?} != registry `{routine_id}`",
-            vectors.routine_id
-        ));
-    }
-    validate_trace_clock(&vectors.clock)
-}
-
-fn verify_routine_dir(dir: &Path, row: &RoutineRow) -> Result<bool, String> {
-    let graph_path = dir.join("routine.cxf.jsonld");
-    let vectors_path = dir.join("vectors.json");
-    let provenance_path = dir.join("provenance.json");
-    let graph_bytes =
-        std::fs::read(&graph_path).map_err(|e| format!("{}: {e}", graph_path.display()))?;
-    let vectors: Vectors = serde_json::from_slice(
-        &std::fs::read(&vectors_path).map_err(|e| format!("{}: {e}", vectors_path.display()))?,
-    )
-    .map_err(|e| format!("{}: {e}", vectors_path.display()))?;
-    validate_routine_vectors(&vectors, &row.id)?;
-    let provenance: RoutineProvenance = serde_json::from_slice(
-        &std::fs::read(&provenance_path)
-            .map_err(|e| format!("{}: {e}", provenance_path.display()))?,
-    )
-    .map_err(|e| format!("{}: {e}", provenance_path.display()))?;
-    if provenance.schema != "cxf-library/routine-provenance/v1" {
-        return Err(format!(
-            "unsupported routine provenance schema `{}`",
-            provenance.schema
-        ));
-    }
-    if provenance.routine_id != row.id {
-        return Err(format!(
-            "provenance routine_id `{}` != registry `{}`",
-            provenance.routine_id, row.id
-        ));
-    }
-
-    println!("{} ({})", dir.display(), row.id);
-    let content_id = identify_content_id(&graph_bytes)?;
-    println!("  content_id: {content_id}");
-    if provenance.runtime.content_id != content_id {
-        return Err(format!(
-            "provenance runtime.content_id `{}` != engine export `{content_id}`",
-            provenance.runtime.content_id
-        ));
-    }
-
-    let mut all_pass = true;
-    for scenario in &vectors.scenarios {
-        match run_scenario(&graph_bytes, &vectors.clock, scenario) {
-            Ok(()) => println!("  PASS  {}", scenario.name),
-            Err(msg) => {
-                all_pass = false;
-                println!("  FAIL  {} — {msg}", scenario.name);
-            }
-        }
-    }
-    Ok(all_pass)
-}
-
-fn safe_routine_path(path: &str) -> bool {
-    if path.contains('\\') {
-        return false;
-    }
-    let components: Vec<_> = Path::new(path).components().collect();
-    components.len() >= 2
-        && components
-            .iter()
-            .all(|part| matches!(part, std::path::Component::Normal(_)))
-        && components[0].as_os_str() == "g36"
-}
-
-fn verify_registered_routines(repo_root: &Path) -> Result<bool, String> {
-    let registry_path = repo_root.join("routines/registry.json");
-    let registry: RoutineRegistry = serde_json::from_slice(
-        &std::fs::read(&registry_path).map_err(|e| format!("{}: {e}", registry_path.display()))?,
-    )
-    .map_err(|e| format!("{}: {e}", registry_path.display()))?;
-    if registry.schema != "cxf-library/routine-registry/v1" {
-        return Err(format!(
-            "unsupported routine registry schema `{}`",
+            "unsupported generated routine registry schema `{}`",
             registry.schema
         ));
     }
-    let mut ids = BTreeSet::new();
-    let mut paths = BTreeSet::new();
-    for row in &registry.routines {
-        if !ids.insert(row.id.as_str()) {
-            return Err(format!("duplicate routine id `{}`", row.id));
-        }
-        if !paths.insert(row.path.as_str()) {
-            return Err(format!("duplicate routine path `{}`", row.path));
-        }
-        if !safe_routine_path(&row.path) {
-            return Err(format!("unsafe routine path `{}`", row.path));
-        }
+    if !registry.deployments.is_empty() {
+        return Err(format!(
+            "generated routine registry must remain empty in L0; found {} deployment(s)",
+            registry.deployments.len()
+        ));
     }
-    println!("discovered {} routine dirs", registry.routines.len());
-    let mut ok = true;
-    for row in &registry.routines {
-        let dir = repo_root.join("routines").join(&row.path);
-        match verify_routine_dir(&dir, row) {
-            Ok(pass) => ok &= pass,
-            Err(msg) => {
-                ok = false;
-                println!("{} ({})\n  ERROR {msg}", dir.display(), row.id);
-            }
-        }
-    }
-    Ok(ok)
+    Ok(registry.deployments.len())
+}
+
+fn verify_generated_routines(repo_root: &Path) -> Result<(), String> {
+    let registry_path = repo_root.join("routines/generated-registry.json");
+    let bytes =
+        std::fs::read(&registry_path).map_err(|e| format!("{}: {e}", registry_path.display()))?;
+    let count = validate_generated_registry(&bytes)
+        .map_err(|error| format!("{}: {error}", registry_path.display()))?;
+    println!("discovered {count} generated routine deployments");
+    Ok(())
 }
 
 fn verify_fault_dir(dir: &Path, replay_only: bool) -> Result<bool, String> {
@@ -577,13 +453,19 @@ fn verify_fault_dir(dir: &Path, replay_only: bool) -> Result<bool, String> {
         let repo_root = dir
             .canonicalize()
             .ok()
-            .and_then(|d| d.parent().and_then(|p| p.parent()).and_then(|p| p.parent()).map(Path::to_path_buf))
+            .and_then(|d| {
+                d.parent()
+                    .and_then(|p| p.parent())
+                    .and_then(|p| p.parent())
+                    .map(Path::to_path_buf)
+            })
             .ok_or("cannot locate repo root from fault dir")?;
         match lint::lint_fault_dir(dir, &repo_root) {
             Ok(report) => {
                 let mut errors = report.errors;
                 if matches!(report.status.as_str(), "verified" | "adopted")
-                    && let (Some(recorded), Some(actual)) = (&report.recorded_content_id, &content_id)
+                    && let (Some(recorded), Some(actual)) =
+                        (&report.recorded_content_id, &content_id)
                     && recorded != actual
                 {
                     errors.push(format!(
@@ -620,7 +502,9 @@ fn verify_fault_dir(dir: &Path, replay_only: bool) -> Result<bool, String> {
 /// Every `faults/<equip>/<FAULT-ID>/` directory containing a rule document, sorted.
 fn discover_fault_dirs(faults_root: &Path) -> Result<Vec<PathBuf>, String> {
     let mut dirs = Vec::new();
-    for equip in std::fs::read_dir(faults_root).map_err(|e| format!("{}: {e}", faults_root.display()))? {
+    for equip in
+        std::fs::read_dir(faults_root).map_err(|e| format!("{}: {e}", faults_root.display()))?
+    {
         let equip = equip.map_err(|e| e.to_string())?.path();
         if !equip.is_dir() {
             continue;
@@ -638,9 +522,7 @@ fn discover_fault_dirs(faults_root: &Path) -> Result<Vec<PathBuf>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        Clock, Vectors, safe_routine_path, validate_routine_vectors, validate_trace_clock,
-    };
+    use super::{Clock, Vectors, validate_generated_registry, validate_trace_clock};
 
     #[test]
     fn trace_clock_rejects_unsafe_values() {
@@ -688,37 +570,47 @@ mod tests {
         )
         .expect("fault vectors deserialize");
         assert_eq!(vectors.schema, "cxf-library/vectors/v1");
-        assert!(vectors.routine_id.is_none());
     }
 
     #[test]
-    fn routine_vectors_require_schema_and_registry_identity() {
-        let mut vectors: Vectors = serde_json::from_str(
-            r#"{
-                "schema":"cxf-library/routine-vectors/v1",
-                "routine_id":"G36-GEN-TEST__default",
-                "clock":{"step_s":1.0,"horizon_s":0.0},
-                "scenarios":[]
+    fn exact_empty_generated_registry_is_valid() {
+        let count = validate_generated_registry(
+            br#"{
+                "schema":"cxf-library/generated-routine-registry/v1",
+                "deployments":[]
             }"#,
         )
-        .expect("routine vectors deserialize");
-        assert!(validate_routine_vectors(&vectors, "G36-GEN-TEST__default").is_ok());
-        assert!(validate_routine_vectors(&vectors, "G36-GEN-OTHER__default").is_err());
-        vectors.schema = "cxf-library/vectors/v1".to_string();
-        assert!(validate_routine_vectors(&vectors, "G36-GEN-TEST__default").is_err());
+        .expect("empty generated registry is valid");
+        assert_eq!(count, 0);
     }
 
     #[test]
-    fn routine_registry_paths_are_bounded_to_g36() {
-        assert!(safe_routine_path("g36/generic/example"));
-        for path in [
-            "/g36/generic/example",
-            "g36\\generic\\example",
-            "g36/../example",
-            "faults/example",
+    fn generated_registry_rejects_wrong_schema_shape_and_extra_keys() {
+        for document in [
+            r#"{"schema":"wrong","deployments":[]}"#,
+            r#"{"schema":"cxf-library/generated-routine-registry/v1","deployments":{}}"#,
+            r#"{"schema":"cxf-library/generated-routine-registry/v1"}"#,
+            r#"{"schema":"cxf-library/generated-routine-registry/v1","deployments":[],"extra":true}"#,
+            r#"[]"#,
+            r#"{"#,
         ] {
-            assert!(!safe_routine_path(path), "{path}");
+            assert!(
+                validate_generated_registry(document.as_bytes()).is_err(),
+                "{document}"
+            );
         }
+    }
+
+    #[test]
+    fn generated_registry_rejects_deployments_until_the_contract_lands() {
+        let error = validate_generated_registry(
+            br#"{
+                "schema":"cxf-library/generated-routine-registry/v1",
+                "deployments":[{"id":"future"}]
+            }"#,
+        )
+        .expect_err("nonempty generated registry must fail closed");
+        assert!(error.contains("must remain empty in L0; found 1 deployment(s)"));
     }
 }
 
@@ -751,12 +643,11 @@ fn main() -> ExitCode {
             eprintln!("usage: cxf-verify --routines");
             return ExitCode::from(2);
         }
-        return match verify_registered_routines(Path::new(".")) {
-            Ok(true) => {
-                println!("all routine scenarios passed");
+        return match verify_generated_routines(Path::new(".")) {
+            Ok(()) => {
+                println!("all generated routine deployment scenarios passed");
                 ExitCode::SUCCESS
             }
-            Ok(false) => ExitCode::FAILURE,
             Err(e) => {
                 eprintln!("--routines: {e}");
                 ExitCode::from(2)
