@@ -22,7 +22,7 @@ cxf-library/
 ├── routines/                    # planned control-routine catalog
 │   ├── registry.json            # canonical class inventory
 │   ├── generated-registry.json  # executable deployment inventory
-│   └── g36/                     # G36 source pins, scope, and coverage
+│   └── g36/                     # G36 pins, source inventory, scope, and coverage
 ├── tools/verify/                # Rust harness: loads each rule into the engine, runs vectors
 ```
 
@@ -52,8 +52,9 @@ next free number, honoring any reservation.
 ## Routine catalog
 
 Routine contracts are independent of fault contracts. Nothing in this section
-changes a fault schema identifier or fault behavior. The L0 routine catalog is
-planned and non-executable.
+changes a fault schema identifier or fault behavior. The routine catalog is
+planned and non-executable. L1 adds source-tree evidence without adding a
+canonical class or executable deployment.
 
 Pin ownership is split by purpose:
 
@@ -73,19 +74,76 @@ retired and MUST be absent.
 `routines/registry.json` is the canonical class inventory. Its top-level object
 has exactly `schema` and `routines`; `schema` is
 `cxf-library/routine-registry/v2`. `routines` MUST be an array and MUST remain
-empty in L0. A scope anchor is not a canonical class. Actual class and
-subsequence identities are deferred to the pinned source inventory.
+empty in L1. A scope anchor is not a canonical class. The source inventory
+defined below records Git blobs; it does not identify Modelica classes or
+subsequences.
 
 `routines/generated-registry.json` is the only inventory that may eventually
 drive routine execution. Its top-level object has exactly `schema` and
 `deployments`; `schema` is
 `cxf-library/generated-routine-registry/v1`. `deployments` MUST be an array and
-MUST remain empty in L0. The verifier's `--routines` mode reads this file,
+MUST remain empty in L1. The verifier's `--routines` mode reads this file,
 accepts the empty array, and rejects nonempty arrays until the generated
 deployment contract is implemented.
 
 Canonical IDs MUST NOT encode fixed parameter values. Generated deployment IDs
 and row schemas are not defined by this version.
+
+### `routines/g36/source-inventory.json` (`cxf-library/g36-source-inventory/v1`)
+
+The source inventory records two independent Git-tree snapshots from
+`https://github.com/lbl-srg/modelica-buildings.git`. Its top-level object has
+exactly these keys in order: `schema`, `repository`, `source_root`,
+`inventory_scope`, `dependency_closure`, `license`, and `snapshots`.
+
+- `schema` is `cxf-library/g36-source-inventory/v1`;
+- `repository` is `https://github.com/lbl-srg/modelica-buildings.git`;
+- `source_root` is `Buildings/Controls/OBC/ASHRAE/G36`;
+- `inventory_scope` is `source-root-regular-files`; and
+- `dependency_closure` is `not-inventoried`.
+
+`license` has exactly `upstream_path`, `retained_path`, `git_blob_sha1`, and
+`sha256`, in that order. `upstream_path` is `Buildings/legal.html` and
+`retained_path` is `routines/g36/LICENSE-BUILDINGS.html`. The retained file MUST
+equal the Git blob bytes at both pins. `git_blob_sha1` uses
+`sha1:<40 lowercase hex>` and `sha256` uses `sha256:<64 lowercase hex>`.
+
+`snapshots` contains exactly two rows, ordered `release` then `development`.
+Each row has exactly these keys in order: `role`, `revision`,
+`root_tree_sha1`, `file_count`, `total_bytes`, `modelica_file_count`,
+`package_order_count`, and `files`. `revision` MUST equal the corresponding pin
+file. `root_tree_sha1` is the Git tree ID for `source_root`, encoded as
+`sha1:<40 lowercase hex>`.
+
+Each `files` row has exactly `path`, `mode`, `bytes`, `git_blob_sha1`, and
+`sha256`, in that order. Paths are full upstream repository-relative POSIX
+paths below `source_root`, sorted lexicographically and unique. Empty, `.`, and
+`..` path segments, absolute paths, backslashes, and control characters are
+invalid. Version 1 supports only regular `100644` Git blobs; other modes and
+object types MUST be rejected. `bytes` and both hashes are calculated from Git
+object bytes rather than working-tree files.
+
+`file_count` is the number of file rows, and `total_bytes` is the sum of their
+`bytes` values. `modelica_file_count` counts paths ending in `.mo`.
+`package_order_count` counts paths ending in `/package.order`; `package.order`
+content is not parsed or validated. All files remain in the inventory whether
+or not another source file names them.
+
+The release and development snapshots MUST remain separate. The inventory does
+not choose a snapshot for a future canonical class and MUST NOT use one as a
+fallback for the other. It inventories no dependency outside `source_root` and
+makes no claim about Modelica declarations, classes, package members,
+references, imports, inheritance, source-family mapping, or executable
+coverage.
+
+`tools/lint/g36_source.py --write` regenerates the inventory and retained legal
+notice from two supplied checkouts. `--check` verifies each checkout origin and
+exact HEAD, derives all records through Git object commands, and compares both
+tracked artifacts byte-for-byte without rewriting them. JSON uses two-space
+indentation, the field order above, and one final newline. It contains no
+timestamp, branch name, checkout path, or moving source identity. A source pin
+change requires regenerating both snapshots; generation fails if the pinned
+legal blobs or bytes differ.
 
 ### `routines/g36/scope.json` (`cxf-library/g36-scope/v1`)
 
@@ -131,7 +189,7 @@ The IDs, destinations, and reviewed planning dispositions are:
 | 5.21 | `G36-SCOPE-05-21` | `g36/plants/hot-water` | `independent-authoring` |
 | 5.22 | `G36-SCOPE-05-22` | `g36/fan-coil-units` | `upstream-partial` |
 
-These dispositions classify the L0 source plan; they do not identify a source
+These dispositions classify the source plan; they do not identify a source
 class or prove implementation. Destinations are safe repository-relative POSIX
 paths below `g36/`. Absolute paths, backslashes, empty segments, `.` segments,
 and `..` segments are invalid. The manifest reserves destinations without
@@ -142,19 +200,19 @@ requiring placeholder directories.
 Coverage has exactly `schema`, `profile`, `status`, `scope`, and `claims`.
 `schema` is `cxf-library/g36-coverage/v2`; `profile` and `status` MUST equal
 `scope.json`; `scope` is `scope.json`; and `claims` MUST be an empty array in
-L0. Coverage does not repeat scope rows or inventory and makes no completeness,
+L1. Coverage does not repeat scope rows or inventory and makes no completeness,
 implementation, or evidence claim.
 
-No `routine.cxf.jsonld` may appear below `routines/g36/` in L0. The retired
+No `routine.cxf.jsonld` may appear below `routines/g36/` in L1. The retired
 `routines/g36/generic/air-economizer-high-limits` fixed-variant path MUST be
 absent.
 
 ### Deferred routine contracts
 
 Canonical typed routine artifact schemas, the generated deployment bundle
-schema, semantic sidecars, source inventory, specialization, and executable
-deployments are deferred. This version defines no routine interface, vectors,
-provenance, source map, or executable CXF contract.
+schema, source-to-family and class mapping, semantic sidecars, specialization,
+and executable deployments are deferred. This version defines no routine
+interface, vectors, source map, or executable CXF contract.
 
 ## Design stance (why the pieces split this way)
 
