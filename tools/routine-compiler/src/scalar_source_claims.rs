@@ -402,11 +402,11 @@ fn is_lower_hex(value: &str, length: usize) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn is_revision(value: &str) -> bool {
+pub(crate) fn is_revision(value: &str) -> bool {
     is_lower_hex(value, 40)
 }
 
-fn is_sha1(value: &str) -> bool {
+pub(crate) fn is_sha1(value: &str) -> bool {
     value
         .strip_prefix("sha1:")
         .is_some_and(|digest| is_lower_hex(digest, 40))
@@ -418,7 +418,7 @@ fn is_sha256(value: &str) -> bool {
         .is_some_and(|digest| is_lower_hex(digest, 64))
 }
 
-fn safe_source_path(path: &str) -> Result<(), &'static str> {
+pub(crate) fn safe_source_path(path: &str) -> Result<(), &'static str> {
     if path.is_empty() {
         return Err("path must not be empty");
     }
@@ -451,7 +451,7 @@ fn safe_source_path(path: &str) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn is_modelica_identifier(value: &str) -> bool {
+pub(crate) fn is_modelica_identifier(value: &str) -> bool {
     if value.is_empty() || value.len() > MAX_IDENTIFIER_LENGTH || !value.is_ascii() {
         return false;
     }
@@ -463,7 +463,7 @@ fn is_modelica_identifier(value: &str) -> bool {
         && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
 }
 
-fn is_class_path(value: &str) -> bool {
+pub(crate) fn is_class_path(value: &str) -> bool {
     if value.len() > MAX_CLASS_PATH_LENGTH {
         return false;
     }
