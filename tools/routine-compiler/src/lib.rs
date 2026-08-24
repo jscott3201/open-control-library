@@ -1,6 +1,7 @@
 pub mod bound_scalars;
 pub mod declaration_pipeline;
 pub mod declaration_requirements;
+pub mod declaration_source;
 pub mod declaration_syntax;
 mod declarations;
 pub mod resolution;
