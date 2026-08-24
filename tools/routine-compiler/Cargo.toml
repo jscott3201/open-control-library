@@ -6,6 +6,7 @@ publish = false
 description = "Checks G36 declarations and resolves validated routine specializations"
 
 [dependencies]
+cap-std = "=4.0.2"
 num-bigint = "0.4.8"
 num-rational = "0.4.2"
 rumoca-core = { git = "https://github.com/CogniPilot/rumoca.git", rev = "880ff2482dd83595425ead5963505d2100e083f1" }
