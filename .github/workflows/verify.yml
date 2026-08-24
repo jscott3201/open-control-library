@@ -81,6 +81,10 @@ jobs:
         with:
           workspaces: cxf-library/tools/verify
 
+      - name: Verify G36 release declarations
+        working-directory: cxf-library
+        run: cargo run --manifest-path tools/verify/Cargo.toml -- --g36-declarations ../modelica-buildings-release
+
       - name: Verify routine library
         working-directory: cxf-library
         run: cargo run --manifest-path tools/verify/Cargo.toml -- --routines

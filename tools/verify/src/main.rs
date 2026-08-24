@@ -1,7 +1,8 @@
 //! OCL graph conformance runner (SCHEMA.md "Verification").
 //!
 //! Fault modes retain their existing behavior. `--routines` validates the generated deployment
-//! registry; the current contract accepts only the exact empty registry.
+//! registry; the current contract accepts only the exact empty registry. `--g36-declarations`
+//! checks two release declarations without resolving their dependencies.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -10,8 +11,11 @@ use std::process::ExitCode;
 use oce_api::{Engine, PointDirection, PointValueType, Value};
 use serde::{Deserialize, Serialize};
 
+mod g36_declarations;
 mod lint;
 mod point_resolution;
+
+const G36_DECLARATIONS_USAGE: &str = "usage: cxf-verify --g36-declarations <release-root>";
 
 #[derive(Deserialize)]
 struct Vectors {
@@ -521,9 +525,26 @@ fn discover_fault_dirs(faults_root: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(dirs)
 }
 
+fn g36_declaration_root(raw_args: &[std::ffi::OsString]) -> Result<Option<&Path>, &'static str> {
+    if !raw_args.iter().any(|arg| arg == "--g36-declarations") {
+        return Ok(None);
+    }
+    match raw_args {
+        [mode, root] if mode == "--g36-declarations" && !Path::new(root).as_os_str().is_empty() => {
+            Ok(Some(Path::new(root)))
+        }
+        _ => Err(G36_DECLARATIONS_USAGE),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{Clock, Vectors, validate_generated_registry, validate_trace_clock};
+    use std::ffi::OsString;
+    use std::path::Path;
+
+    use super::{
+        Clock, Vectors, g36_declaration_root, validate_generated_registry, validate_trace_clock,
+    };
 
     #[test]
     fn trace_clock_rejects_unsafe_values() {
@@ -615,6 +636,38 @@ mod tests {
             "must remain empty until generated routine deployments are implemented; found 1 deployment(s)"
         ));
     }
+
+    #[test]
+    fn g36_declaration_mode_requires_one_nonempty_root() {
+        let valid = [
+            OsString::from("--g36-declarations"),
+            OsString::from("/tmp/release"),
+        ];
+        assert_eq!(
+            g36_declaration_root(&valid).expect("valid mode"),
+            Some(Path::new("/tmp/release"))
+        );
+        assert_eq!(
+            g36_declaration_root(&[OsString::from("--all")]).expect("different mode"),
+            None
+        );
+
+        for invalid in [
+            vec![OsString::from("--g36-declarations")],
+            vec![OsString::from("--g36-declarations"), OsString::new()],
+            vec![
+                OsString::from("release"),
+                OsString::from("--g36-declarations"),
+            ],
+            vec![
+                OsString::from("--g36-declarations"),
+                OsString::from("release"),
+                OsString::from("extra"),
+            ],
+        ] {
+            assert!(g36_declaration_root(&invalid).is_err(), "{invalid:?}");
+        }
+    }
 }
 
 fn main() -> ExitCode {
@@ -657,6 +710,25 @@ fn main() -> ExitCode {
             }
         };
     }
+    match g36_declaration_root(&raw_args) {
+        Ok(Some(release_root)) => {
+            return match g36_declarations::verify_release_declarations(release_root) {
+                Ok(()) => {
+                    println!("G36 release declaration conformance passed");
+                    ExitCode::SUCCESS
+                }
+                Err(error) => {
+                    eprintln!("--g36-declarations: {error}");
+                    ExitCode::from(2)
+                }
+            };
+        }
+        Ok(None) => {}
+        Err(usage) => {
+            eprintln!("{usage}");
+            return ExitCode::from(2);
+        }
+    }
     let mut args: Vec<PathBuf> = raw_args.into_iter().map(PathBuf::from).collect();
     let replay_only = args.iter().any(|a| a.as_os_str() == "--replay-only");
     if replay_only && args.iter().any(|a| a.as_os_str() == "--all") {
@@ -676,7 +748,7 @@ fn main() -> ExitCode {
     }
     if args.is_empty() {
         eprintln!(
-            "usage: cxf-verify [--replay-only] (--all | <fault-dir>…) (each containing rule.cxf.jsonld + vectors.json)\n       cxf-verify --trace-json <fault-dir> <vectors.json>\n       cxf-verify --routines"
+            "usage: cxf-verify [--replay-only] (--all | <fault-dir>…) (each containing rule.cxf.jsonld + vectors.json)\n       cxf-verify --trace-json <fault-dir> <vectors.json>\n       cxf-verify --routines\n       cxf-verify --g36-declarations <release-root>"
         );
         return ExitCode::from(2);
     }
