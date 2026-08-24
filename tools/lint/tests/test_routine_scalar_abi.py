@@ -2,7 +2,7 @@ import copy
 import json
 import math
 import unittest
-from dataclasses import FrozenInstanceError, fields, is_dataclass
+from dataclasses import FrozenInstanceError, fields, is_dataclass, replace
 from pathlib import Path
 from unittest import mock
 
@@ -10,6 +10,10 @@ from tools.lint import routine_resolution, routine_scalar_abi
 
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "routine_schemas"
+HEATING_COIL_CLASS_PATH = (
+    "Buildings.Controls.OBC.ASHRAE.G36.Types.HeatingCoil"
+)
+HEATING_COIL_SOURCE_MEMBERS = ("None", "WaterBased", "Electric")
 
 
 class RoutineScalarAbiTests(unittest.TestCase):
@@ -78,15 +82,88 @@ class RoutineScalarAbiTests(unittest.TestCase):
         )
 
     @staticmethod
-    def add_enum_connector(interface, presence):
+    def add_enum_connector(
+        interface,
+        presence,
+        *,
+        connector_id="mode_signal",
+        type_id="operating_mode",
+        direction="input",
+        scalar=False,
+    ):
         interface["connectors"].append(
             {
-                "id": "mode_signal",
-                "direction": "input",
-                "type": {"kind": "named", "type": "operating_mode"},
-                "shape": {"kind": "array", "dimensions": ["fixed_pair"]},
+                "id": connector_id,
+                "direction": direction,
+                "type": {"kind": "named", "type": type_id},
+                "shape": (
+                    {"kind": "scalar"}
+                    if scalar
+                    else {"kind": "array", "dimensions": ["fixed_pair"]}
+                ),
                 "presence": presence,
             }
+        )
+
+    def heating_coil_documents(
+        self,
+        member_order=("electric", "none", "water-based"),
+        symbols=None,
+    ):
+        interface = copy.deepcopy(self.interface)
+        specialization = copy.deepcopy(self.specialization)
+        symbols = symbols or {
+            "none": "LOCAL_ZERO",
+            "water-based": "LOCAL_WATER",
+            "electric": "LOCAL_ELECTRIC",
+        }
+        enum_type = self.document_by_id(interface["types"], "operating_mode")
+        enum_type["id"] = "heating_coil"
+        enum_type["members"] = [
+            {"id": member_id, "symbol": symbols[member_id]}
+            for member_id in member_order
+        ]
+
+        replacements = {
+            "occupied": "none",
+            "warm-up": "water-based",
+            "unoccupied": "electric",
+        }
+
+        def replace_enum_references(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if key == "type" and item == "operating_mode":
+                        value[key] = "heating_coil"
+                    elif (
+                        key in {"default", "value"}
+                        and isinstance(item, str)
+                        and item in replacements
+                    ):
+                        value[key] = replacements[item]
+                    else:
+                        replace_enum_references(item)
+            elif isinstance(value, list):
+                for item in value:
+                    replace_enum_references(item)
+
+        replace_enum_references(interface)
+        replace_enum_references(specialization)
+        return interface, specialization
+
+    @staticmethod
+    def heating_coil_mapping():
+        return routine_scalar_abi.EnumAbiMapping(
+            type_id="heating_coil",
+            canonical_class_path=HEATING_COIL_CLASS_PATH,
+            source_members=HEATING_COIL_SOURCE_MEMBERS,
+            member_mappings=(
+                routine_scalar_abi.EnumAbiMemberMapping(
+                    "water-based", "WaterBased"
+                ),
+                routine_scalar_abi.EnumAbiMemberMapping("electric", "Electric"),
+                routine_scalar_abi.EnumAbiMemberMapping("none", "None"),
+            ),
         )
 
     def test_scalar_vector_and_matrix_leaves_keep_resolver_order(self):
@@ -384,6 +461,438 @@ class RoutineScalarAbiTests(unittest.TestCase):
             results.append(error.diagnostics)
         self.assertEqual(results[0], results[1])
 
+    def test_heating_coil_parameter_and_connectors_project_class_and_ordinal(self):
+        interface, specialization = self.heating_coil_documents()
+        interface["parameters"].append(
+            {
+                "id": "coil_sequence",
+                "type": {"kind": "named", "type": "heating_coil"},
+                "shape": {"kind": "array", "dimensions": ["fixed_pair"]},
+                "configurability": "fixed",
+                "default": ["electric", "none"],
+            }
+        )
+        self.add_enum_connector(
+            interface,
+            {"kind": "always"},
+            connector_id="coil_command",
+            type_id="heating_coil",
+            direction="output",
+            scalar=True,
+        )
+        self.add_enum_connector(
+            interface,
+            {"kind": "always"},
+            type_id="heating_coil",
+        )
+        mapping = self.heating_coil_mapping()
+        result = routine_scalar_abi.project_scalar_abi(
+            self.resolve(interface, specialization), enum_mappings=(mapping,)
+        )
+
+        expected_type = routine_scalar_abi.ScalarEnumAbiType(
+            HEATING_COIL_CLASS_PATH
+        )
+        initial_mode = self.by_id(result.parameters, "parameter_id", "initial_mode")
+        self.assertEqual(initial_mode.type, expected_type)
+        self.assertEqual(
+            initial_mode.value, routine_scalar_abi.ScalarEnumAbiValue(2)
+        )
+        self.assertEqual(initial_mode.coordinates, ())
+        self.assertEqual(initial_mode.source, "assignment")
+        self.assertNotEqual(
+            initial_mode.type, routine_scalar_abi.ScalarAbiType("integer")
+        )
+        self.assertNotEqual(initial_mode.value, 2)
+
+        sequence = [
+            row for row in result.parameters if row.parameter_id == "coil_sequence"
+        ]
+        self.assertEqual(
+            [
+                (row.coordinates[0].member_id, row.coordinates[0].ordinal, row.value)
+                for row in sequence
+            ],
+            [
+                ("primary", 0, routine_scalar_abi.ScalarEnumAbiValue(3)),
+                ("secondary", 1, routine_scalar_abi.ScalarEnumAbiValue(1)),
+            ],
+        )
+        self.assertEqual([row.source for row in sequence], ["default", "default"])
+        self.assertTrue(all(row.type == expected_type for row in sequence))
+
+        coil_command = self.by_id(
+            result.connectors, "connector_id", "coil_command"
+        )
+        self.assertEqual(coil_command.type, expected_type)
+        self.assertEqual(coil_command.direction, "output")
+        self.assertEqual(coil_command.coordinates, ())
+        mode_signal = [
+            row for row in result.connectors if row.connector_id == "mode_signal"
+        ]
+        self.assertEqual(
+            [
+                (row.coordinates[0].member_id, row.coordinates[0].ordinal)
+                for row in mode_signal
+            ],
+            [("primary", 0), ("secondary", 1)],
+        )
+        self.assertTrue(all(row.type == expected_type for row in mode_signal))
+        self.assertTrue(all(row.direction == "input" for row in mode_signal))
+
+    def test_local_enum_order_and_symbols_do_not_set_source_ordinal(self):
+        variants = (
+            (
+                ("electric", "none", "water-based"),
+                {
+                    "none": "SYMBOL_9",
+                    "water-based": "SYMBOL_1",
+                    "electric": "SYMBOL_5",
+                },
+            ),
+            (
+                ("water-based", "electric", "none"),
+                {
+                    "none": "ARBITRARY_C",
+                    "water-based": "ARBITRARY_A",
+                    "electric": "ARBITRARY_B",
+                },
+            ),
+        )
+        results = []
+        for member_order, symbols in variants:
+            interface, specialization = self.heating_coil_documents(
+                member_order, symbols
+            )
+            results.append(
+                routine_scalar_abi.project_scalar_abi(
+                    self.resolve(interface, specialization),
+                    enum_mappings=(self.heating_coil_mapping(),),
+                )
+            )
+
+        self.assertEqual(results[0], results[1])
+        initial_mode = self.by_id(
+            results[0].parameters, "parameter_id", "initial_mode"
+        )
+        self.assertEqual(
+            initial_mode.value, routine_scalar_abi.ScalarEnumAbiValue(2)
+        )
+
+    def test_source_member_list_can_cover_a_local_enum_subset(self):
+        interface, specialization = self.heating_coil_documents(
+            ("none", "water-based")
+        )
+        self.document_by_id(interface["connectors"], "trim_request")["presence"] = {
+            "kind": "always"
+        }
+        mapping = replace(
+            self.heating_coil_mapping(),
+            member_mappings=tuple(
+                item
+                for item in self.heating_coil_mapping().member_mappings
+                if item.member_id != "electric"
+            ),
+        )
+        result = routine_scalar_abi.project_scalar_abi(
+            self.resolve(interface, specialization), enum_mappings=(mapping,)
+        )
+        initial_mode = self.by_id(result.parameters, "parameter_id", "initial_mode")
+        self.assertEqual(mapping.source_members, HEATING_COIL_SOURCE_MEMBERS)
+        self.assertEqual(
+            initial_mode.value, routine_scalar_abi.ScalarEnumAbiValue(2)
+        )
+
+    def test_enum_mapping_and_output_are_frozen_detached_and_have_no_io(self):
+        interface, specialization = self.heating_coil_documents()
+        resolved = self.resolve(interface, specialization)
+        resolved_before = copy.deepcopy(resolved)
+        mapping = self.heating_coil_mapping()
+        mapping_before = copy.deepcopy(mapping)
+        with mock.patch("builtins.open", side_effect=AssertionError("file access")), mock.patch(
+            "pathlib.Path.open", side_effect=AssertionError("path access")
+        ), mock.patch(
+            "socket.socket", side_effect=AssertionError("network access")
+        ), mock.patch(
+            "urllib.request.urlopen", side_effect=AssertionError("URL access")
+        ):
+            first = routine_scalar_abi.project_scalar_abi(
+                resolved, enum_mappings=(mapping,)
+            )
+            second = routine_scalar_abi.project_scalar_abi(
+                resolved, enum_mappings=(mapping,)
+            )
+        self.assertEqual(first, second)
+        self.assertEqual(resolved, resolved_before)
+        self.assertEqual(mapping, mapping_before)
+        self.assertIsInstance(mapping.source_members, tuple)
+        self.assertIsInstance(mapping.member_mappings, tuple)
+
+        initial_mode = self.by_id(first.parameters, "parameter_id", "initial_mode")
+        with self.assertRaises(FrozenInstanceError):
+            setattr(mapping, "canonical_class_path", "changed")
+        with self.assertRaises(FrozenInstanceError):
+            setattr(mapping.member_mappings[0], "source_literal", "changed")
+        with self.assertRaises(FrozenInstanceError):
+            setattr(initial_mode.type, "canonical_class_path", "changed")
+        with self.assertRaises(FrozenInstanceError):
+            setattr(initial_mode.value, "ordinal", 99)
+
+        object.__setattr__(mapping, "canonical_class_path", "changed")
+        object.__setattr__(mapping.member_mappings[0], "source_literal", "changed")
+        self.assertEqual(
+            initial_mode.type,
+            routine_scalar_abi.ScalarEnumAbiType(HEATING_COIL_CLASS_PATH),
+        )
+        self.assertEqual(
+            initial_mode.value, routine_scalar_abi.ScalarEnumAbiValue(2)
+        )
+
+    def test_mapping_record_order_does_not_change_projection(self):
+        interface, specialization = self.heating_coil_documents()
+        interface["types"].append(
+            {
+                "id": "standby_mode",
+                "kind": "enum",
+                "members": [
+                    {"id": "off", "symbol": "OFF"},
+                    {"id": "ready", "symbol": "READY"},
+                ],
+            }
+        )
+        presence = copy.deepcopy(
+            self.document_by_id(interface["connectors"], "trim_request")["presence"]
+        )
+        self.add_enum_connector(
+            interface,
+            presence,
+            connector_id="standby_signal",
+            type_id="standby_mode",
+            scalar=True,
+        )
+        standby_mapping = routine_scalar_abi.EnumAbiMapping(
+            "standby_mode",
+            "Example.Controls.Types.StandbyMode",
+            ("Off", "Ready"),
+            (
+                routine_scalar_abi.EnumAbiMemberMapping("off", "Off"),
+                routine_scalar_abi.EnumAbiMemberMapping("ready", "Ready"),
+            ),
+        )
+        heating_mapping = self.heating_coil_mapping()
+        reordered_heating_mapping = replace(
+            heating_mapping,
+            member_mappings=tuple(reversed(heating_mapping.member_mappings)),
+        )
+        resolved = self.resolve(interface, specialization)
+
+        first = routine_scalar_abi.project_scalar_abi(
+            resolved, enum_mappings=(heating_mapping, standby_mapping)
+        )
+        second = routine_scalar_abi.project_scalar_abi(
+            resolved, enum_mappings=(standby_mapping, reordered_heating_mapping)
+        )
+        self.assertEqual(first, second)
+        self.assertNotIn(
+            "standby_signal", [row.connector_id for row in first.connectors]
+        )
+
+    def test_invalid_enum_mappings_fail_atomically_with_typed_diagnostics(self):
+        interface, specialization = self.heating_coil_documents()
+        resolved = self.resolve(interface, specialization)
+        valid = self.heating_coil_mapping()
+        member = routine_scalar_abi.EnumAbiMemberMapping
+        members = valid.member_mappings
+        cases = {
+            "duplicate type": (
+                (valid, valid),
+                {"duplicate_enum_mapping"},
+            ),
+            "unknown type": (
+                (valid, replace(valid, type_id="missing_type")),
+                {"unknown_enum_mapping_type"},
+            ),
+            "non-enum type": (
+                (valid, replace(valid, type_id="temperature")),
+                {"non_enum_mapping_type"},
+            ),
+            "missing local member": (
+                (replace(valid, member_mappings=members[:-1]),),
+                {"missing_enum_local_member"},
+            ),
+            "extra local member": (
+                (
+                    replace(
+                        valid,
+                        source_members=valid.source_members + ("Spare",),
+                        member_mappings=members + (member("spare", "Spare"),),
+                    ),
+                ),
+                {"extra_enum_local_member"},
+            ),
+            "duplicate local member": (
+                (
+                    replace(
+                        valid,
+                        source_members=valid.source_members + ("Spare",),
+                        member_mappings=members + (member("none", "Spare"),),
+                    ),
+                ),
+                {"duplicate_enum_local_member"},
+            ),
+            "duplicate destination literal": (
+                (
+                    replace(
+                        valid,
+                        member_mappings=tuple(
+                            replace(item, source_literal="WaterBased")
+                            if item.member_id == "electric"
+                            else item
+                            for item in members
+                        ),
+                    ),
+                ),
+                {"duplicate_enum_source_literal"},
+            ),
+            "empty source members": (
+                (replace(valid, source_members=()),),
+                {"invalid_enum_mapping"},
+            ),
+            "duplicate source member": (
+                (replace(valid, source_members=valid.source_members + ("None",)),),
+                {"duplicate_enum_source_member"},
+            ),
+            "unknown source literal": (
+                (
+                    replace(
+                        valid,
+                        member_mappings=tuple(
+                            replace(item, source_literal="Missing")
+                            if item.member_id == "water-based"
+                            else item
+                            for item in members
+                        ),
+                    ),
+                ),
+                {"unknown_enum_source_literal"},
+            ),
+            "empty class path": (
+                (replace(valid, canonical_class_path=""),),
+                {"invalid_enum_mapping"},
+            ),
+            "empty type id": (
+                (valid, replace(valid, type_id="")),
+                {"invalid_enum_mapping"},
+            ),
+            "empty local member id": (
+                (
+                    replace(
+                        valid,
+                        member_mappings=(
+                            replace(members[0], member_id=""),
+                            *members[1:],
+                        ),
+                    ),
+                ),
+                {"invalid_enum_mapping", "missing_enum_local_member"},
+            ),
+            "empty mapping source literal": (
+                (
+                    replace(
+                        valid,
+                        member_mappings=(
+                            replace(members[0], source_literal=""),
+                            *members[1:],
+                        ),
+                    ),
+                ),
+                {"invalid_enum_mapping"},
+            ),
+            "empty source member literal": (
+                (replace(valid, source_members=("None", "", "Electric")),),
+                {"invalid_enum_mapping"},
+            ),
+            "non-tuple source members": (
+                (replace(valid, source_members=list(valid.source_members)),),
+                {"invalid_enum_mapping"},
+            ),
+            "non-tuple member mappings": (
+                (replace(valid, member_mappings=list(members)),),
+                {"invalid_enum_mapping"},
+            ),
+            "malformed member mapping": (
+                (replace(valid, member_mappings=(object(), *members[1:])),),
+                {"invalid_enum_mapping", "missing_enum_local_member"},
+            ),
+        }
+
+        for name, (mappings, expected_codes) in cases.items():
+            with self.subTest(name=name):
+                attempts = []
+                for _ in range(2):
+                    with mock.patch.object(
+                        routine_scalar_abi,
+                        "ScalarParameterAbiRow",
+                        side_effect=AssertionError("parameter row allocated"),
+                    ), mock.patch.object(
+                        routine_scalar_abi,
+                        "ScalarConnectorAbiRow",
+                        side_effect=AssertionError("connector row allocated"),
+                    ):
+                        with self.assertRaises(
+                            routine_scalar_abi.ScalarAbiError
+                        ) as caught:
+                            routine_scalar_abi.project_scalar_abi(
+                                resolved, enum_mappings=mappings
+                            )
+                    diagnostics = caught.exception.diagnostics
+                    self.assertEqual(diagnostics, tuple(sorted(diagnostics)))
+                    self.assertTrue(
+                        expected_codes.issubset(
+                            {diagnostic.code for diagnostic in diagnostics}
+                        )
+                    )
+                    attempts.append(diagnostics)
+                self.assertEqual(attempts[0], attempts[1])
+
+    def test_malformed_mapping_container_is_rejected_before_output(self):
+        interface, specialization = self.heating_coil_documents()
+        resolved = self.resolve(interface, specialization)
+        valid = self.heating_coil_mapping()
+        for value in (None, [], (object(),), (valid, object())):
+            with self.subTest(value=type(value).__name__):
+                with mock.patch.object(
+                    routine_scalar_abi,
+                    "ScalarParameterAbiRow",
+                    side_effect=AssertionError("parameter row allocated"),
+                ):
+                    with self.assertRaises(routine_scalar_abi.ScalarAbiError) as caught:
+                        routine_scalar_abi.project_scalar_abi(
+                            resolved, enum_mappings=value
+                        )
+                self.assertIn(
+                    "invalid_enum_mappings",
+                    {diagnostic.code for diagnostic in caught.exception.diagnostics},
+                )
+
+    def test_mapping_reorder_does_not_change_diagnostic_order(self):
+        interface, specialization = self.heating_coil_documents()
+        resolved = self.resolve(interface, specialization)
+        valid = self.heating_coil_mapping()
+        bad_a = replace(valid, type_id="aaa_missing")
+        bad_z = replace(valid, type_id="zzz_missing")
+        diagnostics = []
+        for mappings in (
+            (bad_z, valid, bad_a),
+            (bad_a, bad_z, valid),
+        ):
+            with self.assertRaises(routine_scalar_abi.ScalarAbiError) as caught:
+                routine_scalar_abi.project_scalar_abi(
+                    resolved, enum_mappings=mappings
+                )
+            diagnostics.append(caught.exception.diagnostics)
+        self.assertEqual(diagnostics[0], diagnostics[1])
+
     def test_inactive_enum_connector_produces_no_row_or_diagnostic(self):
         interface, specialization = self.primitive_documents()
         presence = copy.deepcopy(
@@ -470,6 +979,33 @@ class RoutineScalarAbiTests(unittest.TestCase):
         self.assertEqual(
             tuple(field.name for field in fields(routine_scalar_abi.ScalarAbiType)),
             ("primitive", "alias_type_id", "quantity", "unit", "display_unit"),
+        )
+        self.assertEqual(
+            tuple(
+                field.name for field in fields(routine_scalar_abi.ScalarEnumAbiType)
+            ),
+            ("canonical_class_path",),
+        )
+        self.assertEqual(
+            tuple(
+                field.name for field in fields(routine_scalar_abi.ScalarEnumAbiValue)
+            ),
+            ("ordinal",),
+        )
+        self.assertEqual(
+            tuple(
+                field.name for field in fields(routine_scalar_abi.EnumAbiMemberMapping)
+            ),
+            ("member_id", "source_literal"),
+        )
+        self.assertEqual(
+            tuple(field.name for field in fields(routine_scalar_abi.EnumAbiMapping)),
+            (
+                "type_id",
+                "canonical_class_path",
+                "source_members",
+                "member_mappings",
+            ),
         )
 
         names = set()
