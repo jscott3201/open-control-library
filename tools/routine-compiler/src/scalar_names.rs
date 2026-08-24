@@ -126,13 +126,13 @@ fn resource_diagnostic(
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum NameResourceFailure {
+pub(crate) enum NameResourceFailure {
     LengthOverflow,
     AllocationFailed,
 }
 
 impl NameResourceFailure {
-    fn message(self) -> &'static str {
+    pub(crate) fn message(self) -> &'static str {
         match self {
             Self::LengthOverflow => "scalar name length overflows usize",
             Self::AllocationFailed => "scalar name allocation failed",
@@ -170,7 +170,7 @@ fn push_hex_component(name: &mut String, component: &str) {
     }
 }
 
-fn build_scalar_name(
+pub(crate) fn build_scalar_name(
     prefix: &str,
     owner_id: &str,
     coordinates: &[ScalarCoordinate],
