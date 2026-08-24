@@ -1,5 +1,6 @@
 pub mod bound_scalars;
 pub mod declaration_requirements;
+pub mod declaration_syntax;
 mod declarations;
 pub mod resolution;
 pub mod scalar_abi;

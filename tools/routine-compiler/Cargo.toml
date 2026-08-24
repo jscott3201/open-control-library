@@ -11,3 +11,4 @@ num-rational = "0.4.2"
 rumoca-core = { git = "https://github.com/CogniPilot/rumoca.git", rev = "880ff2482dd83595425ead5963505d2100e083f1" }
 rumoca-ir-ast = { git = "https://github.com/CogniPilot/rumoca.git", rev = "880ff2482dd83595425ead5963505d2100e083f1" }
 rumoca-phase-parse = { git = "https://github.com/CogniPilot/rumoca.git", rev = "880ff2482dd83595425ead5963505d2100e083f1" }
+sha1 = "0.10.6"
