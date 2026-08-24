@@ -79,7 +79,13 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: cxf-library/tools/verify
+          workspaces: |
+            cxf-library/tools/routine-compiler
+            cxf-library/tools/verify
+
+      - name: Test G36 declaration package
+        working-directory: cxf-library
+        run: cargo test --locked --manifest-path tools/routine-compiler/Cargo.toml
 
       - name: Verify G36 release declarations
         working-directory: cxf-library

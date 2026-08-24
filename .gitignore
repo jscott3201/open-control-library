@@ -1,4 +1,5 @@
 .DS_Store
+tools/routine-compiler/target/
 tools/verify/target/
 /target/
 __pycache__/
