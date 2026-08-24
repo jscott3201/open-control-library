@@ -113,7 +113,7 @@ fn parse_source(relative: &str, source: &str) -> Result<StoredDefinition, String
         .map_err(|_| format!("{relative}: Modelica parse failed"))
 }
 
-fn direct_class<'a>(
+pub(crate) fn direct_class<'a>(
     parsed: &'a StoredDefinition,
     relative: &str,
     expected_within: &str,
@@ -167,7 +167,7 @@ fn expect_class_kind(
     Ok(())
 }
 
-fn direct_component<'a>(
+pub(crate) fn direct_component<'a>(
     class: &'a ClassDef,
     relative: &str,
     canonical: &str,
@@ -178,7 +178,7 @@ fn direct_component<'a>(
     })
 }
 
-fn expect_public_component(
+pub(crate) fn expect_public_component(
     component: &Component,
     relative: &str,
     canonical: &str,
