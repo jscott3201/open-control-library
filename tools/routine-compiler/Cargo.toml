@@ -3,9 +3,11 @@ name = "ocl-routine-compiler"
 version = "0.1.0"
 edition = "2024"
 publish = false
-description = "Checks fixed G36 Modelica release declarations"
+description = "Checks G36 declarations and resolves validated routine specializations"
 
 [dependencies]
+num-bigint = "0.4.8"
+num-rational = "0.4.2"
 rumoca-core = { git = "https://github.com/CogniPilot/rumoca.git", rev = "880ff2482dd83595425ead5963505d2100e083f1" }
 rumoca-ir-ast = { git = "https://github.com/CogniPilot/rumoca.git", rev = "880ff2482dd83595425ead5963505d2100e083f1" }
 rumoca-phase-parse = { git = "https://github.com/CogniPilot/rumoca.git", rev = "880ff2482dd83595425ead5963505d2100e083f1" }
