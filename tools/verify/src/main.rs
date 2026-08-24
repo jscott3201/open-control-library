@@ -11,7 +11,6 @@ use std::process::ExitCode;
 use oce_api::{Engine, PointDirection, PointValueType, Value};
 use serde::{Deserialize, Serialize};
 
-mod g36_declarations;
 mod lint;
 mod point_resolution;
 
@@ -712,7 +711,7 @@ fn main() -> ExitCode {
     }
     match g36_declaration_root(&raw_args) {
         Ok(Some(release_root)) => {
-            return match g36_declarations::verify_release_declarations(release_root) {
+            return match cxf_verify::verify_release_declarations(release_root) {
                 Ok(()) => {
                     println!("G36 release declaration conformance passed");
                     ExitCode::SUCCESS

@@ -14,7 +14,13 @@ const HEATING_COIL_CLASS: &str = "HeatingCoil";
 const HEATING_COIL_CANONICAL: &str = "Buildings.Controls.OBC.ASHRAE.G36.Types.HeatingCoil";
 const HEATING_COIL_LITERALS: [&str; 3] = ["None", "WaterBased", "Electric"];
 
-pub(crate) fn verify_release_declarations(release_root: &Path) -> Result<(), String> {
+/// Checks the fixed G36 `TrimAndRespond.mo` declaration before `HeatingCoil.mo`.
+/// The check covers parsing, the `within` clause, direct class identity and kind,
+/// public `parameter Real samplePeriod`, public
+/// `Buildings.Controls.OBC.CDL.Interfaces.IntegerInput numOfReq`, and the exact
+/// `HeatingCoil` literals `None`, `WaterBased`, `Electric` in that order. It does
+/// not resolve dependencies or inheritance.
+pub fn verify_release_declarations(release_root: &Path) -> Result<(), String> {
     let trim_source = read_fixed_source(release_root, TRIM_AND_RESPOND_PATH)?;
     verify_trim_and_respond(&trim_source)?;
 
