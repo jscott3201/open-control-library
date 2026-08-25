@@ -1,4 +1,5 @@
 pub mod bound_scalars;
+pub mod compiler_pipeline;
 pub mod declaration_pipeline;
 pub mod declaration_requirements;
 pub mod declaration_source;
