@@ -90,8 +90,8 @@ jobs:
       - name: Test G36 TrimAndRespond compiler integration
         working-directory: cxf-library
         env:
-          OCL_G36_RELEASE_ROOT: ../modelica-buildings-release
-          OCL_G36_DEVELOPMENT_ROOT: ../modelica-buildings-development
+          OCL_G36_RELEASE_ROOT: ../../../modelica-buildings-release
+          OCL_G36_DEVELOPMENT_ROOT: ../../../modelica-buildings-development
         run: cargo test --locked --manifest-path tools/routine-compiler/Cargo.toml --test g36_trim_and_respond -- --include-ignored
 
       - name: Verify G36 release declarations
