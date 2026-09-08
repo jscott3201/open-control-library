@@ -17,6 +17,8 @@ from referencing.jsonschema import DRAFT202012
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 SCHEMA_ROOT = Path("routines/schemas")
 FIXTURE_ROOT = Path("tools/lint/tests/fixtures/routine_schemas")
 G36_ROOT = Path("routines/g36")
@@ -921,8 +923,21 @@ def _check_fixture_placement(repo_root, errors):
     g36_root = repo_root / G36_ROOT
     if not g36_root.is_dir():
         return
+    allowed = set()
+    registry_path = repo_root / "routines/registry.json"
+    if registry_path.is_file():
+        from tools.routines.reference import catalog_rows, validate_catalog
+        # Production-directory exceptions are registry-backed and fully checked,
+        # not merely filenames that happen to resemble a class bundle.
+        catalog_errors = validate_catalog(repo_root)
+        errors.extend(catalog_errors)
+        if not catalog_errors:
+            allowed = {(repo_root / "routines" / row["directory"]).resolve()
+                       for row in catalog_rows(repo_root)}
     for name in FIXTURE_SCHEMAS:
         for path in sorted(g36_root.rglob(name)):
+            if path.parent.resolve() in allowed:
+                continue
             relative_path = path.relative_to(repo_root).as_posix()
             errors.append(
                 f"{relative_path}: schema-only fixture artifact is forbidden below routines/g36"

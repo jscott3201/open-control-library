@@ -1,0 +1,216 @@
+{
+  "schema": "cxf-library/routine-interface/v3",
+  "canonical_id": "G36-05-05-COOLING-AIRFLOW-SETPOINT",
+  "revision": 1,
+  "types": [
+    {
+      "id": "group_mode",
+      "kind": "enum",
+      "members": [
+        {
+          "id": "occupied",
+          "symbol": "OCCUPIED"
+        },
+        {
+          "id": "cooldown",
+          "symbol": "COOLDOWN"
+        },
+        {
+          "id": "setup",
+          "symbol": "SETUP"
+        },
+        {
+          "id": "warmup",
+          "symbol": "WARMUP"
+        },
+        {
+          "id": "setback",
+          "symbol": "SETBACK"
+        },
+        {
+          "id": "unoccupied",
+          "symbol": "UNOCCUPIED"
+        }
+      ]
+    },
+    {
+      "id": "fraction",
+      "kind": "alias",
+      "primitive": "real",
+      "quantity": "dimensionless",
+      "unit": "1"
+    },
+    {
+      "id": "volume_flow",
+      "kind": "alias",
+      "primitive": "real",
+      "quantity": "VolumeFlowRate",
+      "unit": "m3/s"
+    },
+    {
+      "id": "temperature",
+      "kind": "alias",
+      "primitive": "real",
+      "quantity": "ThermodynamicTemperature",
+      "unit": "K"
+    }
+  ],
+  "dimensions": [],
+  "parameters": [],
+  "connectors": [
+    {
+      "id": "group_mode",
+      "direction": "input",
+      "type": {
+        "kind": "named",
+        "type": "group_mode"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "cooling",
+      "direction": "input",
+      "type": {
+        "kind": "primitive",
+        "primitive": "boolean"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "cooling_loop",
+      "direction": "input",
+      "type": {
+        "kind": "named",
+        "type": "fraction"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "occupied_min_flow",
+      "direction": "input",
+      "type": {
+        "kind": "named",
+        "type": "volume_flow"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "cooling_max_flow",
+      "direction": "input",
+      "type": {
+        "kind": "named",
+        "type": "volume_flow"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "supply_temperature",
+      "direction": "input",
+      "type": {
+        "kind": "named",
+        "type": "temperature"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "zone_temperature",
+      "direction": "input",
+      "type": {
+        "kind": "named",
+        "type": "temperature"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "active_min_flow",
+      "direction": "output",
+      "type": {
+        "kind": "named",
+        "type": "volume_flow"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "active_max_flow",
+      "direction": "output",
+      "type": {
+        "kind": "named",
+        "type": "volume_flow"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "airflow_setpoint",
+      "direction": "output",
+      "type": {
+        "kind": "named",
+        "type": "volume_flow"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "warm_supply_air",
+      "direction": "output",
+      "type": {
+        "kind": "primitive",
+        "primitive": "boolean"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    }
+  ]
+}

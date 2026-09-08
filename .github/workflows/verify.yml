@@ -58,7 +58,7 @@ jobs:
 
       - name: Install routine schema lint dependencies
         working-directory: cxf-library
-        run: python3 -m pip install --requirement tools/lint/requirements-routine-schemas.txt
+        run: python3 -m pip install --requirement tools/lint/requirements-routine-schemas.txt PyYAML==6.0.3
 
       - name: routine catalog lint
         working-directory: cxf-library
@@ -67,6 +67,13 @@ jobs:
           python3 tools/lint/routine_schemas.py
           python3 tools/lint/routine_semantics.py
           python3 tools/lint/routines.py
+
+      - name: Check authored reference graphs and reference tests
+        working-directory: cxf-library
+        run: |
+          python3 tools/authoring/g36_reference.py --check
+          python3 -m unittest discover -s tools/routines/tests -v
+          python3 -m unittest discover -s tools/book/tests -v
 
       - name: Verify G36 source inventory
         working-directory: cxf-library
@@ -101,6 +108,13 @@ jobs:
       - name: Verify routine library
         working-directory: cxf-library
         run: cargo run --manifest-path tools/verify/Cargo.toml -- --routines
+
+      - name: Replay G36 reference subsequences (not deployment qualification)
+        working-directory: cxf-library
+        run: |
+          python3 tools/routines/reference.py \
+            --verifier tools/verify/target/debug/cxf-verify \
+            --report target/g36-reference-results.json
 
       - name: Lint and verify fault library
         working-directory: cxf-library

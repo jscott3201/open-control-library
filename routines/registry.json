@@ -1,4 +1,17 @@
 {
-  "schema": "cxf-library/routine-registry/v2",
-  "routines": []
+  "schema": "cxf-library/routine-registry/v3",
+  "routines": [
+    {
+      "id": "G36-05-03-ZONE-STATE",
+      "name": "Thermal-zone state classification",
+      "status": "reference",
+      "directory": "g36/zones/thermal/zone-state"
+    },
+    {
+      "id": "G36-05-05-COOLING-AIRFLOW-SETPOINT",
+      "name": "Cooling-only VAV airflow setpoint",
+      "status": "reference",
+      "directory": "g36/terminal-units/cooling-only/airflow-setpoint"
+    }
+  ]
 }

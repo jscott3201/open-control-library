@@ -1,0 +1,347 @@
+{
+  "schema": "cxf-library/vectors/v1",
+  "clock": {
+    "step_s": 1,
+    "horizon_s": 2
+  },
+  "scenarios": [
+    {
+      "name": "idle",
+      "inputs": {
+        "heating_loop": 0,
+        "cooling_loop": 0
+      },
+      "expect": [
+        {
+          "output": "heating",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "cooling",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "deadband",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "heating",
+      "inputs": {
+        "heating_loop": 1,
+        "cooling_loop": 0
+      },
+      "expect": [
+        {
+          "output": "heating",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        },
+        {
+          "output": "cooling",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "deadband",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "cooling",
+      "inputs": {
+        "heating_loop": 0,
+        "cooling_loop": 1
+      },
+      "expect": [
+        {
+          "output": "heating",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "cooling",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        },
+        {
+          "output": "deadband",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "both-active",
+      "inputs": {
+        "heating_loop": 0.2,
+        "cooling_loop": 0.8
+      },
+      "expect": [
+        {
+          "output": "heating",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "cooling",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "deadband",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        }
+      ]
+    },
+    {
+      "name": "tiny-heat",
+      "inputs": {
+        "heating_loop": 1e-12,
+        "cooling_loop": 0
+      },
+      "expect": [
+        {
+          "output": "heating",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        },
+        {
+          "output": "cooling",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "deadband",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "tiny-cool",
+      "inputs": {
+        "heating_loop": 0,
+        "cooling_loop": 1e-12
+      },
+      "expect": [
+        {
+          "output": "heating",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "cooling",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        },
+        {
+          "output": "deadband",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "signed-zero",
+      "inputs": {
+        "heating_loop": -0.0,
+        "cooling_loop": 0
+      },
+      "expect": [
+        {
+          "output": "heating",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "cooling",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "deadband",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "conflict-transition",
+      "inputs": {
+        "heating_loop": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 1,
+            "value": 0.4
+          },
+          {
+            "t": 2,
+            "value": 0.4
+          }
+        ],
+        "cooling_loop": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 1,
+            "value": 0
+          },
+          {
+            "t": 2,
+            "value": 0.5
+          }
+        ]
+      },
+      "expect": [
+        {
+          "output": "heating",
+          "from_s": 0,
+          "to_s": 0,
+          "equals": false
+        },
+        {
+          "output": "cooling",
+          "from_s": 0,
+          "to_s": 0,
+          "equals": false
+        },
+        {
+          "output": "deadband",
+          "from_s": 0,
+          "to_s": 0,
+          "equals": true
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 0,
+          "to_s": 0,
+          "equals": false
+        },
+        {
+          "output": "heating",
+          "from_s": 1,
+          "to_s": 1,
+          "equals": true
+        },
+        {
+          "output": "cooling",
+          "from_s": 1,
+          "to_s": 1,
+          "equals": false
+        },
+        {
+          "output": "deadband",
+          "from_s": 1,
+          "to_s": 1,
+          "equals": false
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 1,
+          "to_s": 1,
+          "equals": false
+        },
+        {
+          "output": "heating",
+          "from_s": 2,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "cooling",
+          "from_s": 2,
+          "to_s": 2,
+          "equals": false
+        },
+        {
+          "output": "deadband",
+          "from_s": 2,
+          "to_s": 2,
+          "equals": true
+        },
+        {
+          "output": "loop_conflict",
+          "from_s": 2,
+          "to_s": 2,
+          "equals": true
+        }
+      ]
+    }
+  ]
+}

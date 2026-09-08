@@ -1,0 +1,80 @@
+{
+  "schema": "cxf-library/routine-reference/v1",
+  "canonical_id": "G36-05-05-COOLING-AIRFLOW-SETPOINT",
+  "revision": 1,
+  "standard": "ASHRAE Guideline 36-2018",
+  "clauses": [
+    "Table 5.5.4",
+    "5.5.5.1",
+    "5.5.5.2"
+  ],
+  "root_id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint",
+  "inputs": {
+    "group_mode": {
+      "type": "integer",
+      "enum": {
+        "occupied": 1,
+        "cooldown": 2,
+        "setup": 3,
+        "warmup": 4,
+        "setback": 5,
+        "unoccupied": 6
+      }
+    },
+    "cooling": {
+      "type": "boolean"
+    },
+    "cooling_loop": {
+      "type": "real",
+      "unit": "1",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "occupied_min_flow": {
+      "type": "real",
+      "unit": "m3/s",
+      "minimum": 0
+    },
+    "cooling_max_flow": {
+      "type": "real",
+      "unit": "m3/s",
+      "minimum": 0
+    },
+    "supply_temperature": {
+      "type": "real",
+      "unit": "K",
+      "minimum": 0
+    },
+    "zone_temperature": {
+      "type": "real",
+      "unit": "K",
+      "minimum": 0
+    }
+  },
+  "outputs": {
+    "active_min_flow": {
+      "type": "real",
+      "unit": "m3/s",
+      "minimum": 0
+    },
+    "active_max_flow": {
+      "type": "real",
+      "unit": "m3/s",
+      "minimum": 0
+    },
+    "airflow_setpoint": {
+      "type": "real",
+      "unit": "m3/s",
+      "minimum": 0
+    },
+    "warm_supply_air": {
+      "type": "boolean"
+    }
+  },
+  "ordered_inputs": [
+    [
+      "occupied_min_flow",
+      "cooling_max_flow"
+    ]
+  ]
+}

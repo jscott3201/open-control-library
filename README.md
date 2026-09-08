@@ -60,6 +60,22 @@ Every card cites its sources — standards, research reports, and this
 library's own simulation studies — and records each place the rule departs
 from them. The detail lives on the cards; start with any rule in the book.
 
+## G36 control routines
+
+The [routine catalog](routines/README.md) now includes two independently authored
+**G36-2018 reference subsequences**: thermal-zone state classification and
+cooling-only VAV airflow setpoints. Each has a plain-language card, typed
+interface, source notes, CXF graph, diagrams, and executable vectors. The generated
+book gives them their own **Control Routines** section rather than presenting
+them as fault rules.
+
+These are reviewable, engine-replayed **parts of a sequence**, not a complete
+terminal controller or a qualified deployment. The deployment inventory remains
+empty. The 2021 Section 5 planning/source work continues separately; the 2018
+reference evidence does not satisfy its coverage claims. See
+[routine replay and limits](routines/README.md#reference-replay) and
+[the first-pass handoff](Handoff.md).
+
 ## Design stance
 
 The graph computes *fault-given-valid-data*, and only that. Data quality,

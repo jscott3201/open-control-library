@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="470" viewBox="0 0 1100 470" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" role="img"><title>Cooling-only VAV | airflow setpoint reference</title><desc>Table 5.5.4 + Section 5.5.5  /  SI units  /  No damper PI or safety actuation</desc><rect width="1100" height="470" rx="12" fill="#ffffff"/><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#6b7280"/></marker></defs>
+<text x="32" y="42" font-size="21" font-weight="bold" fill="#152e43">Cooling-only VAV | airflow setpoint reference</text>
+<text x="32" y="68" fill="#57606a">Table 5.5.4 + Section 5.5.5  /  SI units  /  No damper PI or safety actuation</text>
+<rect x="32" y="108" width="302" height="166" rx="9" fill="#dbeafe" stroke="#3b82f6"/>
+<text x="48" y="135" font-weight="bold" fill="#152e43">1. Select mode limits</text>
+<text x="48" y="160" fill="#334155">Occupied: Vmin* to Vcool-max</text>
+<text x="48" y="182" fill="#334155">Cooldown / setup: 0 to max</text>
+<text x="48" y="204" fill="#334155">Warmup / setback: 0 to 0</text>
+<text x="48" y="226" fill="#334155">Unoccupied: 0 to 0</text>
+<rect x="390" y="108" width="300" height="166" rx="9" fill="#f6f8fa" stroke="#8b949e"/>
+<text x="406" y="135" font-weight="bold" fill="#152e43">2. Map cooling demand</text>
+<text x="406" y="160" fill="#334155">Cooling loop: 0..1</text>
+<text x="406" y="182" fill="#334155">Linear minimum-to-maximum</text>
+<text x="406" y="204" fill="#334155">Heat / deadband: minimum</text>
+<text x="406" y="226" fill="#334155">Vmin* is supplied upstream</text>
+<rect x="746" y="108" width="322" height="166" rx="9" fill="#f6f8fa" stroke="#8b949e"/>
+<text x="762" y="135" font-weight="bold" fill="#152e43">3. Check supply temperature</text>
+<text x="762" y="160" fill="#334155">Supply &gt; zone: use minimum</text>
+<text x="762" y="182" fill="#334155">Supply = zone: keep mapping</text>
+<text x="762" y="204" fill="#334155">No implicit hysteresis</text>
+<text x="762" y="226" fill="#334155">Diagnostic: warm_supply_air</text>
+<path d="M334 183 H390" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M690 183 H746" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="390" y="319" width="678" height="87" rx="9" fill="#dcfce7" stroke="#16a34a"/>
+<text x="406" y="346" font-weight="bold" fill="#152e43">Computed outputs - not device commands</text>
+<text x="406" y="371" fill="#334155">active_min_flow, active_max_flow, airflow_setpoint [m3/s]</text>
+<text x="406" y="393" fill="#334155">Warm-supply diagnostic is Boolean. No deployment row is published.</text>
+<path d="M907 274 V319" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="32" y="446" fill="#57606a">Input rejection in replay is not a live host: freshness, quality, interlocks, and fallback need qualification.</text>
+</svg>

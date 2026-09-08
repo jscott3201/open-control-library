@@ -1,0 +1,102 @@
+{
+  "schema": "cxf-library/routine-interface/v3",
+  "canonical_id": "G36-05-03-ZONE-STATE",
+  "revision": 1,
+  "types": [
+    {
+      "id": "fraction",
+      "kind": "alias",
+      "primitive": "real",
+      "quantity": "dimensionless",
+      "unit": "1"
+    }
+  ],
+  "dimensions": [],
+  "parameters": [],
+  "connectors": [
+    {
+      "id": "heating_loop",
+      "direction": "input",
+      "type": {
+        "kind": "named",
+        "type": "fraction"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "cooling_loop",
+      "direction": "input",
+      "type": {
+        "kind": "named",
+        "type": "fraction"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "heating",
+      "direction": "output",
+      "type": {
+        "kind": "primitive",
+        "primitive": "boolean"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "cooling",
+      "direction": "output",
+      "type": {
+        "kind": "primitive",
+        "primitive": "boolean"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "deadband",
+      "direction": "output",
+      "type": {
+        "kind": "primitive",
+        "primitive": "boolean"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "loop_conflict",
+      "direction": "output",
+      "type": {
+        "kind": "primitive",
+        "primitive": "boolean"
+      },
+      "shape": {
+        "kind": "scalar"
+      },
+      "presence": {
+        "kind": "always"
+      }
+    }
+  ]
+}

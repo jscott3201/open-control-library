@@ -29,6 +29,8 @@ class RoutineLintTests(unittest.TestCase):
         self.root = Path(self.temporary_directory.name)
         for relative_path in JSON_ARTIFACTS + PIN_ARTIFACTS:
             self.restore_product_file(relative_path)
+        # Isolate scope/deployment tests from registered reference bundles.
+        self.mutate_json("routines/registry.json", lambda value: value.update(routines=[]))
 
     def tearDown(self):
         self.temporary_directory.cleanup()
@@ -128,7 +130,7 @@ class RoutineLintTests(unittest.TestCase):
 
     def test_all_top_level_shapes_and_schema_identifiers_are_exact(self):
         expected_schemas = {
-            "routines/registry.json": "cxf-library/routine-registry/v2",
+            "routines/registry.json": "cxf-library/routine-registry/v3",
             "routines/generated-registry.json": (
                 "cxf-library/generated-routine-registry/v1"
             ),
@@ -166,6 +168,7 @@ class RoutineLintTests(unittest.TestCase):
             with self.subTest(relative_path=relative_path, case="nonempty"):
                 self.mutate_json(relative_path, lambda value: value.update({key: [{}]}))
                 self.assert_error(
+                    "routine row: keys must be exactly" if key == "routines" else
                     f"{relative_path}: {key} must remain empty until production catalog rows are implemented"
                 )
                 self.restore_product_file(relative_path)

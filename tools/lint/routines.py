@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Validate the non-executable routine catalog boundary."""
+"""Validate review-only canonical routines and the separate deployment boundary."""
 
 import json
 import re
 import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from tools.routines.reference import validate_catalog
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -21,7 +26,7 @@ LEGACY_PIN_PATHS = (
 LEGACY_FIXED_PATH = Path("routines/g36/generic/air-economizer-high-limits")
 
 PROFILE = "ASHRAE Guideline 36-2021 Section 5"
-REGISTRY_SCHEMA = "cxf-library/routine-registry/v2"
+REGISTRY_SCHEMA = "cxf-library/routine-registry/v3"
 GENERATED_REGISTRY_SCHEMA = "cxf-library/generated-routine-registry/v1"
 SCOPE_SCHEMA = "cxf-library/g36-scope/v1"
 COVERAGE_SCHEMA = "cxf-library/g36-coverage/v2"
@@ -294,14 +299,9 @@ def _validate(repo_root):
     scope = _read_json(repo_root, SCOPE_PATH, errors)
     coverage = _read_json(repo_root, COVERAGE_PATH, errors)
 
-    canonical_count = _validate_empty_registry(
-        registry,
-        REGISTRY_PATH,
-        REGISTRY_KEYS,
-        REGISTRY_SCHEMA,
-        "routines",
-        errors,
-    )
+    # Canonical reference rows may exist; none are deployment inventory.
+    errors.extend(validate_catalog(repo_root))
+    canonical_count = len(registry.get("routines", [])) if isinstance(registry, dict) and isinstance(registry.get("routines"), list) else 0
     generated_count = _validate_empty_registry(
         generated_registry,
         GENERATED_REGISTRY_PATH,
