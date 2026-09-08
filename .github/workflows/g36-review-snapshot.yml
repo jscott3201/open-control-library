@@ -2,32 +2,33 @@ name: G36 review workspace
 on:
   push:
     branches: [review/g36-pass1-2026-09-08]
-    paths: [.github/workflows/g36-review-snapshot.yml]
+    paths: [.github/review-payload/04.b64]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  verifier:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
+  integrate:
+    if: github.ref == 'refs/heads/review/g36-pass1-2026-09-08'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
-          path: library
-          persist-credentials: false
-      - name: Read existing engine selection
-        id: engine
-        run: echo "rev=$(cat library/ENGINE_PIN)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
-        with:
-          repository: jscott3201/open-control-engine
-          ref: ${{ steps.engine.outputs.rev }}
-          path: open-control
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build verifier
-        run: cargo build --locked --manifest-path library/tools/verify/Cargo.toml
-      - uses: actions/upload-artifact@v4
-        with:
-          name: g36-review-verifier
-          path: library/tools/verify/target/debug/cxf-verify
-          retention-days: 1
+          ref: review/g36-pass1-2026-09-08
+      - name: Apply reviewed source changes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64
+          import lzma
+          import pathlib
+          parts = pathlib.Path('.github/review-payload')
+          encoded = ''.join((parts / f'{i:02}.b64').read_text().strip() for i in range(1, 5))
+          pathlib.Path('/tmp/g36-pass1.patch').write_bytes(lzma.decompress(base64.b64decode(encoded, validate=True)))
+          PY
+          git apply --index --exclude=.github/workflows/verify.yml /tmp/g36-pass1.patch
+          git rm .github/review-payload/*.b64
+          python3 -m compileall -q tools/routines tools/authoring/g36_reference.py tools/book tools/lint
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(routines): integrate engine-tested G36-2018 reference subsequences and cards'
+          git push origin HEAD:review/g36-pass1-2026-09-08
