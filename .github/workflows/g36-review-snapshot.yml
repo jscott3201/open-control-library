@@ -1,0 +1,30 @@
+name: G36 review workspace
+on:
+  push:
+    branches: [review/g36-pass1-2026-09-08]
+    paths: [.github/workflows/g36-review-snapshot.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: library
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: jscott3201/open-control-engine
+          ref: development
+          path: engine
+          persist-credentials: false
+      - name: Archive public review inputs
+        run: |
+          tar --exclude='.git' -czf review-inputs.tar.gz library engine
+      - uses: actions/upload-artifact@v4
+        with:
+          name: g36-review-inputs
+          path: review-inputs.tar.gz
+          retention-days: 1
