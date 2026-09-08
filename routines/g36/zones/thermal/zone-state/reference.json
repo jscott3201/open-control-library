@@ -1,0 +1,39 @@
+{
+  "schema": "cxf-library/routine-reference/v1",
+  "canonical_id": "G36-05-03-ZONE-STATE",
+  "revision": 1,
+  "standard": "ASHRAE Guideline 36-2018",
+  "clauses": [
+    "5.3.5"
+  ],
+  "root_id": "urn:cxf-library:g36-05-03-zone-state#zone_state",
+  "inputs": {
+    "heating_loop": {
+      "type": "real",
+      "unit": "1",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "cooling_loop": {
+      "type": "real",
+      "unit": "1",
+      "minimum": 0,
+      "maximum": 1
+    }
+  },
+  "outputs": {
+    "heating": {
+      "type": "boolean"
+    },
+    "cooling": {
+      "type": "boolean"
+    },
+    "deadband": {
+      "type": "boolean"
+    },
+    "loop_conflict": {
+      "type": "boolean"
+    }
+  },
+  "ordered_inputs": []
+}

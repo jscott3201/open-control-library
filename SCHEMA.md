@@ -55,10 +55,11 @@ next free number, honoring any reservation.
 
 Routine contracts are independent of fault contracts. Nothing in this section
 changes a fault schema identifier or fault behavior. The routine catalog is
-schema-defined and non-executable. The current contract defines future
-canonical class, interface, specialization, semantic-profile, and derivation
-shapes without adding a production class, source mapping, semantic profile,
-derivation manifest, specialization, or executable deployment.
+split into review-only canonical reference classes and a separate, still-empty
+executable deployment inventory. Two independently authored G36-2018 reference
+classes reuse the existing class/interface/specialization shapes. They do not
+implement Modelica source-to-CXF lowering, building bindings, semantic profiles,
+derivation manifests, or deployment qualification.
 
 Pin ownership is split by purpose:
 
@@ -77,9 +78,13 @@ retired and MUST be absent.
 
 `routines/registry.json` is the canonical class inventory. Its top-level object
 has exactly `schema` and `routines`; `schema` is
-`cxf-library/routine-registry/v2`. `routines` MUST be an array and remains empty
-until production class rows are implemented. This registry remains the sole
-catalog inventory; the schemas below do not replace it. A scope anchor is not a
+`cxf-library/routine-registry/v3`. `routines` MUST be an array. Each row has exactly
+`id`, `name`, `status`, and `directory`. IDs follow the canonical class grammar,
+names are nonempty, and `status` MUST be `reference`. Directories are unique,
+safe paths below `g36/`, relative to `routines/`. IDs are unique. Each directory
+MUST contain a complete, validated reference bundle. These are review classes,
+not executable deployment rows. This registry remains the sole canonical catalog;
+the schemas below do not replace it. A scope anchor is not a
 canonical class. The source inventory defined below records Git blobs; it does
 not identify Modelica classes or subsequences.
 
@@ -89,10 +94,52 @@ drive routine execution. Its top-level object has exactly `schema` and
 `cxf-library/generated-routine-registry/v1`. `deployments` MUST be an array and
 remains empty until generated deployments are implemented. The verifier's
 `--routines` mode reads this file, accepts the empty array, and rejects nonempty
-arrays until that contract is implemented.
+arrays until that contract is implemented. An empty inventory reports that no
+executable deployment scenarios were tested; success is a registry-shape check,
+not sequence verification.
 
 Canonical IDs MUST NOT encode fixed parameter values. Generated deployment IDs
 and row schemas are not defined by this version.
+
+### Independent reference bundles
+
+The first reference profile covers scalar, algebraic G36-2018 subsequences only.
+It requires the existing `class-manifest.json`, `interface.json`,
+`specialization.json`, and `specialization.schema.json`, plus `card.md`,
+`source.md`, `reference.json`, `reference.cxf.jsonld`, `vectors.json`,
+`overview.svg`, and `diagram.svg`. Independent manifest source paths identify the
+graph author and source notes. Manifest artifact paths resolve to the registered
+class directory. Identity and revision agree across the class documents. The
+specialization schema delegates to the existing specialization v1 schema; there
+are no structural parameters or dimensions in this reference profile.
+
+`reference.json` has exactly `schema`, `canonical_id`, `revision`, `standard`,
+`clauses`, `root_id`, `inputs`, `outputs`, and `ordered_inputs`. Its schema string
+is `cxf-library/routine-reference/v1`; `standard` is explicitly
+`ASHRAE Guideline 36-2018`, with no silently applied addenda. The input/output
+maps match the canonical interface. Boolean ports are strict booleans; Real ports
+declare `1`, `m3/s`, or `K` and optional finite minimum/maximum bounds. Integer
+ports define a symbolic-to-integer `enum` map whose codes are consecutive from
+one. This map is the **reference export ABI**, separate from the interface's
+symbolic enum identity and from any upstream library's integer encoding.
+`ordered_inputs` contains pairs of same-unit Real inputs whose first value may
+not exceed the second. No schema field grants deployment permission.
+
+Reference graph checks reject duplicate or unowned nodes, dangling or multiply
+driven connectors, missing boundary connections, incompatible connector types,
+missing `hasInstance` ownership, unsupported reference block classes, and
+implicit/nonzero comparator hysteresis. They target the engine's current flat
+composite subset, not every valid CXF document. Graph-author regeneration and
+actual engine replay are separate checks.
+
+The offline runner requires complete initial frames, finite and correctly typed
+values, valid enum codes and numeric ranges, ordered software limits, bounded
+clock-aligned schedules, unique scenario names, and one expected value per output
+per tick. It rejects empty/vacuous evidence and overlapping assertion windows.
+These safeguards do not travel inside raw CXF and do not implement a live
+freshness/quality or fallback policy. Runtime replay and generated matrix checks
+produce software evidence only. The 2021 scope/coverage documents remain planned
+and unchanged; the 2018 references add no 2021 coverage claim.
 
 ### Canonical routine schema resources
 
@@ -315,7 +362,9 @@ The linter validates one coherent fixture set under
 `tools/lint/tests/fixtures/routine_schemas/`. Those documents are synthetic,
 test-only contract evidence. They MUST NOT appear below `routines/g36/` or be
 added to a registry, coverage claim, source inventory, book, or production
-catalog destination.
+catalog destination. Separately authored, registry-backed reference bundles are
+allowed below `routines/g36/` and checked with the same class/interface schemas
+plus the reference profile. Unregistered class artifacts remain rejected.
 
 `tools/lint/routine_semantics.py` checks the closed pin record, recomputes the
 local-vocabulary hash, parses local Turtle bytes, applies the same six-resource
@@ -462,11 +511,12 @@ absent.
 
 ### Deferred routine contracts
 
-Production class manifests, interfaces, specialization inputs, semantic
-profiles, and derivation manifests remain deferred, as do source-to-family and
-class mapping instances, point migrations, a specializer, resolved connectors,
-generated deployment bundle schemas and rows, source maps, vectors, generated
-CXF, building-instance conformance, and execution.
+Deployable class bundles, production semantic profiles and derivation manifests,
+source-to-family/class mapping instances, point migrations, a source specializer,
+building-resolved connectors, generated deployment schemas/rows, building-instance
+conformance, and live execution remain deferred. Independent reference classes,
+their typed interfaces, empty structural specializations, authored CXF and vectors
+are now present; they do not complete those source or deployment contracts.
 
 ## Design stance (why the pieces split this way)
 

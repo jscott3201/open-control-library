@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "https://open-control-library.example/schemas/routine-specialization-v1.json"
+}

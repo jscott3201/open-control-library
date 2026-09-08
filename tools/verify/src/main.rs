@@ -700,7 +700,9 @@ fn main() -> ExitCode {
         }
         return match verify_generated_routines(Path::new(".")) {
             Ok(()) => {
-                println!("all generated routine deployment scenarios passed");
+                println!(
+                    "generated routine registry is empty: no executable deployment scenarios were tested"
+                );
                 ExitCode::SUCCESS
             }
             Err(e) => {

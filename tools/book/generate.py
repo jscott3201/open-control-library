@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the mdBook source tree from the repository's canonical files.
 
-Single source of truth stays in faults/, playbooks/, clusters/, points/ and
+Single source of truth stays in faults/, routines/, playbooks/, clusters/, points/ and
 SCHEMA.md — this script derives book/src/ from them at build time and is run
 by CI before `mdbook build`. Nothing under book/src/ is ever edited by hand.
 
@@ -301,6 +301,69 @@ def build_playbooks():
     return names
 
 
+def build_routines(destination=None):
+    """Use the existing card/book idiom without treating references as deployments."""
+    from tools.routines.reference import ARTIFACTS, catalog_rows, read_json, safe_path
+    destination = destination or SRC / "routines"
+    destination.mkdir(parents=True, exist_ok=True)
+    rows = catalog_rows(REPO)
+    index = ["# Control routines\n",
+             "> **Reference subsequences, not qualified deployments.** These cards expose "
+             "independently authored G36-2018 logic for software review. The separate "
+             "generated deployment inventory remains empty.\n",
+             "The 2021 Section 5 planning inventory is unchanged. These 2018 references "
+             "do not establish 2021 coverage, a complete terminal controller, field "
+             "commissioning, or permission to write to equipment.\n",
+             "| Routine | Source | Included behavior | Status |",
+             "|---|---|---|---|"]
+    pages = []
+    for row in rows:
+        directory = safe_path(REPO / "routines", row["directory"])
+        target = destination / row["id"]
+        target.mkdir()
+        fm, body = read_card(directory / "card.md")
+        if any(fm.get(key) != row[key] for key in ("id", "name", "status")):
+            raise ValueError(f"{row['id']}: catalog/card mismatch")
+        ref = read_json(directory / "reference.json")
+        out = [f"# {row['id']} — {row['name']}\n",
+               "> **Reference only. No deployment qualification.** Engine replay is "
+               "software evidence, not commissioning or safe actuation evidence.\n",
+               "| | |", "|---|---|",
+               f"| **Status** | {row['status']} |",
+               f"| **Source baseline** | {ref['standard']} |",
+               f"| **Included clauses** | {', '.join(ref['clauses'])} |",
+               "| **Execution profile** | Algebraic, scalar, Open Control Engine reference replay |",
+               "| **Deployment inventory** | Not listed |", "",
+               "## Typed boundary\n", "| Port | Direction | Type / unit |",
+               "|---|---|---|"]
+        for direction in ("inputs", "outputs"):
+            for name, spec in ref[direction].items():
+                detail = spec["type"] + (f" / {spec['unit']}" if "unit" in spec else "")
+                if "enum" in spec:
+                    detail += "; " + ", ".join(f"{code} {member}" for member, code in spec["enum"].items())
+                out.append(f"| `{name}` | {direction[:-1]} | {detail} |")
+        out.append("")
+        out.append(re.sub(r"!\[([^\]]*)\]\(overview\.svg\)", r"[![\1](overview.svg)](overview.svg)", body))
+        # Keep canonical relative links valid by preserving each bundle as a directory.
+        # Download names remain reference.cxf.jsonld, never deployment-like names.
+        for artifact in ARTIFACTS:
+            if artifact == "card.md":
+                continue
+            source = directory / artifact
+            if artifact.endswith(".svg"):
+                copy_svg(source, target / artifact)
+            else:
+                shutil.copyfile(source, target / artifact)
+        (target / "index.md").write_text("\n".join(out) + "\n", encoding="utf-8")
+        index.append(f"| [{row['name']}]({row['id']}/index.md) | {ref['standard']} | "
+                     f"{', '.join(ref['clauses'])} | reference |")
+        pages.append((row["id"], row["name"]))
+    guide = (REPO / "routines/README.md").read_text(encoding="utf-8")
+    index.append("## Reference replay\n" + guide.split("## Reference replay\n", 1)[1].replace("../Handoff.md", "../handoff.md"))
+    (destination / "index.md").write_text("\n".join(index) + "\n", encoding="utf-8")
+    return pages
+
+
 def main():
     point_corpus = load_point_corpus(REPO).require_valid()
     if SRC.exists():
@@ -324,6 +387,13 @@ def main():
             copy_svg(asset_svg, asset_svg)
     intro = (REPO / "README.md").read_text(encoding="utf-8")
     intro = intro.replace("**`SCHEMA.md`**", "**[`SCHEMA.md`](schema.md)**")
+    intro = intro.replace("](routines/README.md", "](routines/index.md")
+    intro = intro.replace("](Handoff.md)", "](handoff.md)")
+    handoff = (REPO / "Handoff.md").read_text(encoding="utf-8")
+    handoff = handoff.replace("](routines/README.md)", "](routines/index.md)")
+    handoff = handoff.replace("](routines/g36/PASS1-REVIEW.md)", "](routine-review.md)")
+    (SRC / "handoff.md").write_text(handoff, encoding="utf-8")
+    shutil.copyfile(REPO / "routines/g36/PASS1-REVIEW.md", SRC / "routine-review.md")
     # Fault-dir asset links flatten in the book (<ID>/diagram.svg -> <ID>.svg)
     # and embed as self-links so wide graphs open full-size.
     intro = re.sub(r"!\[([^\]]*)\]\(faults/(\w+)/([A-Z]+-\d+)/diagram\.svg\)",
@@ -398,12 +468,20 @@ def main():
     playbooks = build_playbooks()
     point_pages = build_points(point_corpus)
 
-    summary = ["# Summary\n", "[Introduction](index.md)", "[Schema](schema.md)\n", "# Fault Rules\n"]
+    routine_pages = build_routines()
+    summary = ["# Summary\n", "[Introduction](index.md)", "[Schema](schema.md)\n",
+               "# Control Routines\n", "- [Reference catalog](routines/index.md)"]
+    for rid, name in routine_pages:
+        summary.append(f"  - [{name}](routines/{rid}/index.md)")
+        summary.append(f"    - [Source interpretation](routines/{rid}/source.md)")
+    summary.append("\n# Fault Rules\n")
     for fam, entries in families.items():
         summary.append(f"- [{fam.upper()}](faults/{fam}/index.md)")
         for fid, name in entries:
             summary.append(f"  - [{fid} — {name}](faults/{fam}/{fid}.md)")
     summary.append("\n# Reference\n")
+    summary.append("- [G36 first-pass review](routine-review.md)")
+    summary.append("- [G36 agent handoff](handoff.md)")
     summary.append("- [Fault Code Map](registry.md)")
     summary.append("- [Fault Clusters](clusters.md)")
     summary.append("- [Playbooks](playbooks/index.md)")
@@ -415,7 +493,7 @@ def main():
 
     n_pages = sum(len(e) for e in families.values())
     print(f"generated book/src: {n_pages} fault pages, {len(playbooks)} playbooks, "
-          f"{len(point_pages)} point dictionaries")
+          f"{len(point_pages)} point dictionaries, {len(routine_pages)} reference routines")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1253 @@
+{
+  "@context": {
+    "S231": "http://data.ashrae.org/S231P#",
+    "base": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint",
+      "@type": "S231:Block",
+      "S231:label": "airflow_setpoint",
+      "S231:containsBlock": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool"
+        }
+      ],
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.group_mode"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_loop"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_min_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_max_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.supply_temperature"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zone_temperature"
+        }
+      ],
+      "S231:hasOutput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.active_min_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.active_max_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.airflow_setpoint"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_supply_air"
+        }
+      ],
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.group_mode"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_loop"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_min_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_max_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.supply_temperature"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zone_temperature"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.active_min_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.active_max_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.airflow_setpoint"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_supply_air"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Integers.Sources.Constant",
+      "S231:label": "occupied_code",
+      "S231:hasParameter": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code.k"
+      },
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code.y"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code.k"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code.k",
+      "S231:value": {
+        "@value": "1",
+        "@type": "http://www.w3.org/2001/XMLSchema#integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_code.y",
+      "@type": "S231:IntegerOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Integers.Sources.Constant",
+      "S231:label": "cooldown_code",
+      "S231:hasParameter": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code.k"
+      },
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code.y"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code.k"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code.k",
+      "S231:value": {
+        "@value": "2",
+        "@type": "http://www.w3.org/2001/XMLSchema#integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown_code.y",
+      "@type": "S231:IntegerOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Integers.Sources.Constant",
+      "S231:label": "setup_code",
+      "S231:hasParameter": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code.k"
+      },
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code.y"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code.k"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code.k",
+      "S231:value": {
+        "@value": "3",
+        "@type": "http://www.w3.org/2001/XMLSchema#integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup_code.y",
+      "@type": "S231:IntegerOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Integers.Equal",
+      "S231:label": "occupied",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.u1",
+      "@type": "S231:IntegerInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.u2",
+      "@type": "S231:IntegerInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.u1"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Integers.Equal",
+      "S231:label": "cooldown",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.u1",
+      "@type": "S231:IntegerInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.u2",
+      "@type": "S231:IntegerInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.u1"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Integers.Equal",
+      "S231:label": "setup",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.u1",
+      "@type": "S231:IntegerInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.u2",
+      "@type": "S231:IntegerInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Logical.Or",
+      "S231:label": "preconditioning",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.u1",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.u2",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.preconditioning.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Logical.Or",
+      "S231:label": "cooling_mode",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.u1",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.u2",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_mode.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Reals.Sources.Constant",
+      "S231:label": "zero",
+      "S231:hasParameter": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero.k"
+      },
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero.y"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero.k"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero.k",
+      "S231:value": {
+        "@value": "0",
+        "@type": "http://www.w3.org/2001/XMLSchema#double"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zero.y",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u3"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u3"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Reals.Switch",
+      "S231:label": "minimum",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u3"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u3"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u1",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u2",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u3",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.y",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.active_min_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u3"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Reals.Switch",
+      "S231:label": "maximum",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u3"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u3"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u1",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u2",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u3",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.y",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.active_max_flow"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.u1"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Reals.Switch",
+      "S231:label": "select_flow",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u3"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u3"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u1",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u2",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u3",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.y",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.airflow_setpoint"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Reals.Subtract",
+      "S231:label": "span",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.u1",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.u2",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.span.y",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Reals.Multiply",
+      "S231:label": "modulation",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.u1",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.u2",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.y",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Reals.Add",
+      "S231:label": "mapped_flow",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.u1",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.u2",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.mapped_flow.y",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u1"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Reals.Greater",
+      "S231:label": "warm_air",
+      "S231:hasParameter": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.h"
+      },
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.y"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.h"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.h",
+      "S231:value": {
+        "@value": "0",
+        "@type": "http://www.w3.org/2001/XMLSchema#double"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.u1",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.u2",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_supply_air"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air.u"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Logical.Not",
+      "S231:label": "not_warm_air",
+      "S231:hasInput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air.u"
+      },
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air.u"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air.u",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.not_warm_air.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool",
+      "@type": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#Buildings.Controls.OBC.CDL.Logical.And",
+      "S231:label": "can_cool",
+      "S231:hasInput": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.u2"
+        }
+      ],
+      "S231:hasOutput": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.y"
+      },
+      "S231:hasInstance": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.u2"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.y"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.u1",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.u2",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.select_flow.u2"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.group_mode",
+      "@type": "S231:IntegerInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Integer"
+      },
+      "S231:isConnectedTo": [
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooldown.u1"
+        },
+        {
+          "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.setup.u1"
+        }
+      ]
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      },
+      "S231:isConnectedTo": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.can_cool.u1"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_loop",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.modulation.u1"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.occupied_min_flow",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.minimum.u1"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.cooling_max_flow",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.maximum.u1"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.supply_temperature",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.u1"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.zone_temperature",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      },
+      "S231:isConnectedTo": {
+        "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_air.u2"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.active_min_flow",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.active_max_flow",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.airflow_setpoint",
+      "@type": "S231:RealOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Real"
+      }
+    },
+    {
+      "@id": "urn:cxf-library:g36-05-05-cooling-airflow-setpoint#airflow_setpoint.warm_supply_air",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": {
+        "@id": "S231:Boolean"
+      }
+    }
+  ]
+}

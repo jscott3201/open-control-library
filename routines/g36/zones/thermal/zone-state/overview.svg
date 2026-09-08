@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="470" viewBox="0 0 1100 470" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" role="img"><title>Thermal-zone state | exact 2018 reference</title><desc>Section 5.3.5  /  Classification only - not the zone-temperature controller</desc><rect width="1100" height="470" rx="12" fill="#ffffff"/><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#6b7280"/></marker></defs>
+<text x="32" y="42" font-size="21" font-weight="bold" fill="#152e43">Thermal-zone state | exact 2018 reference</text>
+<text x="32" y="68" fill="#57606a">Section 5.3.5  /  Classification only - not the zone-temperature controller</text>
+<rect x="32" y="108" width="235" height="120" rx="9" fill="#dbeafe" stroke="#3b82f6"/>
+<text x="48" y="135" font-weight="bold" fill="#152e43">Accepted loop inputs</text>
+<text x="48" y="160" fill="#334155">heating_loop: 0..1</text>
+<text x="48" y="182" fill="#334155">cooling_loop: 0..1</text>
+<text x="48" y="204" fill="#334155">Finite; same input frame</text>
+<rect x="322" y="108" width="365" height="222" rx="9" fill="#f6f8fa" stroke="#8b949e"/>
+<text x="338" y="135" font-weight="bold" fill="#152e43">Classify the loop pair</text>
+<text x="338" y="160" fill="#334155">Heat &gt; 0, cool = 0: heating</text>
+<text x="338" y="182" fill="#334155">Cool &gt; 0, heat = 0: cooling</text>
+<text x="338" y="204" fill="#334155">Both zero: deadband</text>
+<text x="338" y="226" fill="#334155">Both positive: deadband</text>
+<text x="338" y="248" fill="#334155"></text>
+<text x="338" y="270" fill="#334155">No added hysteresis</text>
+<rect x="744" y="108" width="322" height="120" rx="9" fill="#dcfce7" stroke="#16a34a"/>
+<text x="760" y="135" font-weight="bold" fill="#152e43">Mutually exclusive state</text>
+<text x="760" y="160" fill="#334155">heating / cooling / deadband</text>
+<text x="760" y="182" fill="#334155">Exactly one Boolean is true</text>
+<text x="760" y="204" fill="#334155">No actuator command</text>
+<rect x="744" y="253" width="322" height="99" rx="9" fill="#fff7ed" stroke="#d97706"/>
+<text x="760" y="280" font-weight="bold" fill="#152e43">Separate conflict diagnostic</text>
+<text x="760" y="305" fill="#334155">loop_conflict = both positive</text>
+<text x="760" y="327" fill="#334155">Deadband does not mean healthy</text>
+<path d="M267 167 H322" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M687 167 H744" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M687 299 H744" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="32" y="383" width="1034" height="58" rx="9" fill="#f6f8fa" stroke="#8b949e"/>
+<text x="48" y="410" font-weight="bold" fill="#152e43">Boundary</text>
+<text x="48" y="435" fill="#334155">PI loops, reset logic, rate limits, alarms, and site-specific fallback stay with the host.</text>
+</svg>

@@ -60,5 +60,26 @@ class PointBookGenerationTests(unittest.TestCase):
             self.assertIn(f"\n## {name} {{#{name}}}\n", zone)
 
 
+class RoutineBookGenerationTests(unittest.TestCase):
+    def test_reference_cards_and_downloads_preserve_boundaries(self):
+        with tempfile.TemporaryDirectory() as td:
+            destination = Path(td) / "routines"
+            pages = generate.build_routines(destination)
+            self.assertEqual(len(pages), 2)
+            index = (destination / "index.md").read_text()
+            self.assertIn("not qualified deployments", index)
+            self.assertIn("2021", index)
+            for rid, name in pages:
+                target = destination / rid
+                page = (target / "index.md").read_text()
+                self.assertIn("Reference only. No deployment qualification", page)
+                self.assertIn("Typed boundary", page)
+                self.assertIn("ASHRAE Guideline 36-2018", page)
+                self.assertTrue((target / "reference.cxf.jsonld").is_file())
+                self.assertTrue((target / "vectors.json").is_file())
+                self.assertTrue((target / "diagram.svg").is_file())
+                self.assertNotIn("**Severity**", page)
+
+
 if __name__ == "__main__":
     unittest.main()

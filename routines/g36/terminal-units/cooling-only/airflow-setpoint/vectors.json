@@ -1,0 +1,642 @@
+{
+  "schema": "cxf-library/vectors/v1",
+  "clock": {
+    "step_s": 1,
+    "horizon_s": 2
+  },
+  "scenarios": [
+    {
+      "name": "occupied-midpoint",
+      "inputs": {
+        "group_mode": 1,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.6
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "cooldown",
+      "inputs": {
+        "group_mode": 2,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.5
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "setup",
+      "inputs": {
+        "group_mode": 3,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.5
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "warmup",
+      "inputs": {
+        "group_mode": 4,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "setback",
+      "inputs": {
+        "group_mode": 5,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "unoccupied",
+      "inputs": {
+        "group_mode": 6,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "cooling-loop-zero",
+      "inputs": {
+        "group_mode": 1,
+        "cooling": true,
+        "cooling_loop": 0.0,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "cooling-loop-full",
+      "inputs": {
+        "group_mode": 1,
+        "cooling": true,
+        "cooling_loop": 1.0,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "not-cooling",
+      "inputs": {
+        "group_mode": 1,
+        "cooling": false,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "temperature-equality",
+      "inputs": {
+        "group_mode": 1,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 295.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.6
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "warm-supply",
+      "inputs": {
+        "group_mode": 1,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.2,
+        "cooling_max_flow": 1.0,
+        "supply_temperature": 295.001,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0.2
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": true
+        }
+      ]
+    },
+    {
+      "name": "zero-flow-design",
+      "inputs": {
+        "group_mode": 1,
+        "cooling": true,
+        "cooling_loop": 0.5,
+        "occupied_min_flow": 0.0,
+        "cooling_max_flow": 0.0,
+        "supply_temperature": 285.0,
+        "zone_temperature": 295.0
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": 0
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    },
+    {
+      "name": "mode-and-software-limit-change",
+      "inputs": {
+        "group_mode": [
+          {
+            "t": 0,
+            "value": 1
+          },
+          {
+            "t": 1,
+            "value": 2
+          },
+          {
+            "t": 2,
+            "value": 6
+          }
+        ],
+        "cooling": [
+          {
+            "t": 0,
+            "value": true
+          },
+          {
+            "t": 1,
+            "value": true
+          },
+          {
+            "t": 2,
+            "value": true
+          }
+        ],
+        "cooling_loop": [
+          {
+            "t": 0,
+            "value": 0.5
+          },
+          {
+            "t": 1,
+            "value": 0.5
+          },
+          {
+            "t": 2,
+            "value": 0.5
+          }
+        ],
+        "occupied_min_flow": [
+          {
+            "t": 0,
+            "value": 0.2
+          },
+          {
+            "t": 1,
+            "value": 0.2
+          },
+          {
+            "t": 2,
+            "value": 0.1
+          }
+        ],
+        "cooling_max_flow": [
+          {
+            "t": 0,
+            "value": 1.0
+          },
+          {
+            "t": 1,
+            "value": 0.8
+          },
+          {
+            "t": 2,
+            "value": 1.0
+          }
+        ],
+        "supply_temperature": [
+          {
+            "t": 0,
+            "value": 285.0
+          },
+          {
+            "t": 1,
+            "value": 285.0
+          },
+          {
+            "t": 2,
+            "value": 285.0
+          }
+        ],
+        "zone_temperature": [
+          {
+            "t": 0,
+            "value": 295.0
+          },
+          {
+            "t": 1,
+            "value": 295.0
+          },
+          {
+            "t": 2,
+            "value": 295.0
+          }
+        ]
+      },
+      "expect": [
+        {
+          "output": "active_min_flow",
+          "from_s": 0,
+          "to_s": 0,
+          "equals": 0.2
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 0,
+          "to_s": 0,
+          "equals": 1.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 0,
+          "to_s": 0,
+          "equals": 0.6
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 0,
+          "to_s": 0,
+          "equals": false
+        },
+        {
+          "output": "active_min_flow",
+          "from_s": 1,
+          "to_s": 1,
+          "equals": 0.0
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 1,
+          "to_s": 1,
+          "equals": 0.8
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 1,
+          "to_s": 1,
+          "equals": 0.4
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 1,
+          "to_s": 1,
+          "equals": false
+        },
+        {
+          "output": "active_min_flow",
+          "from_s": 2,
+          "to_s": 2,
+          "equals": 0.0
+        },
+        {
+          "output": "active_max_flow",
+          "from_s": 2,
+          "to_s": 2,
+          "equals": 0.0
+        },
+        {
+          "output": "airflow_setpoint",
+          "from_s": 2,
+          "to_s": 2,
+          "equals": 0.0
+        },
+        {
+          "output": "warm_supply_air",
+          "from_s": 2,
+          "to_s": 2,
+          "equals": false
+        }
+      ]
+    }
+  ]
+}
