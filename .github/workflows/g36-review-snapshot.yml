@@ -6,25 +6,28 @@ on:
 permissions:
   contents: read
 jobs:
-  snapshot:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+  verifier:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           path: library
           persist-credentials: false
+      - name: Read existing engine selection
+        id: engine
+        run: echo "rev=$(cat library/ENGINE_PIN)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           repository: jscott3201/open-control-engine
-          ref: development
-          path: engine
+          ref: ${{ steps.engine.outputs.rev }}
+          path: open-control
           persist-credentials: false
-      - name: Archive public review inputs
-        run: |
-          tar --exclude='.git' -czf review-inputs.tar.gz library engine
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build verifier
+        run: cargo build --locked --manifest-path library/tools/verify/Cargo.toml
       - uses: actions/upload-artifact@v4
         with:
-          name: g36-review-inputs
-          path: review-inputs.tar.gz
+          name: g36-review-verifier
+          path: library/tools/verify/target/debug/cxf-verify
           retention-days: 1
