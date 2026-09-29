@@ -1,0 +1,200 @@
+# Forgejo Actions CI: the Linux verification gates and the book build.
+# "CI OK" is the single required status for branch protection; add new gating
+# jobs to its `needs` list.
+#
+# External sources (the open-control engine and Modelica Buildings) are fetched
+# from github.com explicitly: actions/checkout would resolve `repository:`
+# against this Forgejo instance, and tools/lint/g36_source.py requires the
+# Modelica checkouts' origin to be github.com/lbl-srg/modelica-buildings.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MDBOOK_VERSION: v0.5.4
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: tools/lint/requirements-routine-schemas.txt
+
+      - name: Install lint dependencies
+        run: python3 -m pip install --requirement tools/lint/requirements-routine-schemas.txt PyYAML==6.0.3
+
+      - name: svg fitment lint
+        run: python3 tools/lint/svg_fitment.py
+
+      - name: registry lint
+        run: python3 tools/lint/registry.py
+
+      - name: point semantic lint
+        run: python3 tools/lint/point_semantics.py
+
+      - name: routine catalog lint
+        run: |
+          python3 -m unittest discover -s tools/lint/tests -v
+          python3 tools/lint/routine_schemas.py
+          python3 tools/lint/routine_semantics.py
+          python3 tools/lint/routines.py
+
+      - name: Check authored reference graphs and reference tests
+        run: |
+          python3 tools/authoring/g36_reference.py --check
+          python3 -m unittest discover -s tools/routines/tests -v
+          python3 -m unittest discover -s tools/book/tests -v
+
+      - name: Test external dataset harness
+        run: python3 -m unittest discover -s tools/dataset_harness/tests -v
+
+  verify:
+    name: Engine verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: cxf-library
+
+      # Plain anonymous git fetches rather than actions/checkout: checkout would
+      # send this instance's job token to github.com as credentials.
+      - name: Fetch pinned engine and Modelica Buildings sources from github.com
+        run: |
+          fetch_pinned() {
+            git init --quiet "$3"
+            git -C "$3" remote add origin "https://github.com/$1.git"
+            git -C "$3" fetch --quiet --depth 1 origin "$2"
+            git -C "$3" checkout --quiet --detach FETCH_HEAD
+          }
+          fetch_pinned jscott3201/open-control-engine "$(cat cxf-library/ENGINE_PIN)" open-control
+          fetch_pinned lbl-srg/modelica-buildings "$(cat cxf-library/routines/g36/SOURCE_RELEASE_PIN)" modelica-buildings-release
+          fetch_pinned lbl-srg/modelica-buildings "$(cat cxf-library/routines/g36/SOURCE_DEVELOPMENT_PIN)" modelica-buildings-development
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: cxf-library/tools/lint/requirements-routine-schemas.txt
+
+      - name: Install Python dependencies
+        working-directory: cxf-library
+        run: python3 -m pip install --requirement tools/lint/requirements-routine-schemas.txt PyYAML==6.0.3
+
+      - name: Verify G36 source inventory
+        working-directory: cxf-library
+        run: |
+          python3 tools/lint/g36_source.py --check \
+            --release-root ../modelica-buildings-release \
+            --development-root ../modelica-buildings-development
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            cxf-library/tools/routine-compiler
+            cxf-library/tools/verify
+
+      - name: Test G36 declaration package
+        working-directory: cxf-library
+        run: cargo test --locked --manifest-path tools/routine-compiler/Cargo.toml
+
+      - name: Test G36 TrimAndRespond compiler integration
+        working-directory: cxf-library
+        env:
+          OCL_G36_RELEASE_ROOT: ../../../modelica-buildings-release
+          OCL_G36_DEVELOPMENT_ROOT: ../../../modelica-buildings-development
+        run: cargo test --locked --manifest-path tools/routine-compiler/Cargo.toml --test g36_trim_and_respond -- --include-ignored
+
+      - name: Verify G36 release declarations
+        working-directory: cxf-library
+        run: cargo run --manifest-path tools/verify/Cargo.toml -- --g36-declarations ../modelica-buildings-release
+
+      - name: Verify routine library
+        working-directory: cxf-library
+        run: cargo run --manifest-path tools/verify/Cargo.toml -- --routines
+
+      - name: Replay G36 reference subsequences (not deployment qualification)
+        working-directory: cxf-library
+        run: |
+          python3 tools/routines/reference.py \
+            --verifier tools/verify/target/debug/cxf-verify \
+            --report target/g36-reference-results.json
+
+      - name: Lint and verify fault library
+        working-directory: cxf-library
+        run: |
+          cargo test --manifest-path tools/verify/Cargo.toml
+          cargo run --manifest-path tools/verify/Cargo.toml -- --all
+
+      - name: Replay original tiny FPU fixture through pinned engine
+        working-directory: cxf-library
+        run: |
+          python3 tools/dataset_harness/harness.py replay \
+            --adapter lbl-fpu \
+            --dataset tools/dataset_harness/tests/fixtures/lbl_fpu_tiny \
+            --rules FPB-0001,FPB-0002,FPB-0003,FPB-0004,FPB-0005,FPB-0006 \
+            --verifier tools/verify/target/debug/cxf-verify \
+            --output target/dataset-harness/ci-lbl-fpu-results.json
+          python3 -c 'import json; p="target/dataset-harness/ci-lbl-fpu-results.json"; d=json.load(open(p)); assert d["schema"] == "cxf-library/dataset-validation/v1"; assert d["summary"]["fault_free_alarm_samples"] == 0; assert d["summary"]["target_declared_rule_case_pairs"] == 1; assert d["summary"]["target_detected_rule_case_pairs"] == 1'
+
+  book:
+    name: Book build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install mdBook (pinned)
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -sSfL "https://github.com/rust-lang/mdBook/releases/download/${MDBOOK_VERSION}/mdbook-${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz --directory="$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Install generator dependencies
+        run: python3 -m pip install PyYAML==6.0.3
+
+      - name: Generate book source from repository
+        run: python3 tools/book/generate.py
+
+      - name: Build book
+        run: mdbook build book
+
+  ci-ok:
+    name: CI OK
+    if: always()
+    needs: [lint, verify, book]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every gating job to succeed or be skipped
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          needs = json.loads(os.environ["NEEDS"])
+          bad = {job: v["result"] for job, v in needs.items() if v["result"] not in ("success", "skipped")}
+          for job, v in needs.items():
+              print(f"{job}: {v['result']}")
+          if bad:
+              sys.exit(f"gating jobs did not succeed: {bad}")
+          PY

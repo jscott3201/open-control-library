@@ -1,14 +1,9 @@
-# Build the mdBook on every push/PR so the generated docs are continuously
-# validated. DEPLOYMENT to GitHub Pages is deliberately gated: it runs only on
-# manual dispatch or when the repository variable PUBLISH_BOOK is "true".
-# The repo is private today and a Pages site is public to anyone with the URL,
-# so nothing is published until that switch is flipped (see book/README.md).
+# Publish the mdBook to GitHub Pages. Manual dispatch only: continuous build
+# validation runs in the primary CI (.forgejo/workflows/ci.yml). This workflow
+# stays dormant while GitHub Actions is disabled on the public mirror.
 name: book
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 env:
@@ -25,17 +20,18 @@ concurrency:
 
 jobs:
   build:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install mdBook (pinned)
         run: |
           mkdir -p "$HOME/bin"
-          curl -sSL "https://github.com/rust-lang/mdBook/releases/download/${MDBOOK_VERSION}/mdbook-${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+          curl -sSfL "https://github.com/rust-lang/mdBook/releases/download/${MDBOOK_VERSION}/mdbook-${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
             | tar -xz --directory="$HOME/bin"
           echo "$HOME/bin" >> "$GITHUB_PATH"
       - name: Install generator dependencies
-        run: pip install pyyaml
+        run: python3 -m pip install PyYAML==6.0.3
       - name: Generate book source from repository
         run: python3 tools/book/generate.py
       - name: Build book
@@ -47,7 +43,6 @@ jobs:
 
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.PUBLISH_BOOK == 'true')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
