@@ -16,21 +16,16 @@ mdbook serve book --open       # or: mdbook build book
 
 ## CI and publishing posture
 
-`.github/workflows/book.yml` builds the book on every push and PR, so the
-generator and every generated page are continuously validated. **Deployment
-to GitHub Pages is gated** and does not happen automatically:
+The project's primary CI (`.forgejo/workflows/ci.yml`, job "Book build")
+generates and builds the book on every push to `main` and every pull request,
+so the generator and every generated page are continuously validated.
+**Deployment to GitHub Pages is manual**: `.github/workflows/book.yml` runs
+only on `workflow_dispatch` from `main`, on the GitHub mirror.
 
-- the deploy job runs only on manual `workflow_dispatch` from `main`, or when
-  the repository variable `PUBLISH_BOOK` is set to `true`;
-- this repo is currently **private**, and a GitHub Pages site is public to
-  anyone with the URL on non-Enterprise plans (Pages for private repos also
-  requires a Pro plan). Nothing should be published before the open-source
-  decision below is made.
-
-To publish when ready: enable Pages (Settings → Pages → Source: "GitHub
-Actions"), then either run the workflow manually or set the `PUBLISH_BOOK`
-repository variable to `true` for continuous deployment. The site lands at
-`https://jscott3201.github.io/cxf-library/` (matching `site-url` in
+To publish: enable GitHub Actions and Pages on the GitHub mirror (Settings →
+Pages → Source: "GitHub Actions"), run the `book` workflow from `main`, then
+disable Actions again if it is not otherwise needed. The site lands at
+`https://jscott3201.github.io/open-control-library/` (matching `site-url` in
 `book.toml`).
 
 ## Open-source readiness checklist
