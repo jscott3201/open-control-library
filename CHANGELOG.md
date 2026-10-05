@@ -10,17 +10,21 @@ A rule's identity across releases is its `verified.content_id`, the engine's
 exported `cxf:fnv1a128:` tag. A change to a rule's logic, thresholds or vectors
 is a rule change and is listed here by rule ID.
 
+Pull requests are cited with their forge: `(GitHub #N)` for this repository on
+GitHub, its primary forge, and `(Forgejo #N)` for the retired Forgejo history,
+whose numbers overlap GitHub's.
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-10-05
 
-First tagged release. The date is the preparation date; use the tag date if
+First tagged release (GitHub #102). The date is the preparation date; use the tag date if
 they differ.
 
 ### Engine pin
 
 - `ENGINE_PIN` is `41e997fd130c5e454446b40bcc3ba576429876b4`, open-control-engine
-  `development` commit 41e997f (open-control-engine#308). It replaces `e2ff2f8`, the tip of that
+  `development` commit 41e997f (open-control-engine Forgejo #308). It replaces `e2ff2f8`, the tip of that
   PR's branch, which no engine branch contains. The two commits have the same
   tree, so the verified engine source is unchanged. All 137 verified cards were
   re-verified and re-recorded (`verified.engine_rev: 41e997f`,
