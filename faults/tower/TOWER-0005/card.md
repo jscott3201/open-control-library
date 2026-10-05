@@ -67,9 +67,9 @@ validation:
     failures: 0
     notes: "7,610 loaded/settled evaluated ticks across 16 windows after an 1800 s lead; per-object outlet temperature is compared with the shared condenser-loop target, positive fan electricity is run proof, and Air Flow Rate Ratio x100 is an effective-airflow proxy rather than mechanical VFD feedback. January had zero evaluable loaded windows and is not counted"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:b4c4b0066b62393e887a37208afffd2e"
-  date: 2026-08-20
+  date: 2026-10-05
 ---
 
 ## Description

@@ -58,9 +58,9 @@ emissions:
   scope: "1|2"
   method: QUALITATIVE_EMISSIONS
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:0f6dd4de2df9cd68164f18828e25c4b9"
-  date: 2026-08-17
+  date: 2026-10-05
 ---
 
 ## Description

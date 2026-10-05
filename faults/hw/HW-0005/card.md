@@ -64,9 +64,9 @@ validation:
     failures: 0
     notes: "single RunPeriod with timeline/cadence validation; hw_pump_vfd_speed is a flow-fraction proxy (affinity-law approximation)"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:6d35dff9c968ba4897bf8966d5555c16"
-  date: 2026-08-17
+  date: 2026-10-05
 ---
 
 ## Description

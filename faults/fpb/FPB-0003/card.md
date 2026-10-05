@@ -52,7 +52,7 @@ energy_impact:
   climate_sensitivity: heating-water availability and simultaneous-cooling exposure
   runtime_estimation: "PROXY_ESTIMATION: fault hours times a validated coil airflow and air-side temperature rise can estimate leaked heat; do not substitute primary flow blindly for PFPU branch flow."
 emissions: {scope: "1/2", method: PROXY_EMISSIONS}
-verified: {engine_rev: e2ff2f8, content_id: "cxf:fnv1a128:4d6cece087e01b0d5e88794f4e8f2d30", date: 2026-08-20}
+verified: {engine_rev: 41e997f, content_id: "cxf:fnv1a128:4d6cece087e01b0d5e88794f4e8f2d30", date: 2026-10-05}
 ---
 
 ## Description

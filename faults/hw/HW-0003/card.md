@@ -56,9 +56,9 @@ validation:
     failures: 0
     notes: "single RunPeriod with timeline/cadence validation; supersedes earlier outputs whose 900 s source cadence had been mislabeled as 300 s"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:d6dd066552fff48e4a1b0ebab1cff9e6"
-  date: 2026-08-17
+  date: 2026-10-05
 ---
 
 ## Description

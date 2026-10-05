@@ -54,7 +54,7 @@ energy_impact:
   climate_sensitivity: both
   runtime_estimation: "QUALITATIVE_ONLY. Flow error-hours do not establish avoidable energy without pressure, load, thermal state, and a causal diagnosis."
 emissions: {scope: "1/2", method: QUALITATIVE_EMISSIONS}
-verified: {engine_rev: e2ff2f8, content_id: "cxf:fnv1a128:5c3e3827711a6dd02246c4398a19d26c", date: 2026-08-20}
+verified: {engine_rev: 41e997f, content_id: "cxf:fnv1a128:5c3e3827711a6dd02246c4398a19d26c", date: 2026-10-05}
 ---
 
 ## Description

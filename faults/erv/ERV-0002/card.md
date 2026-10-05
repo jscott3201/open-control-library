@@ -48,9 +48,9 @@ emissions:
   scope: "2"
   method: DIRECT_EMISSIONS
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:c975d4eb5acff4ebf97b661be18c5552"
-  date: 2026-08-17
+  date: 2026-10-05
 ---
 
 ## Description

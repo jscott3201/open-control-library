@@ -62,9 +62,9 @@ validation:
     failures: 0
     notes: "single RunPeriod and 10,080 chronology-validated samples; exact HeatSys1 boiler/pump membership was traversed from PlantLoop supply branches, positive boiler PLR was the disclosed firing proxy, positive same-loop pump mass flow was the circulation proxy, and common loop outlet temperature was compared with its own node setpoint. Ten setpoint-stable windows began after an 1800 s active/settling lead, totaling 3,897 evaluated ticks (64.95 h), with zero false positives. This ideal LeavingSetpointModulated model is healthy FPR evidence, not sensor-noise robustness or TPR."
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:d680c1142ee5617cde72f0dbcc028046"
-  date: 2026-08-20
+  date: 2026-10-05
 ---
 
 ## Description

@@ -60,9 +60,9 @@ validation:
     failures: 0
     notes: "single RunPeriod with timeline/cadence validation; strictly positive pump active power is the disclosed status proxy and the graph copy uses count_scale=60. Cycles completed inside 120 s remain unobservable"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:33ee395683a57a95cc32a753cedc0482"
-  date: 2026-08-20
+  date: 2026-10-05
 ---
 
 ## Description

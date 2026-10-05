@@ -52,7 +52,7 @@ energy_impact:
   climate_sensitivity: both
   runtime_estimation: "PROXY_ESTIMATION only: integrate positive expected-minus-actual fan-path airflow over evaluable fault hours. Do not convert to kWh without pressure/power and a causal model."
 emissions: {scope: "2", method: QUALITATIVE_EMISSIONS}
-verified: {engine_rev: e2ff2f8, content_id: "cxf:fnv1a128:6329b30093556d09175f8d877b734a2a", date: 2026-08-20}
+verified: {engine_rev: 41e997f, content_id: "cxf:fnv1a128:6329b30093556d09175f8d877b734a2a", date: 2026-10-05}
 ---
 
 ## Description

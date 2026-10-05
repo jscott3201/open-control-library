@@ -71,9 +71,9 @@ validation:
     failures: 0
     notes: "single RunPeriod with timeline/cadence validation; gated only where the boiler is active and hw_pump_vfd_speed remains a flow-fraction proxy. July had no evaluable boiler-active window and is not counted"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:022b2acd6415b5ce7aaba663fa8c3c49"
-  date: 2026-08-17
+  date: 2026-10-05
 ---
 
 ## Description
