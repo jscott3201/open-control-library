@@ -49,8 +49,8 @@ they differ.
 - CI on GitHub Actions (`.github/workflows/ci.yml`): lints, G36 source and
   declaration checks, routine replay, full rule verification against
   `ENGINE_PIN`, the dataset-harness fixture replay and the book build, summarized
-  by a single `CI OK` status. The same jobs remain in
-  `.forgejo/workflows/ci.yml`.
+  by a single `CI OK` status. The Forgejo workflow is removed; GitHub is the
+  primary forge.
 
 [Unreleased]: https://github.com/jscott3201/open-control-library/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/jscott3201/open-control-library/releases/tag/v0.1.0

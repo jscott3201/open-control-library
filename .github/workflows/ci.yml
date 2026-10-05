@@ -1,5 +1,4 @@
 # GitHub Actions CI: the Linux verification gates and the book build.
-# A port of .forgejo/workflows/ci.yml with the same jobs and commands.
 # "CI OK" is the single required status for branch protection; add new gating
 # jobs to its `needs` list.
 #

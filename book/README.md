@@ -16,8 +16,7 @@ mdbook serve book --open       # or: mdbook build book
 
 ## CI and publishing posture
 
-The project's primary CI (`.github/workflows/ci.yml`, job "Book build"; the
-same job also exists in `.forgejo/workflows/ci.yml`) generates and builds the
+The project's primary CI (`.github/workflows/ci.yml`, job "Book build") generates and builds the
 book on every push to `main` and every pull request, so the generator and every
 generated page are continuously validated.
 **Deployment to GitHub Pages is manual**: `.github/workflows/book.yml` runs
