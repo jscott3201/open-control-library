@@ -58,9 +58,9 @@ emissions:
   scope: "2"
   method: MEASURED_KWH_X_GRID_FACTOR
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:8d0553cbafa876eb8c3007a3178aa9a3"
-  date: 2026-08-20
+  date: 2026-10-05
 ---
 
 ## Description

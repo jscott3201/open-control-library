@@ -60,9 +60,9 @@ validation:
     failures: 1
     notes: "single RunPeriod with timeline/cadence validation; graph copies use count_scale=60. Both January machines and one July machine are clear; the other July power-based status series contains repeated sampled starts and correctly raises the raw cycling finding. Cycles completed inside 120 s remain unobservable and no OEM damage claim is inferred"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:1d73386b26deb3b315e35f31e43ffbff"
-  date: 2026-08-20
+  date: 2026-10-05
 ---
 
 ## Description

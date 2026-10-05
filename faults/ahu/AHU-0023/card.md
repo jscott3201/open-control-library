@@ -67,9 +67,9 @@ validation:
     scenarios: 48
     failures: 0
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:16397a4af5f0c3617c2f555a71820b83"
-  date: 2026-08-17
+  date: 2026-10-05
 ---
 
 ## Description

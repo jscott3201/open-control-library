@@ -1,6 +1,5 @@
 # Publish the mdBook to GitHub Pages. Manual dispatch only: continuous build
-# validation runs in the primary CI (.forgejo/workflows/ci.yml). This workflow
-# stays dormant while GitHub Actions is disabled on the public mirror.
+# validation runs in the primary CI (.github/workflows/ci.yml, job "Book build").
 name: book
 
 on:

@@ -65,9 +65,9 @@ emissions:
   scope: "2"
   method: PROXY_EMISSIONS
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:456b99147ff742525fe015d642f727d9"
-  date: 2026-08-18
+  date: 2026-10-05
 ---
 
 ## Description

@@ -59,9 +59,9 @@ validation:
     failures: 8
     notes: "winter-only: fleet publishes one constant cooling-oriented SAT setpoint, so heating-season tracking error is real per the rule but the setpoint no longer means the active mode's target; per-mode setpoint binding required at deployment"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:3aeb1453a7bb1cd2a02efab2f51a4722"
-  date: 2026-08-18
+  date: 2026-10-05
 ---
 
 ## Description

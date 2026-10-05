@@ -69,9 +69,9 @@ validation:
     failures: 0
     notes: "single RunPeriod with timeline/cadence validation; strictly positive per-machine electricity is the run-status proxy, PLR is per-machine load, and direct evaporator outlet temperature is compared with the shared target. Expectations begin 1800 s after the same machine runs above 20%; January had no evaluable window and is not counted"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:c2159704c8d4e994bfed070006ff5d4e"
-  date: 2026-08-20
+  date: 2026-10-05
 ---
 
 ## Description

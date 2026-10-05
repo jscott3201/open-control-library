@@ -69,9 +69,9 @@ validation:
     failures: 31
     notes: "same DCV excess-OA events as AHU-0006 (see its note); winter-dominant"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:a9c58cb4c0e46fe131faed48a0c8efc0"
-  date: 2026-08-17
+  date: 2026-10-05
 ---
 
 ## Description

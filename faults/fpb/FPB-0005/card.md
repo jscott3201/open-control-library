@@ -57,7 +57,7 @@ energy_impact:
   climate_sensitivity: neutral
   runtime_estimation: "QUALITATIVE_ONLY. Disagreement hours measure diagnostic exposure, not energy waste."
 emissions: {scope: "1/2", method: QUALITATIVE_EMISSIONS}
-verified: {engine_rev: e2ff2f8, content_id: "cxf:fnv1a128:dea3bb3d4caf1dc61fdbb108eaaa20e3", date: 2026-08-20}
+verified: {engine_rev: 41e997f, content_id: "cxf:fnv1a128:dea3bb3d4caf1dc61fdbb108eaaa20e3", date: 2026-10-05}
 ---
 
 ## Description

@@ -59,7 +59,7 @@ energy_impact:
   climate_sensitivity: heating season and hot-water availability
   runtime_estimation: "PROXY_ESTIMATION only: combine validated coil airflow with positive expected-minus-actual rise over evaluable fault hours. Do not call the gap avoidable energy until cause is isolated."
 emissions: {scope: "1/2", method: QUALITATIVE_EMISSIONS}
-verified: {engine_rev: e2ff2f8, content_id: "cxf:fnv1a128:573e7d690f4b0f4e699a19df07db6869", date: 2026-08-20}
+verified: {engine_rev: 41e997f, content_id: "cxf:fnv1a128:573e7d690f4b0f4e699a19df07db6869", date: 2026-10-05}
 ---
 
 ## Description

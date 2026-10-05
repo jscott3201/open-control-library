@@ -69,9 +69,9 @@ validation:
     failures: 0
     notes: "single RunPeriod with timeline/cadence validation; gated only where chiller load exceeded 40%. The January rerun had no evaluable loaded window and is not counted; supersedes earlier outputs whose 900 s source cadence had been mislabeled as 300 s"
 verified:
-  engine_rev: e2ff2f8
+  engine_rev: 41e997f
   content_id: "cxf:fnv1a128:f12c5169f0aa1755a37402fe2dbfe04a"
-  date: 2026-08-17
+  date: 2026-10-05
 ---
 
 ## Description

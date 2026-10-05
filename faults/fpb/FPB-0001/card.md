@@ -47,7 +47,7 @@ energy_impact:
   climate_sensitivity: both
   runtime_estimation: "For yUnexpectedRun only, measured fan kW times mismatch hours is a proxy. Do not assign avoided fan energy to yFailToStart."
 emissions: {scope: "2", method: PROXY_EMISSIONS}
-verified: {engine_rev: e2ff2f8, content_id: "cxf:fnv1a128:b7e84c2382c4a0204115bd7efa28032d", date: 2026-08-20}
+verified: {engine_rev: 41e997f, content_id: "cxf:fnv1a128:b7e84c2382c4a0204115bd7efa28032d", date: 2026-10-05}
 ---
 
 ## Description
