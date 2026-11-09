@@ -60,9 +60,9 @@ validation:
     failures: 0
     notes: "single RunPeriod with timeline/cadence validation; strictly positive pump active power is the disclosed status proxy and native mass-flow magnitude is converted at 997 kg/m3. Validates healthy yFault only, not signed direction or realistic reverse leakage"
 verified:
-  engine_rev: 41e997f
+  engine_rev: 07f5c2f
   content_id: "cxf:fnv1a128:d567fd02bea2ecc336bdf44f7680de4a"
-  date: 2026-10-05
+  date: 2026-11-09
 ---
 
 ## Description

@@ -828,7 +828,11 @@ playbooks by slug; playbooks list the fault IDs they apply to.
 
 `tools/verify` loads each fault's `rule.cxf.jsonld` into the open-control
 engine (path dependency, in-process), replays every `vectors.json` scenario
-tick by tick, and checks the assertion windows. A fault may be marked
+tick by tick, and checks the assertion windows against the boundary outputs
+each tick commits. Every tick is one complete input frame: each boundary input
+of the graph carries its latest staged value, and a scenario that leaves a
+boundary input without a value at any tick fails instead of running on an
+engine default. A fault may be marked
 `status: verified` only when all scenarios pass; record the engine rev,
 exported content ID, and date in `verified`. Re-verify (and re-record) after
 any engine pin bump or rule edit.

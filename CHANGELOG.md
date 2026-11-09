@@ -16,8 +16,32 @@ whose numbers overlap GitHub's.
 
 ## [Unreleased]
 
+### Engine pin
+
+- `ENGINE_PIN` is `07f5c2ff6cd76cce6e01400ddc84dfbae70084ad`, the commit the
+  open-control-engine tag `v0.4.0` points at (GitHub #103). It replaces
+  `41e997f`, which was 146 commits behind that tag. All 137 verified cards were
+  re-verified and re-recorded (`verified.engine_rev: 07f5c2f`,
+  `verified.date: 2026-11-09`). No rule, vector or content id changed: every
+  recorded `verified.content_id` equals the `cxf:fnv1a128:` tag the engine
+  exports at `v0.4.0`, all 1,760 fault scenarios and both routine reference
+  replays (21 authored scenarios and the generated matrix) pass, and across the
+  1,781 authored scenarios every boundary output at every tick has the value it
+  had at the old pin.
+
 ### Changed
 
+- `tools/verify` drives the engine through complete frames (GitHub #103). The
+  engine removed per-input staging and `tick` when complete frames became its
+  only execution surface, so the verifier did not compile against any engine
+  from `v0.2.0` on. Each tick now builds one frame in which every boundary
+  input carries its latest staged value, executes it with `prepare_frame` and
+  `execute_frame`, and reads expectations and traces from the boundary outputs
+  that frame committed. The tick schedule is unchanged. A scenario that leaves
+  a boundary input of its graph without a value at any tick now fails and names
+  the input; the old driver ran it on the engine's zero or `false` seed. No
+  scenario in the library relied on a seed. A `--trace-json` refusal names the
+  scenario it stopped on.
 - CI follows the engine repository's gate model (GitHub #104). `pr-gate.yml` runs
   on every pull request into the new `development` branch and ends in `CI OK`,
   which now requires success from every job and counts a skipped job as a

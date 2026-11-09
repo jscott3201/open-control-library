@@ -1,0 +1,118 @@
+{
+  "@context": {
+    "S231": "http://data.ashrae.org/S231P#",
+    "base": "urn:cxf-verify-fixture:both-above-threshold#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above",
+      "@type": "S231:Block",
+      "S231:label": "both_above",
+      "S231:containsBlock": [
+        { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr" },
+        { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr" },
+        { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both" }
+      ],
+      "S231:hasInput": [
+        { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.a" },
+        { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.b" }
+      ],
+      "S231:hasOutput": [
+        { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.y" }
+      ]
+    },
+
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr",
+      "@type": "urn:cxf-verify-fixture:both-above-threshold#Buildings.Controls.OBC.CDL.Reals.GreaterThreshold",
+      "S231:label": "aThr",
+      "S231:hasParameter": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr.t" },
+      "S231:hasInput": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr.u" },
+      "S231:hasOutput": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr.y" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr.t",
+      "S231:value": { "@value": "5.0", "@type": "http://www.w3.org/2001/XMLSchema#double" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr.u",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": { "@id": "S231:Real" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": { "@id": "S231:Boolean" },
+      "S231:isConnectedTo": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both.u1" }
+    },
+
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr",
+      "@type": "urn:cxf-verify-fixture:both-above-threshold#Buildings.Controls.OBC.CDL.Reals.GreaterThreshold",
+      "S231:label": "bThr",
+      "S231:hasParameter": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr.t" },
+      "S231:hasInput": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr.u" },
+      "S231:hasOutput": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr.y" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr.t",
+      "S231:value": { "@value": "5.0", "@type": "http://www.w3.org/2001/XMLSchema#double" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr.u",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": { "@id": "S231:Real" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": { "@id": "S231:Boolean" },
+      "S231:isConnectedTo": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both.u2" }
+    },
+
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both",
+      "@type": "urn:cxf-verify-fixture:both-above-threshold#Buildings.Controls.OBC.CDL.Logical.And",
+      "S231:label": "both",
+      "S231:hasInput": [
+        { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both.u1" },
+        { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both.u2" }
+      ],
+      "S231:hasOutput": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both.y" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both.u1",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": { "@id": "S231:Boolean" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both.u2",
+      "@type": "S231:BooleanInput",
+      "S231:isOfDataType": { "@id": "S231:Boolean" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.both.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": { "@id": "S231:Boolean" },
+      "S231:isConnectedTo": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.y" }
+    },
+
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.a",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": { "@id": "S231:Real" },
+      "S231:isConnectedTo": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.aThr.u" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.b",
+      "@type": "S231:RealInput",
+      "S231:isOfDataType": { "@id": "S231:Real" },
+      "S231:isConnectedTo": { "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.bThr.u" }
+    },
+    {
+      "@id": "urn:cxf-verify-fixture:both-above-threshold#both_above.y",
+      "@type": "S231:BooleanOutput",
+      "S231:isOfDataType": { "@id": "S231:Boolean" }
+    }
+  ]
+}
