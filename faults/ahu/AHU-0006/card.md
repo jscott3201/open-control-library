@@ -70,9 +70,9 @@ validation:
     failures: 31
     notes: "all failures are DCV-driven: Controller:MechanicalVentilation holds ventilation flow at VAV turndown, so OA fraction legitimately exceeds the fixed minimum (~86% at -7.8 degC OAT); rule needs a DCV-aware host precondition"
 verified:
-  engine_rev: 41e997f
+  engine_rev: 07f5c2f
   content_id: "cxf:fnv1a128:89896c77a2581ab67082184d505bc7db"
-  date: 2026-10-05
+  date: 2026-11-09
 ---
 
 ## Description

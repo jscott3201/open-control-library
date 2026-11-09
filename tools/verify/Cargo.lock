@@ -828,24 +828,22 @@ dependencies = [
 
 [[package]]
 name = "oce-api"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "oce-blocks",
  "oce-cxf",
  "oce-diag",
- "oce-flatten",
  "oce-graph",
  "oce-model",
  "oce-semantics",
- "oce-store",
- "oce-store-mem",
  "oce-validate",
+ "serde_json",
  "thiserror",
 ]
 
 [[package]]
 name = "oce-blocks"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "libm",
  "oce-model",
@@ -853,7 +851,7 @@ dependencies = [
 
 [[package]]
 name = "oce-cxf"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "oce-blocks",
  "oce-diag",
@@ -866,27 +864,20 @@ dependencies = [
 
 [[package]]
 name = "oce-diag"
-version = "0.1.0"
+version = "0.4.0"
 
 [[package]]
 name = "oce-expr"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
- "oce-model",
- "thiserror",
-]
-
-[[package]]
-name = "oce-flatten"
-version = "0.1.0"
-dependencies = [
+ "libm",
  "oce-model",
  "thiserror",
 ]
 
 [[package]]
 name = "oce-graph"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "oce-blocks",
  "oce-model",
@@ -895,11 +886,14 @@ dependencies = [
 
 [[package]]
 name = "oce-model"
-version = "0.1.0"
+version = "0.4.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "oce-semantics"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "oce-diag",
  "oce-model",
@@ -907,23 +901,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "oce-store"
-version = "0.1.0"
-dependencies = [
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "oce-store-mem"
-version = "0.1.0"
-dependencies = [
- "oce-store",
-]
-
-[[package]]
 name = "oce-validate"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "oce-blocks",
  "oce-diag",

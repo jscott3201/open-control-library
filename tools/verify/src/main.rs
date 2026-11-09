@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use oce_api::{Engine, PointDirection, PointValueType, Value};
+use oce_api::{CompletedFrame, Engine, Value, ValueType};
 use serde::{Deserialize, Serialize};
 
 mod lint;
@@ -56,11 +56,59 @@ struct Expect {
     tolerance: Option<f64>,
 }
 
-/// One staged input change: stage `value` on `path` before the first tick whose time >= `t`.
+/// One staged input change: `value` replaces what boundary input `input` holds, before the first
+/// tick whose time >= `t`.
 struct InputEvent {
     t: f64,
-    path: String,
+    /// Index into [`InputSchedule::held`].
+    input: usize,
     value: Value,
+}
+
+/// One scenario's inputs as a zero-order hold over the graph's boundary inputs.
+///
+/// The engine executes complete frames only: every boundary input is supplied on every tick, and
+/// nothing is carried over inside the engine. The hold therefore lives here. An input keeps the
+/// value of its latest event at or before the tick time; an input with no such event has no value,
+/// and the frame is refused rather than filled with a type seed.
+struct InputSchedule {
+    /// Every boundary input of the loaded graph, in the engine's canonical order, with the value
+    /// it holds after the events staged so far.
+    held: Vec<(String, Option<Value>)>,
+    /// Ascending by `t`; events at one `t` keep their order in the vectors, so the later one wins.
+    events: Vec<InputEvent>,
+    next_event: usize,
+}
+
+impl InputSchedule {
+    fn new(inputs: Vec<String>, mut events: Vec<InputEvent>) -> Self {
+        events.sort_by(|a, b| a.t.total_cmp(&b.t));
+        Self {
+            held: inputs.into_iter().map(|path| (path, None)).collect(),
+            events,
+            next_event: 0,
+        }
+    }
+
+    /// Stage every event whose `t` is at or before `t`, then return the complete frame for the
+    /// tick at `t`. Ticks are asked for in ascending time.
+    fn frame_at(&mut self, t: f64) -> Result<Vec<(&str, Value)>, String> {
+        while let Some(event) = self.events.get(self.next_event)
+            && event.t <= t
+        {
+            self.held[event.input].1 = Some(event.value.clone());
+            self.next_event += 1;
+        }
+        self.held
+            .iter()
+            .map(|(path, value)| match value {
+                Some(value) => Ok((path.as_str(), value.clone())),
+                None => Err(format!(
+                    "boundary input `{path}` has no value at t={t}s: the scenario must supply every boundary input from the first tick"
+                )),
+            })
+            .collect()
+    }
 }
 
 #[derive(Serialize)]
@@ -90,51 +138,46 @@ struct TraceSample {
     outputs: BTreeMap<String, serde_json::Value>,
 }
 
-/// Convert a JSON literal to an engine `Value`, coerced to the destination point's declared
-/// type: a JSON number stages as `Integer` on an `Int` point and as `Real` on a `Real` point,
-/// so vectors spell integer inputs as plain numbers with no format extension.
-fn json_to_value(v: &serde_json::Value, want: PointValueType) -> Result<Value, String> {
+/// Convert a JSON literal to an engine `Value` of the boundary input's exact declared type: a
+/// JSON number stages as `Integer` on an Integer input and as `Real` on a Real input, so vectors
+/// spell integer inputs as plain numbers with no format extension.
+fn json_to_value(v: &serde_json::Value, want: &ValueType) -> Result<Value, String> {
     match (v, want) {
-        (serde_json::Value::Bool(b), PointValueType::Bool) => Ok(Value::Boolean(*b)),
-        (serde_json::Value::Number(n), PointValueType::Real) => n
+        (serde_json::Value::Bool(b), ValueType::Boolean) => Ok(Value::Boolean(*b)),
+        (serde_json::Value::Number(n), ValueType::Real) => n
             .as_f64()
             .map(Value::Real)
             .ok_or_else(|| format!("non-finite number {n}")),
-        (serde_json::Value::Number(n), PointValueType::Int) => n
+        (serde_json::Value::Number(n), ValueType::Integer) => n
             .as_i64()
             .map(Value::Integer)
-            .ok_or_else(|| format!("number {n} is not an exact i64 for an Int point")),
-        (other, want) => Err(format!("value {other} cannot stage on a {want:?} point")),
+            .ok_or_else(|| format!("number {n} is not an exact i64 for an Integer input")),
+        (other, want) => Err(format!("value {other} cannot stage on a {want:?} input")),
     }
 }
 
-/// Resolve a canonical point name to the engine's full point path and declared value type.
-/// Boundary connectors are `<root IRI>.<name>` per SCHEMA.md, so match on a `.<name>` or
-/// `#<name>` suffix.
-fn resolve_point(
-    points: &[(String, PointDirection, PointValueType)],
-    name: &str,
-    want: PointDirection,
-) -> Result<(String, PointValueType), String> {
+/// Resolve a canonical point name to its index in `paths`, the engine's full paths of one kind of
+/// boundary connector (`kind` names it in errors). Boundary connectors are `<root IRI>.<name>` per
+/// SCHEMA.md, so match on a `.<name>` or `#<name>` suffix.
+fn resolve_point(paths: &[String], name: &str, kind: &str) -> Result<usize, String> {
     let dot = format!(".{name}");
     let hash = format!("#{name}");
-    let hits: Vec<(&String, PointValueType)> = points
+    let hits: Vec<usize> = paths
         .iter()
-        .filter(|(p, d, _)| *d == want && (p.ends_with(&dot) || p.ends_with(&hash)))
-        .map(|(p, _, vt)| (p, *vt))
+        .enumerate()
+        .filter(|(_, p)| p.ends_with(&dot) || p.ends_with(&hash))
+        .map(|(index, _)| index)
         .collect();
     match hits.as_slice() {
-        [(one, vt)] => Ok(((*one).clone(), *vt)),
+        [one] => Ok(*one),
         [] => Err(format!(
-            "no {want:?} point matching `{name}`; available: {}",
-            points
-                .iter()
-                .filter(|(_, d, _)| *d == want)
-                .map(|(p, _, _)| p.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
+            "no boundary {kind} matching `{name}`; available: {}",
+            paths.join(", ")
         )),
-        many => Err(format!("point `{name}` is ambiguous: {many:?}")),
+        many => Err(format!(
+            "boundary {kind} `{name}` is ambiguous: {:?}",
+            many.iter().map(|index| &paths[*index]).collect::<Vec<_>>()
+        )),
     }
 }
 
@@ -174,37 +217,75 @@ fn boundary_name(path: &str) -> String {
         .map_or_else(|| path.to_string(), |(_, name)| name.to_string())
 }
 
-fn prepare_scenario(
-    rule_bytes: &[u8],
-    scenario: &Scenario,
-) -> Result<
-    (
-        Engine,
-        Vec<(String, PointDirection, PointValueType)>,
-        Vec<InputEvent>,
-    ),
-    String,
-> {
-    let mut engine = Engine::in_memory();
-    let report = engine
+/// A freshly loaded engine with one scenario's inputs resolved against its boundary.
+struct Replay {
+    engine: Engine,
+    schedule: InputSchedule,
+    /// Full paths of the boundary outputs every completed frame commits.
+    outputs: Vec<String>,
+}
+
+impl Replay {
+    /// Execute the tick at `t` as one complete frame and return the engine's committed result.
+    fn advance(&mut self, t: f64) -> Result<CompletedFrame, String> {
+        let frame = self.schedule.frame_at(t)?;
+        let prepared = self
+            .engine
+            .prepare_frame(t, &frame)
+            .map_err(|e| format!("prepare_frame({t}) failed: {e}"))?;
+        self.engine
+            .execute_frame(prepared)
+            .map_err(|e| format!("execute_frame({t}) failed: {e}"))
+    }
+}
+
+/// The committed value of boundary output `path` in a completed frame.
+fn committed_output<'a>(frame: &'a CompletedFrame, path: &str) -> Result<&'a Value, String> {
+    frame
+        .outputs()
+        .iter()
+        .find(|(committed, _)| committed == path)
+        .map(|(_, value)| value)
+        .ok_or_else(|| {
+            format!(
+                "t={}s: the frame committed no boundary output `{path}`",
+                frame.time()
+            )
+        })
+}
+
+/// Tick times `k * step_s` for `k = 0 ..= floor(horizon_s / step_s)`.
+fn tick_times(clock: &Clock) -> impl Iterator<Item = f64> {
+    let n_ticks = (clock.horizon_s / clock.step_s).floor() as u64;
+    let step_s = clock.step_s;
+    (0..=n_ticks).map(move |k| k as f64 * step_s)
+}
+
+fn prepare_scenario(rule_bytes: &[u8], scenario: &Scenario) -> Result<Replay, String> {
+    let mut engine = Engine::new();
+    let (report, _) = engine
         .load_cxf(rule_bytes)
         .map_err(|e| format!("load_cxf failed: {e}"))?;
     for warning in &report.warnings {
         eprintln!("      load warning: {warning:?}");
     }
-    let mut points: Vec<(String, PointDirection, PointValueType)> = engine
-        .point_list(None)
-        .map_err(|e| format!("point_list failed: {e}"))?
+    let (inputs, input_types): (Vec<String>, Vec<ValueType>) = engine
+        .input_definitions()
+        .map_err(|e| format!("input_definitions failed: {e}"))?
         .into_iter()
-        .map(|p| (p.path, p.direction, p.value_type))
+        .map(|definition| (definition.path, definition.value_type))
+        .unzip();
+    let outputs = engine
+        .topology()
+        .boundary_outputs
+        .into_iter()
+        .map(|declared| declared.path)
         .collect();
-    for declared in engine.topology().boundary_outputs {
-        points.push((declared.path, PointDirection::Out, PointValueType::Real));
-    }
 
     let mut events: Vec<InputEvent> = Vec::new();
     for (name, spec) in &scenario.inputs {
-        let (path, value_type) = resolve_point(&points, name, PointDirection::In)?;
+        let input = resolve_point(&inputs, name, "input")?;
+        let value_type = &input_types[input];
         match spec {
             serde_json::Value::Array(steps) => {
                 for step in steps {
@@ -217,7 +298,7 @@ fn prepare_scenario(
                         .ok_or_else(|| format!("input `{name}`: step missing `value`"))?;
                     events.push(InputEvent {
                         t,
-                        path: path.clone(),
+                        input,
                         value: json_to_value(value, value_type)
                             .map_err(|e| format!("input `{name}`: {e}"))?,
                     });
@@ -225,51 +306,41 @@ fn prepare_scenario(
             }
             constant => events.push(InputEvent {
                 t: 0.0,
-                path: path.clone(),
+                input,
                 value: json_to_value(constant, value_type)
                     .map_err(|e| format!("input `{name}`: {e}"))?,
             }),
         }
     }
-    events.sort_by(|a, b| a.t.total_cmp(&b.t));
-    Ok((engine, points, events))
+    Ok(Replay {
+        engine,
+        schedule: InputSchedule::new(inputs, events),
+        outputs,
+    })
 }
 
 fn run_scenario(rule_bytes: &[u8], clock: &Clock, scenario: &Scenario) -> Result<(), String> {
-    let (mut engine, points, events) = prepare_scenario(rule_bytes, scenario)?;
+    let mut replay = prepare_scenario(rule_bytes, scenario)?;
 
     // Pre-resolve assertion outputs.
     let mut expects: Vec<(String, &Expect)> = Vec::new();
     for e in &scenario.expect {
-        expects.push((resolve_point(&points, &e.output, PointDirection::Out)?.0, e));
+        let output = resolve_point(&replay.outputs, &e.output, "output")?;
+        expects.push((replay.outputs[output].clone(), e));
     }
 
-    let n_ticks = (clock.horizon_s / clock.step_s).floor() as u64;
-    let mut next_event = 0usize;
-    for k in 0..=n_ticks {
-        let t = k as f64 * clock.step_s;
-        while next_event < events.len() && events[next_event].t <= t {
-            let ev = &events[next_event];
-            engine
-                .set_input(&ev.path, ev.value.clone())
-                .map_err(|e| format!("set_input({}) failed: {e}", ev.path))?;
-            next_event += 1;
-        }
-        engine
-            .tick(t)
-            .map_err(|e| format!("tick({t}) failed: {e}"))?;
+    for t in tick_times(clock) {
+        let frame = replay.advance(t)?;
         for (path, exp) in &expects {
             if t < exp.from_s || t > exp.to_s {
                 continue;
             }
-            let got = engine
-                .get_output(path)
-                .map_err(|e| format!("get_output({path}) failed: {e}"))?;
-            if !values_match(&got, &exp.equals, exp.tolerance.unwrap_or(1e-9)) {
+            let got = committed_output(&frame, path)?;
+            if !values_match(got, &exp.equals, exp.tolerance.unwrap_or(1e-9)) {
                 return Err(format!(
                     "t={t}s: `{}` = {} but expected {} (window {}..{}s)",
                     exp.output,
-                    fmt_value(&got),
+                    fmt_value(got),
                     exp.equals,
                     exp.from_s,
                     exp.to_s
@@ -285,37 +356,25 @@ fn trace_scenario(
     clock: &Clock,
     scenario: &Scenario,
 ) -> Result<TraceScenario, String> {
-    let (mut engine, _points, events) = prepare_scenario(rule_bytes, scenario)?;
+    let mut replay = prepare_scenario(rule_bytes, scenario)?;
     let mut output_names = BTreeSet::new();
     let mut outputs = Vec::new();
-    for declared in engine.topology().boundary_outputs {
-        let name = boundary_name(&declared.path);
+    for path in &replay.outputs {
+        let name = boundary_name(path);
         if !output_names.insert(name.clone()) {
             return Err(format!("duplicate boundary output name `{name}`"));
         }
-        outputs.push((name, declared.path));
+        outputs.push((name, path.clone()));
     }
-    let n_ticks = (clock.horizon_s / clock.step_s).floor() as u64;
-    let mut next_event = 0usize;
-    let mut samples = Vec::with_capacity(n_ticks as usize + 1);
-    for k in 0..=n_ticks {
-        let t = k as f64 * clock.step_s;
-        while next_event < events.len() && events[next_event].t <= t {
-            let ev = &events[next_event];
-            engine
-                .set_input(&ev.path, ev.value.clone())
-                .map_err(|e| format!("set_input({}) failed: {e}", ev.path))?;
-            next_event += 1;
-        }
-        engine
-            .tick(t)
-            .map_err(|e| format!("tick({t}) failed: {e}"))?;
+    let mut samples = Vec::new();
+    for t in tick_times(clock) {
+        let frame = replay.advance(t)?;
         let mut values = BTreeMap::new();
         for (name, path) in &outputs {
-            let value = engine
-                .get_output(path)
-                .map_err(|e| format!("get_output({path}) failed: {e}"))?;
-            values.insert(name.clone(), value_to_json(&value)?);
+            values.insert(
+                name.clone(),
+                value_to_json(committed_output(&frame, path)?)?,
+            );
         }
         samples.push(TraceSample { t, outputs: values });
     }
@@ -362,7 +421,7 @@ fn trace_vectors(fault_dir: &Path, vectors_path: &Path) -> Result<TraceDocument,
     ) {
         return Err("trace request exceeds the 1,000,000-total-sample safety limit".to_string());
     }
-    let mut identity_engine = Engine::in_memory();
+    let mut identity_engine = Engine::new();
     identity_engine
         .load_cxf(&rule_bytes)
         .map_err(|e| format!("load_cxf failed while identifying rule: {e}"))?;
@@ -431,7 +490,7 @@ fn verify_fault_dir(dir: &Path, replay_only: bool) -> Result<bool, String> {
     println!("{}", dir.display());
 
     // Diagnostic identity: load once and report the engine's exported content id.
-    let mut engine = Engine::in_memory();
+    let mut engine = Engine::new();
     let mut content_id = None;
     match engine.load_cxf(&rule_bytes) {
         Ok(_) => match engine.export_cxf() {
@@ -541,9 +600,139 @@ mod tests {
     use std::ffi::OsString;
     use std::path::Path;
 
+    use oce_api::Value;
+
     use super::{
-        Clock, Vectors, g36_declaration_root, validate_generated_registry, validate_trace_clock,
+        Clock, InputEvent, InputSchedule, Scenario, Vectors, g36_declaration_root, run_scenario,
+        tick_times, validate_generated_registry, validate_trace_clock,
     };
+
+    /// A schedule over inputs `a` and `b`, with `(t, input index, value)` events.
+    fn schedule(events: &[(f64, usize, f64)]) -> InputSchedule {
+        InputSchedule::new(
+            vec!["urn:g#root.a".to_string(), "urn:g#root.b".to_string()],
+            events
+                .iter()
+                .map(|&(t, input, value)| InputEvent {
+                    t,
+                    input,
+                    value: Value::Real(value),
+                })
+                .collect(),
+        )
+    }
+
+    /// The frame at `t` as `(path, real value)` pairs.
+    fn reals(schedule: &mut InputSchedule, t: f64) -> Vec<(String, f64)> {
+        schedule
+            .frame_at(t)
+            .expect("complete frame")
+            .into_iter()
+            .map(|(path, value)| match value {
+                Value::Real(real) => (path.to_string(), real),
+                other => panic!("unexpected value {other:?}"),
+            })
+            .collect()
+    }
+
+    fn frame(a: f64, b: f64) -> Vec<(String, f64)> {
+        vec![
+            ("urn:g#root.a".to_string(), a),
+            ("urn:g#root.b".to_string(), b),
+        ]
+    }
+
+    #[test]
+    fn every_frame_carries_every_input_at_its_latest_staged_value() {
+        let mut schedule = schedule(&[(0.0, 0, 1.0), (0.0, 1, 10.0), (120.0, 0, 2.0)]);
+        assert_eq!(reals(&mut schedule, 0.0), frame(1.0, 10.0));
+        assert_eq!(reals(&mut schedule, 60.0), frame(1.0, 10.0));
+        assert_eq!(reals(&mut schedule, 120.0), frame(2.0, 10.0));
+        assert_eq!(reals(&mut schedule, 180.0), frame(2.0, 10.0));
+    }
+
+    #[test]
+    fn event_between_ticks_is_staged_before_the_first_tick_at_or_after_it() {
+        let mut schedule = schedule(&[(0.0, 0, 1.0), (0.0, 1, 10.0), (61.0, 1, 20.0)]);
+        assert_eq!(reals(&mut schedule, 60.0), frame(1.0, 10.0));
+        assert_eq!(reals(&mut schedule, 120.0), frame(1.0, 20.0));
+    }
+
+    #[test]
+    fn later_of_two_events_at_one_time_wins_whatever_order_they_arrive_in() {
+        let mut schedule = schedule(&[
+            (60.0, 0, 3.0),
+            (0.0, 0, 1.0),
+            (0.0, 1, 10.0),
+            (60.0, 0, 4.0),
+        ]);
+        assert_eq!(reals(&mut schedule, 0.0), frame(1.0, 10.0));
+        assert_eq!(reals(&mut schedule, 60.0), frame(4.0, 10.0));
+    }
+
+    #[test]
+    fn input_with_no_value_yet_refuses_the_frame_and_names_the_input() {
+        let mut schedule = schedule(&[(0.0, 0, 1.0), (60.0, 1, 10.0)]);
+        let error = schedule.frame_at(0.0).expect_err("b has no value at t=0");
+        assert!(
+            error.contains("`urn:g#root.b` has no value at t=0s"),
+            "{error}"
+        );
+        assert_eq!(reals(&mut schedule, 60.0), frame(1.0, 10.0));
+    }
+
+    #[test]
+    fn tick_times_run_from_zero_through_the_last_whole_step() {
+        let times =
+            |step_s, horizon_s| tick_times(&Clock { step_s, horizon_s }).collect::<Vec<_>>();
+        assert_eq!(times(60.0, 180.0), [0.0, 60.0, 120.0, 180.0]);
+        assert_eq!(times(60.0, 150.0), [0.0, 60.0, 120.0]);
+        assert_eq!(times(1.0, 0.0), [0.0]);
+    }
+
+    /// AHU-0016 flags simultaneous heating and cooling. A scenario that supplies only one of its
+    /// two valve commands used to replay with the other held at the engine's zero seed, and so
+    /// passed a no-fault expectation. A complete frame cannot be built for it, so it is refused.
+    #[test]
+    fn scenario_that_omits_a_boundary_input_is_refused_not_replayed_on_a_seed() {
+        let rule = std::fs::read(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../faults/ahu/AHU-0016/rule.cxf.jsonld"
+        ))
+        .expect("read the AHU-0016 rule");
+        let clock = Clock {
+            step_s: 60.0,
+            horizon_s: 120.0,
+        };
+        let scenario = |inputs: serde_json::Value| -> Scenario {
+            serde_json::from_value(serde_json::json!({
+                "name": "probe",
+                "inputs": inputs,
+                "expect": [{"output": "yFault", "from_s": 0, "to_s": 120, "equals": false}]
+            }))
+            .expect("scenario deserializes")
+        };
+
+        let complete = scenario(serde_json::json!({"htg_vlv_cmd": 45.0, "clg_vlv_cmd": 0.0}));
+        run_scenario(&rule, &clock, &complete).expect("a complete scenario replays");
+
+        let partial = scenario(serde_json::json!({"htg_vlv_cmd": 45.0}));
+        let error = run_scenario(&rule, &clock, &partial).expect_err("incomplete frame");
+        assert!(
+            error.contains("clg_vlv_cmd` has no value at t=0s"),
+            "{error}"
+        );
+
+        let late = scenario(serde_json::json!({
+            "htg_vlv_cmd": 45.0,
+            "clg_vlv_cmd": [{"t": 60, "value": 0.0}]
+        }));
+        let error = run_scenario(&rule, &clock, &late).expect_err("no value at the first tick");
+        assert!(
+            error.contains("clg_vlv_cmd` has no value at t=0s"),
+            "{error}"
+        );
+    }
 
     #[test]
     fn trace_clock_rejects_unsafe_values() {
