@@ -61,20 +61,17 @@ checks alongside the existing schema, source, compiler, and fault gates.
 Use the repository's normal sibling `open-control` checkout and existing engine
 selection. Do not change that selection merely to get these tests green.
 
+The working commands are not restated here. `.agents/gate.sh` is their single
+source, and CI mirrors it:
+
 ```sh
-python3 -m pip install -r tools/lint/requirements-routine-schemas.txt PyYAML==6.0.3
-python3 tools/lint/routines.py
-python3 tools/authoring/g36_reference.py --check
-python3 -m unittest discover -s tools/routines/tests -v
-python3 -m unittest discover -s tools/book/tests -v
-cargo build --locked --manifest-path tools/verify/Cargo.toml
-python3 tools/routines/reference.py \
-  --verifier tools/verify/target/debug/cxf-verify \
-  --report target/g36-reference-results.json
-python3 tools/book/generate.py
+bash .github/scripts/pinned-sources.sh fetch   # the sibling checkouts, at their pins
+bash .agents/gate.sh                           # every lint, test, replay and the book build
 ```
 
-Without `--verifier`, the reference command reports `engine_replay: not-run`.
+The reference replay is the gate step "G36 reference subsequences replayed"
+(`tools/routines/reference.py` with `--verifier`). Without `--verifier`, that
+command reports `engine_replay: not-run`.
 Do not count static validation as replay. `g36_reference.py` is a small independent
 block-graph author, not a Modelica body compiler. The matrix oracle expresses the
 source behavior separately and calls the Rust engine for observed values.

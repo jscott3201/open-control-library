@@ -53,8 +53,9 @@ Here's a real one — AHU-0016, simultaneous heating and cooling:
   service → confirm, with typical costs and times.
 - **Fault clusters** (`clusters/`) — faults that share a root cause, with a
   trigger rule and a fix order.
-- **CI verification** (`tools/verify`) — every push replays every rule
-  against the pinned engine.
+- **CI verification** (`tools/verify`) — every pull request replays every rule
+  against the engine commit in `ENGINE_PIN`, and the same gate runs again after
+  each merge and once a day. One required status, `CI OK`, summarizes it.
 
 Every card cites its sources — standards, research reports, and this
 library's own simulation studies — and records each place the rule departs
@@ -90,19 +91,24 @@ disagree with it.
 # read the contracts
 $EDITOR SCHEMA.md
 
-# run one rule's vectors against the engine (sibling checkout of open-control required)
-cargo run --manifest-path tools/verify/Cargo.toml -- faults/ahu/AHU-0016
+# fetch the pinned engine and Modelica Buildings sources into sibling directories
+bash .github/scripts/pinned-sources.sh fetch
 
-# run everything
-cargo run --manifest-path tools/verify/Cargo.toml -- --all
+# run the whole gate: lints, tests, every rule replayed on the pinned engine, the book
+bash .agents/gate.sh
 
-# build the book locally
-python3 tools/book/generate.py && mdbook serve book --open
+# run one rule's vectors against the engine
+cargo run --locked --manifest-path tools/verify/Cargo.toml -- faults/ahu/AHU-0016
 ```
+
+`.agents/gate.sh` is the single source of the gate commands; CI mirrors it.
+The issue-to-merge process, the standing rules and what CI runs when are in
+`AGENTS.md`. To preview the book locally, see `book/README.md`.
 
 ## Layout
 
 - **`SCHEMA.md`** — the normative contracts. Read this first.
+- **`AGENTS.md`** — how work lands here: process, standing rules, CI and the gate.
 - **`faults/<equip>/<FAULT-ID>/`** — one folder per rule; `faults/registry.json` maps them all.
 - **`points/`** — canonical point dictionaries.
 - **`playbooks/`**, **`clusters/`** — remediation workflows and fault syndromes.

@@ -16,6 +16,37 @@ whose numbers overlap GitHub's.
 
 ## [Unreleased]
 
+### Changed
+
+- CI follows the engine repository's gate model (GitHub #104). `pr-gate.yml` runs
+  on every pull request into the new `development` branch and ends in `CI OK`,
+  which now requires success from every job and counts a skipped job as a
+  failure. `release-gate.yml` executes the gate script after every merge into
+  `development`, on release pull requests into `main`, on pushes to `main` and
+  daily. `book-pages.yml` builds the book on pull requests that touch its inputs
+  and publishes it from `main`. They replace `.github/workflows/ci.yml` and
+  `.github/workflows/book.yml`. No rule, vector, tool source or pin changed, and
+  the gate reports the same totals: 137 fault bundles, 1,760 scenarios and both
+  routine reference replays.
+- The verification commands run with `--locked`, on the Rust toolchain named in
+  the pinned engine checkout's `rust-toolchain.toml` instead of the floating
+  `stable`, so `ENGINE_PIN` selects the compiler as well as the engine.
+- mdBook is installed by `tools/book/install-mdbook.sh`, which verifies the
+  release archive and binary against pinned SHA-256 digests.
+
+### Added
+
+- `.agents/gate.sh`, the single local source of the gate commands
+  (`bash .agents/gate.sh` mirrors the per-PR gate, `bash .agents/gate.sh full`
+  is what the release gate executes), and `.github/scripts/pinned-sources.sh`,
+  which fetches and checks the three pinned sibling checkouts (GitHub #104).
+- A workflow-rules check with one refused fixture per rule, a tracked-file scan
+  for absolute home paths, UUID-shaped strings and secret shapes, and fixtures
+  for the `CI OK` result check, the pinned-sources check and the mdBook
+  installer (GitHub #104).
+- `AGENTS.md` (the issue-to-merge process, the standing rules, CI and the
+  gate), a pull-request template and a work-item issue template (GitHub #104).
+
 ## [0.1.0] - 2026-10-05
 
 First tagged release (GitHub #102). The date is the preparation date; use the tag date if

@@ -9,21 +9,31 @@ time (`book/src/` and `book/book/` are gitignored).
 ## Local preview
 
 ```sh
-brew install mdbook            # pinned in CI at v0.5.4; keep local in sync
-python3 tools/book/generate.py
-mdbook serve book --open       # or: mdbook build book
+bash tools/book/install-mdbook.sh           # the pinned release, into target/mdbook-bin
+python3 tools/book/generate.py              # needs PyYAML
+target/mdbook-bin/mdbook serve book --open
 ```
+
+`tools/book/install-mdbook.sh` installs the mdBook release named in
+`tools/book/mdbook-version` and verifies the archive and the binary against the
+SHA-256 digests in `tools/book/mdbook-checksums.txt`. CI and the gate script use
+the same installer, so a local preview is built by the binary CI uses.
 
 ## CI and publishing posture
 
-The project's primary CI (`.github/workflows/ci.yml`, job "Book build") generates and builds the
-book on every push to `main` and every pull request, so the generator and every
-generated page are continuously validated.
-**Deployment to GitHub Pages is manual**: `.github/workflows/book.yml` runs
-only on `workflow_dispatch` from `main`.
+The per-PR gate (`.github/workflows/pr-gate.yml`, job "Book build") generates and
+builds the book on every pull request into `development`, under the required
+`CI OK` status, and `bash .agents/gate.sh` runs the same steps locally. The
+build commands are not restated here; the gate script is their source.
 
-To publish: enable Pages on GitHub (Settings → Pages → Source: "GitHub
-Actions") and run the `book` workflow from `main`. The site lands at
+`.github/workflows/book-pages.yml` builds the book again on pull requests that
+touch its inputs, and **publishes it from `main`**: on every push to `main` (a
+release) and on a manual dispatch from `main`. A dispatch from any other branch
+builds and publishes nothing. The published book is therefore the released
+tree, not the `development` tip.
+
+Pages is configured to build from a workflow (Settings → Pages → Source:
+"GitHub Actions"). The site lands at
 `https://jscott3201.github.io/open-control-library/` (matching `site-url` in
 `book.toml`).
 
