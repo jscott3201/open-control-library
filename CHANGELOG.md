@@ -40,7 +40,8 @@ whose numbers overlap GitHub's.
   that frame committed. The tick schedule is unchanged. A scenario that leaves
   a boundary input of its graph without a value at any tick now fails and names
   the input; the old driver ran it on the engine's zero or `false` seed. No
-  scenario in the library relied on a seed.
+  scenario in the library relied on a seed. A `--trace-json` refusal names the
+  scenario it stopped on.
 - CI follows the engine repository's gate model (GitHub #104). `pr-gate.yml` runs
   on every pull request into the new `development` branch and ends in `CI OK`,
   which now requires success from every job and counts a skipped job as a

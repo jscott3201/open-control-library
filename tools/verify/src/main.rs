@@ -351,11 +351,27 @@ fn run_scenario(rule_bytes: &[u8], clock: &Clock, scenario: &Scenario) -> Result
     Ok(())
 }
 
+/// Replay one scenario and record every boundary output at every tick. A refusal names the
+/// scenario, since a trace request carries many and has no per-scenario report line.
 fn trace_scenario(
     rule_bytes: &[u8],
     clock: &Clock,
     scenario: &Scenario,
 ) -> Result<TraceScenario, String> {
+    match trace_samples(rule_bytes, clock, scenario) {
+        Ok(samples) => Ok(TraceScenario {
+            name: scenario.name.clone(),
+            samples,
+        }),
+        Err(error) => Err(format!("scenario `{}`: {error}", scenario.name)),
+    }
+}
+
+fn trace_samples(
+    rule_bytes: &[u8],
+    clock: &Clock,
+    scenario: &Scenario,
+) -> Result<Vec<TraceSample>, String> {
     let mut replay = prepare_scenario(rule_bytes, scenario)?;
     let mut output_names = BTreeSet::new();
     let mut outputs = Vec::new();
@@ -378,10 +394,7 @@ fn trace_scenario(
         }
         samples.push(TraceSample { t, outputs: values });
     }
-    Ok(TraceScenario {
-        name: scenario.name.clone(),
-        samples,
-    })
+    Ok(samples)
 }
 
 fn validate_trace_clock(clock: &Clock) -> Result<(), String> {
@@ -604,7 +617,8 @@ mod tests {
 
     use super::{
         Clock, InputEvent, InputSchedule, Scenario, Vectors, g36_declaration_root, run_scenario,
-        tick_times, validate_generated_registry, validate_trace_clock,
+        tick_times, trace_scenario, validate_generated_registry, validate_trace_clock,
+        values_match,
     };
 
     /// A schedule over inputs `a` and `b`, with `(t, input index, value)` events.
@@ -690,46 +704,206 @@ mod tests {
         assert_eq!(times(1.0, 0.0), [0.0]);
     }
 
-    /// AHU-0016 flags simultaneous heating and cooling. A scenario that supplies only one of its
-    /// two valve commands used to replay with the other held at the engine's zero seed, and so
-    /// passed a no-fault expectation. A complete frame cannot be built for it, so it is refused.
+    /// A test-local graph, so these tests do not move when a library rule does: Real inputs `a`
+    /// and `b`, Boolean output `y = (a > 5) and (b > 5)`, no state.
+    const BOTH_ABOVE: &[u8] = include_bytes!("../tests/fixtures/both_above_threshold.cxf.jsonld");
+
+    /// Ticks at 0, 60 and 120 s.
+    const THREE_TICKS: Clock = Clock {
+        step_s: 60.0,
+        horizon_s: 120.0,
+    };
+
+    fn scenario(inputs: serde_json::Value, expect: serde_json::Value) -> Scenario {
+        serde_json::from_value(serde_json::json!({
+            "name": "probe",
+            "inputs": inputs,
+            "expect": expect
+        }))
+        .expect("scenario deserializes")
+    }
+
+    /// `a` stays above its threshold; `b` is above it at the 60 s tick only, so `y` is false,
+    /// true, false over the three ticks.
+    fn pulse_at_the_middle_tick() -> serde_json::Value {
+        serde_json::json!({
+            "a": 45.0,
+            "b": [{"t": 0, "value": 0.0}, {"t": 60, "value": 45.0}, {"t": 120, "value": 0.0}]
+        })
+    }
+
+    /// A scenario that supplies only one of the two inputs used to replay with the other held at
+    /// the engine's zero seed, and so passed a `y` false expectation. A complete frame cannot be
+    /// built for it, so it is refused.
     #[test]
     fn scenario_that_omits_a_boundary_input_is_refused_not_replayed_on_a_seed() {
-        let rule = std::fs::read(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../faults/ahu/AHU-0016/rule.cxf.jsonld"
-        ))
-        .expect("read the AHU-0016 rule");
-        let clock = Clock {
-            step_s: 60.0,
-            horizon_s: 120.0,
-        };
-        let scenario = |inputs: serde_json::Value| -> Scenario {
-            serde_json::from_value(serde_json::json!({
-                "name": "probe",
-                "inputs": inputs,
-                "expect": [{"output": "yFault", "from_s": 0, "to_s": 120, "equals": false}]
-            }))
-            .expect("scenario deserializes")
-        };
+        let y_stays_false =
+            serde_json::json!([{"output": "y", "from_s": 0, "to_s": 120, "equals": false}]);
 
-        let complete = scenario(serde_json::json!({"htg_vlv_cmd": 45.0, "clg_vlv_cmd": 0.0}));
-        run_scenario(&rule, &clock, &complete).expect("a complete scenario replays");
+        let complete = scenario(
+            serde_json::json!({"a": 45.0, "b": 0.0}),
+            y_stays_false.clone(),
+        );
+        run_scenario(BOTH_ABOVE, &THREE_TICKS, &complete).expect("a complete scenario replays");
 
-        let partial = scenario(serde_json::json!({"htg_vlv_cmd": 45.0}));
-        let error = run_scenario(&rule, &clock, &partial).expect_err("incomplete frame");
+        let partial = scenario(serde_json::json!({"a": 45.0}), y_stays_false.clone());
+        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &partial).expect_err("incomplete frame");
         assert!(
-            error.contains("clg_vlv_cmd` has no value at t=0s"),
+            error.contains("both_above.b` has no value at t=0s"),
             "{error}"
         );
 
-        let late = scenario(serde_json::json!({
-            "htg_vlv_cmd": 45.0,
-            "clg_vlv_cmd": [{"t": 60, "value": 0.0}]
-        }));
-        let error = run_scenario(&rule, &clock, &late).expect_err("no value at the first tick");
+        let late = scenario(
+            serde_json::json!({"a": 45.0, "b": [{"t": 60, "value": 0.0}]}),
+            y_stays_false,
+        );
+        let error =
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &late).expect_err("no value at the first tick");
         assert!(
-            error.contains("clg_vlv_cmd` has no value at t=0s"),
+            error.contains("both_above.b` has no value at t=0s"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn expectation_with_the_opposite_value_fails_at_the_first_tick_of_its_window() {
+        let both_above = serde_json::json!({"a": 45.0, "b": 45.0});
+        let expect_y = |equals: bool| serde_json::json!([{"output": "y", "from_s": 0, "to_s": 120, "equals": equals}]);
+
+        let right = scenario(both_above.clone(), expect_y(true));
+        run_scenario(BOTH_ABOVE, &THREE_TICKS, &right).expect("y is true at every tick");
+
+        let flipped = scenario(both_above, expect_y(false));
+        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &flipped)
+            .expect_err("y is true, the expectation says false");
+        assert!(
+            error.contains("t=0s: `y` = true but expected false"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn expectation_wrong_at_one_tick_inside_its_window_fails_at_that_tick() {
+        let tick_by_tick = scenario(
+            pulse_at_the_middle_tick(),
+            serde_json::json!([
+                {"output": "y", "from_s": 0, "to_s": 0, "equals": false},
+                {"output": "y", "from_s": 60, "to_s": 60, "equals": true},
+                {"output": "y", "from_s": 120, "to_s": 120, "equals": false}
+            ]),
+        );
+        run_scenario(BOTH_ABOVE, &THREE_TICKS, &tick_by_tick)
+            .expect("y is false, true, false over the three ticks");
+
+        let one_wide_window = scenario(
+            pulse_at_the_middle_tick(),
+            serde_json::json!([{"output": "y", "from_s": 0, "to_s": 120, "equals": false}]),
+        );
+        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &one_wide_window)
+            .expect_err("y is true at the 60 s tick");
+        assert!(
+            error.contains("t=60s: `y` = true but expected false"),
+            "{error}"
+        );
+
+        let last_tick_wrong = scenario(
+            pulse_at_the_middle_tick(),
+            serde_json::json!([
+                {"output": "y", "from_s": 0, "to_s": 0, "equals": false},
+                {"output": "y", "from_s": 60, "to_s": 120, "equals": true}
+            ]),
+        );
+        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &last_tick_wrong)
+            .expect_err("y is false again at the 120 s tick");
+        assert!(
+            error.contains("t=120s: `y` = false but expected true"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn expectation_naming_no_boundary_output_fails_before_any_tick() {
+        let misspelt = scenario(
+            serde_json::json!({"a": 45.0, "b": 45.0}),
+            serde_json::json!([{"output": "yy", "from_s": 0, "to_s": 120, "equals": true}]),
+        );
+        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &misspelt)
+            .expect_err("the graph has no output `yy`");
+        assert!(
+            error.contains("no boundary output matching `yy`"),
+            "{error}"
+        );
+
+        // An internal connector is not a boundary output, whatever its value.
+        let internal = scenario(
+            serde_json::json!({"a": 45.0, "b": 45.0}),
+            serde_json::json!([{"output": "u1", "from_s": 0, "to_s": 120, "equals": true}]),
+        );
+        let error =
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &internal).expect_err("`both.u1` is internal");
+        assert!(
+            error.contains("no boundary output matching `u1`"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn expected_value_matches_only_its_own_type_and_reals_only_within_tolerance() {
+        use serde_json::json;
+        assert!(values_match(&Value::Boolean(true), &json!(true), 1e-9));
+        assert!(!values_match(&Value::Boolean(true), &json!(false), 1e-9));
+        assert!(values_match(&Value::Real(1.0), &json!(1.05), 0.1));
+        assert!(!values_match(&Value::Real(1.0), &json!(1.2), 0.1));
+        assert!(!values_match(&Value::Real(f64::NAN), &json!(1.0), 0.1));
+        assert!(values_match(&Value::Integer(3), &json!(3), 0.5));
+        assert!(!values_match(&Value::Integer(3), &json!(4), 10.0));
+        assert!(!values_match(&Value::Boolean(true), &json!(1), 1e-9));
+        assert!(!values_match(&Value::Real(1.0), &json!(true), 1e-9));
+    }
+
+    #[test]
+    fn trace_records_every_committed_boundary_output_at_every_tick() {
+        let traced = trace_scenario(
+            BOTH_ABOVE,
+            &THREE_TICKS,
+            &scenario(pulse_at_the_middle_tick(), serde_json::json!([])),
+        )
+        .expect("a complete scenario traces");
+        assert_eq!(traced.name, "probe");
+        let samples: Vec<(f64, Vec<(&str, &serde_json::Value)>)> = traced
+            .samples
+            .iter()
+            .map(|sample| {
+                let outputs = sample.outputs.iter().map(|(k, v)| (k.as_str(), v));
+                (sample.t, outputs.collect())
+            })
+            .collect();
+        let (no, yes) = (
+            serde_json::Value::Bool(false),
+            serde_json::Value::Bool(true),
+        );
+        assert_eq!(
+            samples,
+            [
+                (0.0, vec![("y", &no)]),
+                (60.0, vec![("y", &yes)]),
+                (120.0, vec![("y", &no)]),
+            ]
+        );
+    }
+
+    #[test]
+    fn trace_refusal_names_the_scenario_and_the_input() {
+        let Err(error) = trace_scenario(
+            BOTH_ABOVE,
+            &THREE_TICKS,
+            &scenario(serde_json::json!({"a": 45.0}), serde_json::json!([])),
+        ) else {
+            panic!("a scenario without `b` cannot be traced");
+        };
+        assert!(error.starts_with("scenario `probe`: "), "{error}");
+        assert!(
+            error.contains("both_above.b` has no value at t=0s"),
             "{error}"
         );
     }
