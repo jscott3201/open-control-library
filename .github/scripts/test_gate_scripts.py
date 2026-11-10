@@ -8,6 +8,7 @@ cases build throwaway local repositories.
 import hashlib
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -92,6 +93,51 @@ class TrackedFileScan(unittest.TestCase):
                 result = self.scan(f"value: {text}\n")
                 self.assertEqual(result.returncode, 1, result.stdout)
                 self.assertIn(label.strip(), result.stdout)
+
+    def test_a_search_that_cannot_run_is_not_a_clean_scan(self):
+        """Outside a repository `git grep` exits above 1 for every pattern."""
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run(
+                ["bash", str(SCRIPTS / "check-no-secrets.sh")], tmp,
+                GIT_CEILING_DIRECTORIES=str(Path(tmp).resolve().parent),
+                GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+            )
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        patterns = (SCRIPTS / "check-no-secrets.sh").read_text(encoding="utf-8").count("\nscan '")
+        self.assertGreater(patterns, 0)
+        self.assertEqual(result.stdout.count("FAIL: git grep exited"), patterns, result.stdout)
+        self.assertIn("The scan did not complete", result.stdout)
+        self.assertNotIn("OK: tracked-file scan clean", result.stdout)
+        self.assertIn("not a git repository", result.stderr)
+
+    def test_one_search_that_errors_fails_an_otherwise_clean_scan(self):
+        """A `git` that fails on one pattern and searches the rest: exit status 2 is not 1."""
+        with tempfile.TemporaryDirectory() as tmp:
+            stub = Path(tmp, "stub")
+            stub.mkdir()
+            (stub / "git").write_text(
+                '#!/usr/bin/env bash\n'
+                'for argument in "$@"; do\n'
+                '  case "$argument" in xox*) echo "stub git: cannot search" >&2; exit 2 ;; esac\n'
+                'done\n'
+                'exec "$REAL_GIT" "$@"\n',
+                encoding="utf-8",
+            )
+            (stub / "git").chmod(0o755)
+            tree = Path(tmp, "tree")
+            tree.mkdir()
+            git(tree, "init", "--quiet")
+            (tree / "note.md").write_text("nothing to find\n", encoding="utf-8")
+            git(tree, "add", "note.md")
+            result = run(
+                ["bash", str(SCRIPTS / "check-no-secrets.sh")], tree,
+                PATH=f"{stub}{os.pathsep}{os.environ['PATH']}", REAL_GIT=shutil.which("git"),
+            )
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("FAIL: git grep exited 2 on the Slack token pattern", result.stdout)
+        self.assertEqual(result.stdout.count("FAIL:"), 1, result.stdout)
+        self.assertIn("stub git: cannot search", result.stderr)
+        self.assertNotIn("OK: tracked-file scan clean", result.stdout)
 
 
 class PinnedSourcesCheck(unittest.TestCase):

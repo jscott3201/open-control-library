@@ -16,9 +16,16 @@
 # itself. A check that later outgrows the per-PR budget moves here by editing pr-gate.yml, this
 # file and .agents/gate.sh together.
 #
-# What each run checks out: a push run checks out the pushed commit, a release pull request its
-# merge ref, a dispatched run the ref it was dispatched on. A scheduled run starts from the default
-# branch's copy of this file and checks out `development`.
+# What each run checks out: `CHECKOUT_REF`, in both jobs. For every event but the schedule that is
+# `github.sha`, the one commit GitHub resolved when the event fired: the pushed commit, the tip of
+# the ref a run was dispatched on, the merge commit of a release pull request. A ref can move
+# while a run waits for a runner and a commit cannot, so the gate job and `CI OK` read the same
+# tree, and the result is recorded against the commit that was tested (for a release pull request,
+# on its head commit, for the merge of that head into `main` as it was when the event fired). A
+# scheduled run starts from the default branch's copy of this file and checks out `development` by
+# name, so that it follows that branch whatever the default branch is. It is the one run that can
+# test a newer commit than the one its result is recorded on, when a merge lands before its job
+# starts; that merge has a push run of its own.
 #
 # Concurrency: one group per event and ref, and only a superseded release pull-request run is
 # cancelled. For pushes that means a run in progress always finishes, one run waits behind it, and
@@ -26,8 +33,10 @@
 # waiting run tests a commit that contains every merge before it. A replaced waiting run shows as
 # cancelled on its merge commit; the run that replaced it is the evidence.
 #
-# The rules in pr-gate.yml's header apply here and are enforced by the same check, which also
-# requires the gate-script step and refuses any cache action in this file.
+# The rules in pr-gate.yml's header apply here and are enforced by the same check. It also holds
+# this file to exactly the triggers above, to `CHECKOUT_REF` as written below and its use by every
+# checkout, and to the pinned command lines (the gate-script step among them, with nothing after
+# it), and it refuses any cache action.
 
 name: release-gate
 
@@ -53,7 +62,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   CARGO_TERM_COLOR: always
-  CHECKOUT_REF: ${{ github.event_name == 'schedule' && 'development' || github.event_name == 'push' && github.sha || github.ref }}
+  CHECKOUT_REF: ${{ github.event_name == 'schedule' && 'development' || github.sha }}
 
 defaults:
   run:

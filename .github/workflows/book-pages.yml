@@ -13,8 +13,9 @@
 # mdBook is installed by tools/book/install-mdbook.sh, which verifies the release archive and the
 # extracted binary against the SHA-256 digests pinned in tools/book/mdbook-checksums.txt.
 #
-# The pinning, checkout-token, timeout and concurrency rules of pr-gate.yml apply here and are
-# enforced by .github/scripts/check_workflow_gates.py. Only the deploy job widens the token.
+# The pinning, checkout-token, timeout, runner, shell and concurrency rules of pr-gate.yml apply
+# here and are enforced by .github/scripts/check_workflow_gates.py. Only the deploy job widens the
+# token, to exactly the two permissions below, and the check holds it to the condition below.
 
 name: book-pages
 

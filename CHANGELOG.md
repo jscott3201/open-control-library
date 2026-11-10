@@ -57,6 +57,36 @@ whose numbers overlap GitHub's.
   `stable`, so `ENGINE_PIN` selects the compiler as well as the engine.
 - mdBook is installed by `tools/book/install-mdbook.sh`, which verifies the
   release archive and binary against pinned SHA-256 digests.
+- The workflow-rules check pins the gate commands (GitHub #112). Every job of
+  `pr-gate.yml` and `release-gate.yml` must run exactly the pinned command
+  lines, in order, so a command can no longer leave a gate workflow, lose a
+  flag or gain `|| true` while `CI OK` stays green. The lines are compared,
+  not what surrounds them: a workflow or job `env`, a `working-directory` or an
+  added action step can still change what a pinned line does. Of
+  `.agents/gate.sh` the check proves that its first command is
+  `set -euo pipefail` and no later line changes the shell options; that every
+  `step` and `engine_step` line holds one command and no control operator; that
+  each of those commands is a gate command `pr-gate.yml` runs or a call of a
+  pinned function; that each pinned function matches its pin line for line and
+  operator for operator; and that between them they run every gate command
+  `pr-gate.yml` runs. It does not prove that a step is reached or that its
+  result counts: the check reads the script and does not follow its control
+  flow, so a final `exit 0`, a redefined `step` or `record`, an `if false`
+  around a step, a `trap`, a heredoc that swallows a step, and a function
+  written in another form that shadows a command all pass. No gate command
+  changed.
+- The workflow-rules check also requires, in every workflow, a plain
+  SHA-pinned `uses:` line for every action, the hosted `ubuntu-latest` runner
+  with no container and no services, the `bash` default shell, a timeout of at
+  most 60 minutes, no job or step that is allowed to fail, no `${{ }}`
+  expression in a `run:` block, and the Pages deploy job's exact condition and
+  token; and in the gate workflows, the exact trigger sets and the exact inputs
+  of every checkout, so that every job of `pr-gate.yml` checks out the pull
+  request itself (GitHub #112).
+- `release-gate.yml` checks out `github.sha` for dispatched and pull-request
+  runs as it already did for pushes, instead of a ref that can move while the
+  run waits (GitHub #112). Both jobs read the commit resolved when the event
+  fired; the scheduled run still checks out `development` by name.
 
 ### Added
 
@@ -73,6 +103,10 @@ whose numbers overlap GitHub's.
 
 ### Fixed
 
+- The tracked-file scan fails when `git grep` cannot search (GitHub #112). An
+  exit status above 1 was read as "no match" and its message discarded, so a
+  scan that never ran reported the tree clean. It now exits 2, names the
+  pattern and leaves git's message on stderr.
 - `tools/verify` refuses vectors that compare nothing instead of reporting them
   as passed (GitHub #114). A scenario with an empty `expect` list, or with an
   expectation whose window holds no tick (it ends before it starts, ends before

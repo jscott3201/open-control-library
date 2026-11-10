@@ -7,15 +7,29 @@
 set -euo pipefail
 
 violations=0
+errors=0
 
+# `git grep` exits 0 on a match, 1 on no match, and above 1 when it could not search at all: not
+# a repository, a pattern it rejects, a pattern it read as an option. Only 1 is a clean result.
+# The pattern is passed with `-e` because one of them begins with a dash, and git's own message
+# goes to stderr unhidden.
 scan() {
   local pattern="$1"
   local label="$2"
-  if git grep -nE -e "$pattern" >/dev/null 2>&1; then
-    echo "FAIL: matched $label pattern in tracked files:"
-    git grep -nE -e "$pattern" || true
-    violations=$((violations + 1))
-  fi
+  local matches status=0
+  matches="$(git grep -nE -e "$pattern")" || status=$?
+  case "$status" in
+    0)
+      echo "FAIL: matched $label pattern in tracked files:"
+      printf '%s\n' "$matches"
+      violations=$((violations + 1))
+      ;;
+    1) ;;
+    *)
+      echo "FAIL: git grep exited $status on the $label pattern; nothing was scanned for it."
+      errors=$((errors + 1))
+      ;;
+  esac
 }
 
 scan 'AKIA[0-9A-Z]{16}' 'AWS access key id'
@@ -30,6 +44,15 @@ scan 'AIONFORGE_[A-Z][A-Z_]+' 'Aionforge environment variable name'
 if [ "$violations" -gt 0 ]; then
   echo
   echo "Remove the match from the working tree. A real secret is also rotated, and history rewritten."
+fi
+
+if [ "$errors" -gt 0 ]; then
+  echo
+  echo "The scan did not complete: $errors pattern(s) could not be searched. That is not clean."
+  exit 2
+fi
+
+if [ "$violations" -gt 0 ]; then
   exit 1
 fi
 
