@@ -15,7 +15,10 @@
 #
 # Commands are kept in CI's exact form, flags included: `--locked`, the pinned Python
 # requirements, the checksum-pinned mdBook. Change a command by changing pr-gate.yml first, then
-# this file. A failing gate is fixed at its cause, never by editing this file.
+# this file, then the pinned list in .github/scripts/check_workflow_gates.py: the workflow rules
+# step holds pr-gate.yml and the steps below to that one list and fails until all three agree. It
+# reads a step as `step '<label>' <command>` (or `engine_step`), so keep that form. A failing gate
+# is fixed at its cause, never by editing this file.
 #
 # What the script needs and does not install:
 #   * three sibling checkouts at their pins (the engine at ENGINE_PIN, Modelica Buildings at
@@ -241,11 +244,12 @@ NOT COVERED BY THIS SCRIPT — a green run here does not prove these pass:
   · the CI platform. CI runs on ubuntu-latest (x86_64) with Python 3.12. This
     run used $(uname -sm) with $(python3 --version 2>&1 || echo 'no python3'). The Rust toolchain is the
     same in both: the channel the pinned engine names.
-  · that these commands still match pr-gate.yml. Nothing verifies that
-    mechanically. CI executes this script only in release-gate.yml, after a
-    merge and daily: for a pull request that changes this script, a script
-    under .github/scripts or a workflow, this run is the only one before
-    the merge.
+  · this script as CI executes it. The workflow rules step checks that the
+    commands of these steps are the ones pr-gate.yml runs; it does not
+    follow the script's control flow. CI executes this script only in
+    release-gate.yml, after a merge and daily: for a pull request that
+    changes this script, a script under .github/scripts or a workflow,
+    this run is the only one before the merge.
   · the workflows themselves: triggers, concurrency, the required CI OK
     status and branch protection are GitHub's to evaluate. The workflow
     rules step reads the files; it does not run them.

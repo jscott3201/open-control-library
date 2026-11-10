@@ -68,26 +68,16 @@ python3 tools/lint/g36_source.py --check \
   --development-root /path/to/modelica-buildings-development
 ```
 
-Run the remaining catalog gates from the repository root:
+The remaining catalog gates are steps of the gate script: the schema, semantic
+and catalog lints, their unit tests, and the check of the empty deployment
+inventory. Run `bash .agents/gate.sh` from the repository root. The script
+([`.agents/gate.sh`](../.agents/gate.sh)) is the one place those commands are
+written, in the form CI runs them; it builds its own Python environment under
+`target/` and reads the pinned sibling checkouts that
+`bash .github/scripts/pinned-sources.sh fetch` creates.
 
-`requirements-routine-schemas.txt` pins `jsonschema==4.26.0`,
+`tools/lint/requirements-routine-schemas.txt` pins `jsonschema==4.26.0`,
 `pyshacl==0.31.0`, `referencing==0.37.0`, and `rdflib==7.1.4`.
-
-```sh
-python3 -m venv /tmp/cxf-routine-schemas
-/tmp/cxf-routine-schemas/bin/python -m pip install \
-  --requirement tools/lint/requirements-routine-schemas.txt PyYAML==6.0.3
-/tmp/cxf-routine-schemas/bin/python -m unittest \
-  tools.lint.tests.test_routine_schemas -v
-/tmp/cxf-routine-schemas/bin/python -m unittest \
-  tools.lint.tests.test_routine_semantics -v
-/tmp/cxf-routine-schemas/bin/python tools/lint/routine_schemas.py
-/tmp/cxf-routine-schemas/bin/python tools/lint/routine_semantics.py
-/tmp/cxf-routine-schemas/bin/python -m unittest discover \
-  -s tools/lint/tests -v
-/tmp/cxf-routine-schemas/bin/python tools/lint/routines.py
-cargo run --manifest-path tools/verify/Cargo.toml -- --routines
-```
 
 Canonical IDs name parameterized engineering classes, never fixed parameter
 variants or source locations. Local types and enums belong to one interface.

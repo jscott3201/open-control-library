@@ -67,8 +67,17 @@ nothing is red: a pull request with no checks looks like one with no failing che
 `book-pages` on the same head commit when it ran; it is path-filtered and is not under `CI OK`.
 Squash-merge into `development` once `CI OK` is green on a branch that is up to date with
 `development`. The merge starts `release-gate.yml` on the merge commit; a red run there is fixed
-forward or reverted before the next change merges. A release is a pull request from `development`
-into `main` through `release-gate.yml`, tagged `vX.Y.Z` on `main`; the book publishes from `main`.
+forward or reverted before the next change merges.
+
+**Release.** A release is a pull request from `development` into `main` through
+`release-gate.yml`, tagged `vX.Y.Z` on `main`; the book publishes from `main`. `main` requires
+`CI OK` on a branch that is up to date with it, and a merged release leaves a commit on `main` that
+`development` does not contain (a merge commit or a squash; rebase merging is off). So every
+release after the first starts by bringing `main` back into `development`: branch from
+`development`, `git merge origin/main`, open a pull request into `development`, and merge it with
+a **merge commit, not a squash**. A squash copies the content and leaves `main`'s commit outside
+`development`'s history, so the next release pull request would still be behind `main` and could
+not merge. It is the one pull request into `development` that is not squash-merged.
 
 ---
 
@@ -95,12 +104,19 @@ into `main` through `release-gate.yml`, tagged `vX.Y.Z` on `main`; the book publ
    engine selection to get a test green.
 7. **No absolute paths (a home directory) and no UUID-shaped strings** in any tracked file. The
    tracked-file scan rejects them, and history then has to be scrubbed.
-8. **Nothing depends on an archived or external prototype.** The only outside sources are the
-   pinned engine commit and the two pinned Modelica Buildings commits; no spec, harness, fixture or
-   data is imported from anywhere else.
-9. **Change a gate command in `.github/workflows/pr-gate.yml` first, then in `.agents/gate.sh`.**
-   Do not restate the command list in any other document: point at the script. A failing gate is
-   fixed at its cause, never by weakening the gate.
+8. **Nothing depends on an archived or external prototype, and nothing new is imported without an
+   issue.** What the gate fetches is pinned: the engine commit in `ENGINE_PIN`, the two Modelica
+   Buildings commits, and its tools (the Python requirements by version, the crates in each
+   `Cargo.lock`, mdBook by checksum, every action by commit). The dataset fixture the gate replays,
+   `tools/dataset_harness/tests/fixtures/lbl_fpu_tiny`, is synthetic data written here in the
+   shape of the public LBNL fan-powered-unit dataset; it holds no source records. A new outside
+   spec, harness, fixture or dataset comes in only under an issue that names its source, its
+   licence and how it is pinned.
+9. **Change a gate command in `.github/workflows/pr-gate.yml` first, then in `.agents/gate.sh`,
+   then in the pinned list in `.github/scripts/check_workflow_gates.py`.** The workflow-rules check
+   holds the workflow and the script to that list and fails until all three agree. Do not restate
+   the command list in any other document: point at the script. A failing gate is fixed at its
+   cause, never by weakening the gate.
 10. **Do not commit licensed source documents** (the ASHRAE guideline, upstream PDFs). Cite the
     clause.
 
@@ -125,9 +141,10 @@ a failure.
 
 **The local gate.** `bash .agents/gate.sh` mirrors `pr-gate.yml`. `bash .agents/gate.sh full` is
 what `release-gate.yml` executes: the same steps from a clean build and a fresh Python
-environment. The script is the single source of the gate commands. It runs every step even after
-a failure and ends with each step's result, the totals it observed and a list of what it cannot
-cover locally. A green local run is not a green CI.
+environment. The script is the single runnable source of the gate commands, and the workflow-rules
+check holds it and `pr-gate.yml` to one pinned list. It runs every step even after a failure and
+ends with each step's result, the totals it observed and a list of what it cannot cover locally. A
+green local run is not a green CI.
 
 **Where the engine comes from.** `ENGINE_PIN` names one engine commit.
 `bash .github/scripts/pinned-sources.sh fetch` fetches that exact commit into the sibling
@@ -140,13 +157,22 @@ in that checkout's `rust-toolchain.toml`, in CI and in the gate script, so the p
 compiler too. Nothing is downloaded as a built artifact: the engine publishes no release objects
 and nothing to crates.io.
 
-**Workflow rules.** `.github/scripts/check_workflow_gates.py` fails the gate when a workflow
-breaks one of these, and `test_check_workflow_gates.py` holds a refused fixture for each: every
-action pinned to a full commit SHA with its tag in a trailing comment; every checkout without the
-job token; a timeout on every job; no step allowed to fail without failing its job; no job or step
-condition in a gate workflow except `CI OK`'s `always()`; no `github.event` value interpolated into
-a `run:` block; a read-only token; no `push` trigger on the per-PR gate; every job listed in its
-`CI OK`; no cache in the release gate; exactly these three workflow files.
+**Workflow rules.** `.github/scripts/check_workflow_gates.py` fails the gate when a workflow or
+the gate script breaks one of these, and `test_check_workflow_gates.py` holds at least one refused
+fixture for each. In every workflow: each action pinned to a full commit SHA on a plain `uses:`
+line with its tag in a trailing comment; each checkout without the job token; a timeout of at most
+an hour on every job; the hosted `ubuntu-latest` runner; the `bash` default shell for every `run:`
+block; no step allowed to fail without failing its job; no `${{ }}` expression inside a `run:`
+block; a read-only token, widened only by the Pages deploy job, which runs only for a push or a
+dispatch on `main`; exactly these three workflow files. In the gate workflows: exactly the
+triggers in the table above; no job or step condition except `CI OK`'s `always()`; every job
+listed in its `CI OK`, which runs exactly the result check; in the release gate, no cache and every
+checkout at the one commit resolved for the run (`github.sha`; `development` for the scheduled
+run). **The gate commands are pinned** in the check: each job of `pr-gate.yml` and
+`release-gate.yml` must run exactly the pinned command lines, in order, and the steps of
+`.agents/gate.sh` must run exactly the same gate commands, so a command cannot leave the workflow
+or the script, lose a flag or gain `|| true` under a green `CI OK`. The check reads the files; it
+does not follow the script's control flow.
 
 ---
 

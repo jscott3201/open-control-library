@@ -57,6 +57,19 @@ whose numbers overlap GitHub's.
   `stable`, so `ENGINE_PIN` selects the compiler as well as the engine.
 - mdBook is installed by `tools/book/install-mdbook.sh`, which verifies the
   release archive and binary against pinned SHA-256 digests.
+- The workflow-rules check pins the gate commands (GitHub #112). Every job of
+  `pr-gate.yml` and `release-gate.yml` must run exactly the pinned command
+  lines, in order, and the steps of `.agents/gate.sh` must run the same gate
+  commands, so a command can no longer leave the workflow or the script, lose a
+  flag or gain `|| true` while `CI OK` stays green. The check also requires the
+  exact trigger sets of both gate workflows, a plain SHA-pinned `uses:` line for
+  every action, the hosted `ubuntu-latest` runner, the `bash` default shell, a
+  timeout of at most 60 minutes, no `${{ }}` expression in a `run:` block, and
+  the Pages deploy job's exact condition and token. No gate command changed.
+- `release-gate.yml` checks out `github.sha` for dispatched and pull-request
+  runs as it already did for pushes, instead of a ref that can move while the
+  run waits (GitHub #112). Both jobs read the commit resolved when the event
+  fired; the scheduled run still checks out `development` by name.
 
 ### Added
 
@@ -73,6 +86,10 @@ whose numbers overlap GitHub's.
 
 ### Fixed
 
+- The tracked-file scan fails when `git grep` cannot search (GitHub #112). An
+  exit status above 1 was read as "no match" and its message discarded, so a
+  scan that never ran reported the tree clean. It now exits 2, names the
+  pattern and leaves git's message on stderr.
 - `tools/verify` refuses vectors that compare nothing instead of reporting them
   as passed (GitHub #114). A scenario with an empty `expect` list, or with an
   expectation whose window holds no tick (it ends before it starts, ends before
