@@ -26,7 +26,8 @@ Read in this order, every session, before the first change:
 
 1. This file.
 2. [`SCHEMA.md`](SCHEMA.md): the bundle contract and every other file format in the tree. Each
-   rule in it names the check that enforces it, or says `not yet checked (L<n>)`.
+   rule in it names the check that enforces it, or says `not yet checked (L<n>)`, or says `reader`
+   where only a reviewer can enforce it.
 3. [`Handoff.md`](Handoff.md), "Boundaries to preserve": what the routine bundles are and are not.
 4. The GitHub issue you are assigned, then its milestone's tracking issue (the issue labelled
    `tracking` lists the order and the hard dependencies).
@@ -100,10 +101,10 @@ is the one pull request into `development` that is not squash-merged.
 4. **Formats and schemas stay at revision 1 until 1.0.0 and change in place.** No backwards
    compatibility: no new revision number, no reader for an older shape, no migration table. A
    change to a format edits `SCHEMA.md` and converts the corpus in the same pull request. The
-   bundle contract (issue #106) is the one stated exception: `SCHEMA.md` was rewritten first, and
-   the corpus is converted to it once, in L2 and L3 (#107, #108). Until L3 merges, the data files
-   and the lints still carry the identifiers the tree had before; `SCHEMA.md`, "Identifiers", says
-   what to write in the meantime.
+   exception is pull request #121 alone and ends when L3 (#108) merges. An amendment to
+   `SCHEMA.md` before then converts, in the same pull request, every bundle already converted.
+   Until L3 merges, the data files and the lints still carry the identifiers the tree had before;
+   `SCHEMA.md`, "Identifiers", says what to write in the meantime.
 5. **No engine-shaped code.** Nothing that loads, replays, compiles or authors control graphs is
    added here. What the library needs from the engine is asked for in an engine issue and consumed
    at `ENGINE_PIN`.

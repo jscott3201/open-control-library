@@ -4,10 +4,22 @@ This file is the normative contract for every file format in this repository. A 
 about a file is a requirement on that file. Where a tool enforces a requirement, the tool is named
 beside it; where no tool does yet, that is said beside it.
 
+**Where the tree stands (L4 removes this paragraph).** This contract was written before the corpus
+was converted to it, and it describes a bundle as converted. Today a fault folder holds `card.md`,
+`rule.cxf.jsonld`, `vectors.json` and `diagram.svg`; a routine folder holds eleven files, among
+them `reference.json` and `reference.cxf.jsonld`; no `graph.oce`, mutant or receipt exists; the
+gate replays the corpus with the inherited `tools/verify` and `tools/routines/reference.py`; and
+`ENGINE_PIN` names an engine that has no `oce` binary. A rule binds today when its check names a
+tool, and a `reader` rule binds wherever the files it speaks of exist. A rule marked `not yet
+checked (L<n>)` binds from the pull request of that step, which converts the files and adds the
+check together: L2 (#107) for five bundles, L3 (#108) for the rest, L4 (#109) for the library's own
+lints. [What the inherited tools read until L4](#what-the-inherited-tools-read-until-l4) states the
+formats the tree holds until then.
+
 The library holds **bundles**. A bundle is one directory that holds one piece of control logic, the
 scenarios that pin its behaviour, deliberately broken copies of the logic that those scenarios must
 reject, the engine's record of running all of it, and a card that tells a person what the logic is
-for. Three things are true of every bundle:
+for. Three things are true of every converted bundle:
 
 - The source of truth for its logic is the **authoring text form**, `graph.oce`, written by a
   person or an agent.
@@ -27,14 +39,15 @@ are not part of this contract; L4 removes them.
 
 **Revision rule.** Every format and schema this repository defines is at revision 1 and stays at
 revision 1 until release 1.0.0. A format changes in place: the pull request that changes it edits
-this file and rewrites every file of that format in the same change. Nothing reads an earlier
-shape of any format.
+this file and rewrites every file of that format in the same change. No reader of an earlier
+shape is added. The one that exists, `tools/point_resolution.py`, which reads both dictionary
+shapes the tree has today, loses the second in L3.
 
 **The check column.** Rules are numbered and each carries its check:
 
 | Check entry | Meaning |
 |---|---|
-| a script or tool name | A step of `.agents/gate.sh` runs it on every pull request, and it enforces the rule today. `tools/verify` lint is the card and bundle lint in `tools/verify/src/lint.rs`; it reads the file names the tree has now, L2 and L3 move it onto the file names of this contract, and L4 ports it to `tools/lint/`. |
+| a script or tool name | A step of `.agents/gate.sh` runs it on every pull request, and it enforces the rule today, on the files the tree has today. `tools/verify` lint is the card and bundle lint in `tools/verify/src/lint.rs`; it reads `rule.cxf.jsonld` and the present card fields, and covers fault bundles only. `tools/routines/reference.py` is its counterpart for routine bundles; it requires `reference.json`, `reference.cxf.jsonld`, the card's `clauses` and a graph root under `urn:cxf-library:`. `tools/lint/routines.py` and `tools/lint/routine_schemas.py` both call it. L2 and L3 move these checks onto the files of this contract, and L4 ports the first to `tools/lint/`. |
 | `not yet checked (L<n>)` | No tool enforces the rule yet. The library-track step named adds the check, and what follows the colon is the check it adds. L2 is issue #107 (five bundles), L3 is #108 (every bundle), L4 is #109 (the library's own lints), L5 is #110 (the index). Until that step merges, the rule is also not yet true of every file in the tree: the corpus is brought to this contract once, in L2 and L3. |
 | `reader` | No tool can enforce the rule. A reviewer does. |
 
@@ -138,7 +151,7 @@ key with no fault directory.
 
 ### Files
 
-A bundle directory holds these files and no others.
+A converted bundle directory holds these files and no others.
 
 ```
 <bundle>/
@@ -156,7 +169,7 @@ A bundle directory holds these files and no others.
 |---|---|---|---|---|
 | `card.md` | Authored. Its `verified` block is generated. | A person writes it. The `verified` block is copied field for field from `receipt.json`. | The card rules (C). The stamp: V-5 and V-6. | What the logic is for, what it needs from a host, and which engine run stands behind it. Nothing in the card reaches the engine. |
 | `graph.oce` | Authored. | Written in the engine's text form. `oce fmt --write graph.oce` makes it canonical. | `oce fmt --check` and `oce validate` (G-1, G-2). | It is the logic. Every other form of the logic in the bundle is derived from it. |
-| `graph.cxf.jsonld` | Generated. | `oce emit graph.oce --namespace urn:open-control-library:bundle: -o graph.cxf.jsonld` | Byte equality with a fresh emit (G-3). `oce id` of it equals the stamp (V-6). | It is the document a host loads, and it loads with no warning on the pinned engine. Its bytes are reproducible at `ENGINE_PIN`. They change when the pin moves to another engine version, because the document names the tool version that wrote it; the content id does not change for that reason. |
+| `graph.cxf.jsonld` | Generated. | `oce emit graph.oce --namespace urn:open-control-library:bundle: -o graph.cxf.jsonld` | Byte equality with a fresh emit (G-3). `oce id` of it equals the stamp (V-6). | It is the document a host loads, and it loads with no warning on the pinned engine. Its bytes are reproducible at `ENGINE_PIN`. They change when the pin moves to another engine version, because the document names the tool version that wrote it (not built: engine #527); the content id does not change for that reason. |
 | `vectors.json` | Authored. | Written in `oce/vectors/v1`. | `oce verify` reads it strictly and refuses anything the format does not define (T rules). | The scenarios, and the outputs the logic must produce in them, compared exactly. |
 | `mutants/<name>.oce` | Authored. | Written as `graph.oce` is, with one mistake put in on purpose. | `oce fmt --check`, `oce validate` (M-2). | What mistake the vectors are known to catch. |
 | `mutants/<name>.cxf.jsonld` | Generated. | `oce emit mutants/<name>.oce --namespace urn:open-control-library:bundle: -o mutants/<name>.cxf.jsonld` | Byte equality with a fresh emit (M-3). `oce verify` validates it as a mutant (M-5). | It is the document the engine ran as the mutant; `receipt.json` holds its digest. |
@@ -165,8 +178,8 @@ A bundle directory holds these files and no others.
 
 A bundle of kind `routine` also holds the files under [Routine bundles](#routine-bundles).
 
-`.agents/gate.sh` is the single runnable source of how the gate invokes these commands. The table
-states what each file is made from, which is the contract; the script states how the gate runs it.
+The table states what each file is made from, which is the contract. `.agents/gate.sh` holds none
+of these commands today; from L2 it is the single runnable source of how the gate invokes them.
 
 ### Kinds
 
@@ -187,6 +200,7 @@ keeps only a minimal conformance corpus.
 | B-4 | No bundle holds a `reference/` directory. The name is reserved for file-backed reference series, which the vector format does not have. | not yet checked (L2): B-1 refuses it |
 | B-5 | Every fault bundle has exactly one row in `faults/registry.json`, and every routine bundle exactly one row in `routines/registry.json`; neither registry has a row without a bundle. | `tools/lint/registry.py` (faults); `tools/routines/reference.py` and `tools/lint/routine_schemas.py` (routines) |
 | B-6 | No bundle of kind `sequence` exists. | not yet checked (L2): B-3 admits two kinds |
+| B-7 | A `draft` bundle holds `card.md`, `graph.oce`, `graph.cxf.jsonld`, `vectors.json` and `diagram.svg`. It may hold mutants, listed as T-5 requires, that are not all caught yet. It holds no `receipt.json`. V-1, V-2 and the T rules apply to it, and `oce verify vectors.json --subject graph.cxf.jsonld`, without `--require-mutants-caught`, exits 0 on it: a draft's scenarios pass on its own graph. | not yet checked (L2): the bundle lint for the files; X-1 for the commands |
 
 ## Identity
 
@@ -270,7 +284,7 @@ the tool built from it (V-4).
 
 | # | Rule | Check |
 |---|---|---|
-| I-1 | A fault id matches `{FAMILY}-{NNNN}`, equals its folder name and its card's `id`, and the numbers of a family are contiguous from `0001`. | `tools/lint/registry.py` |
+| I-1 | A fault id matches `{FAMILY}-{NNNN}`, equals its folder name and its card's `id`, its family is the directory the folder is in, and the numbers of a family are contiguous from `0001`. | `tools/lint/registry.py` checks the format, the folder name, the card's `id`, the contiguous numbers, and that the registry row's `family` is the id's prefix in lower case. That the folder sits in that family's directory is not yet checked (L3): `tools/lint/registry.py` |
 | I-2 | A routine id matches the routine grammar of [Kinds](#kinds), is unique, and equals its card's `id`. | `tools/routines/reference.py` |
 | I-3 | A bundle id is never reused, and a bundle is not renamed without an issue that says so. | reader |
 | I-4 | The `sequence` statement of `graph.oce` names the bundle id in lower case with hyphens as underscores. | not yet checked (L2): the bundle lint reads the root `@id` of `graph.cxf.jsonld`, which is the namespace followed by that name |
@@ -304,8 +318,8 @@ bundle's own files. The claim is exactly this:
 - **It is not a conformance claim to ASHRAE Guideline 36.** A card's `g36` and `standard` fields
   cite the clause an author read. No tool compares the graph with the guideline.
 - **It does not say the logic is right.** It says the logic does what its vectors say, and that
-  the vectors are strong enough to reject the mutants listed. A mistake that no scenario and no
-  mutant exercises is not found.
+  the vectors reject the mutants listed. Whether those are the mistakes worth listing is a
+  reviewer's judgement, and a mistake that no scenario and no mutant exercises is not found.
 - **It does not cover the host.** Data quality, operating-state gating, suppression, unit
   conversion and point binding are the host's, declared on the card and enforced by no tool here.
 - **It holds for one engine version.** The stamp names it. Another version is another claim, made
@@ -319,7 +333,7 @@ bundle's own files. The claim is exactly this:
 |---|---|---|
 | V-1 | `oce fmt --check graph.oce` exits 0, and so does `oce validate graph.oce`. | not yet checked (L2): the two commands (G-1, G-2) |
 | V-2 | The bytes `oce emit graph.oce --namespace urn:open-control-library:bundle:` writes equal `graph.cxf.jsonld`. | not yet checked (L2): the emit and a byte comparison (G-3) |
-| V-3 | `oce verify vectors.json --subject graph.cxf.jsonld --require-mutants-caught` exits 0. Exit 1 means a scenario failed, the set compared nothing, or a mutant survived. Exit 2 means there is no verdict: the engine refused a file, a name or a mutant, and wrote no receipt. | not yet checked (L2): the command |
+| V-3 | For a status of `verified` or `reference`: `oce verify vectors.json --subject graph.cxf.jsonld --require-mutants-caught` exits 0. Exit 1 means a scenario failed, the set compared nothing, or a mutant survived. Exit 2 means there is no verdict: the engine refused a file, a name or a mutant, and wrote no receipt. | not yet checked (L2): the command |
 | V-4 | The receipt that run writes equals `receipt.json`, byte for byte. | not yet checked (L2): `--out` into a scratch directory and a byte comparison |
 | V-5 | In `receipt.json`: `schema` is `oce/receipt/v1`, `kind` is `vectors`, `comparison.mode` is `exact`, `passed` is true, `body.status` is `pass`, `body.load_warnings_total` is 0, `body.mutants.status` is `scored`, `body.mutants.total` is at least 1 and `body.mutants.survived` is 0. | not yet checked (L2): the bundle lint reads the receipt |
 | V-6 | The stamp equals the receipt fields it copies, and `oce id graph.cxf.jsonld` prints the stamp's `content_id`. | not yet checked (L2): the bundle lint and `oce id` |
@@ -344,8 +358,9 @@ A vacuous PASS is a green result that compared nothing, or nothing that could ha
 | Two scenarios with one name, so that one hides the other in a report. | The engine refuses the file. | not yet checked (L2): V-3, code `duplicate-scenario` |
 | A field the format does not define, such as `tolerance`, silently ignored. | The format is closed at every level. | not yet checked (L2): V-3, code `unknown-key` |
 | A scenario that leaves an input without a value, so the graph runs on a default. | The engine refuses the set. | not yet checked (L2): V-3, code `input-not-supplied` |
-| A boundary output that no scenario asserts. | T-4. | not yet checked (L3): the bundle lint |
-| Vectors so weak that a broken graph passes them. | A mutant survives: V-3 and V-5. | not yet checked (L2) |
+| A boundary output that no scenario asserts. | T-4. | not yet checked (L2): the bundle lint |
+| Vectors that cannot reject a graph with one of the listed mistakes. | V-3, V-5 and M-6: every listed mutant fails an expectation. The bar rejects the mutants that are listed; whether the list is a good one is M-7 and M-8. | not yet checked (L2) for the listed mutants; `reader` for the list |
+| A mutant counted as caught because the engine refused one of its frames, with no expectation failing. | M-6: the recorded failure is `value-mismatch` or `diagnostic-missing`. | not yet checked (L2): the bundle lint |
 | No mutant at all. | V-5: `body.mutants.total` is at least 1. | not yet checked (L2) |
 | A mutant that is the graph under another name, or that could never have run. | The engine refuses a mutant that does not load, whose inputs or outputs differ from the graph's, or whose content id equals the graph's. A mutant that only renames a block runs, passes every scenario and survives. | not yet checked (L2): V-3, codes `mutant-load-failed`, `mutant-boundary-differs`, `mutant-identical` |
 
@@ -360,7 +375,7 @@ A wrong PASS is a green result that belongs to something other than the bundle's
 | The receipt is for other vectors, or for a list of mutants that changed since. | V-4: the regenerated receipt carries the `spec_id` of the committed `vectors.json`, which covers the mutant paths, and the digest of each mutant's bytes. | not yet checked (L2) |
 | The receipt is stale: the files changed after it was written. | V-4 regenerates it on every pull request. | not yet checked (L2) |
 | The run used another engine. | V-7, and the receipt's `engine_version` is inside the bytes V-4 compares. | not yet checked (L2) |
-| A scenario passed under edited parameters, on a graph that is not the stamped one. | T-3: a bundle's vectors carry no `params`. | not yet checked (L3): the bundle lint |
+| A scenario passed under edited parameters, on a graph that is not the stamped one. | T-3: a bundle's vectors carry no `params`. | not yet checked (L2): the bundle lint |
 | A Real output passed inside a band nobody wrote down. | The format has no tolerance field; a Real `equals` is exact. | not yet checked (L2): V-3 |
 | An expectation was loosened until the run went green. | V-9. | reader |
 
@@ -374,7 +389,7 @@ moved. The pin advances only under an issue that says so.
 
 | # | Rule | Check |
 |---|---|---|
-| E-1 | `ENGINE_PIN` holds exactly one lower-case 40-digit hexadecimal commit and a line feed. | `bash .github/scripts/pinned-sources.sh check` |
+| E-1 | `ENGINE_PIN` holds exactly one lower-case 40-digit hexadecimal commit and a line feed. | `bash .github/scripts/pinned-sources.sh check` checks the 40 digits after it has stripped all white space. The line feed, and that nothing else is in the file, are not yet checked (L2): the same script |
 | E-2 | Every stamp's `engine_version` is the version of the engine at `ENGINE_PIN`. | not yet checked (L2): V-4 implies it |
 | E-3 | A pull request that changes `ENGINE_PIN` leaves no generated file stale. | not yet checked (L2): V-2 and V-4 on every bundle the gate covers |
 
@@ -439,12 +454,12 @@ This section holds only the rules this library adds for its own bundles.
 |---|---|---|
 | T-1 | `vectors.json` loads as `oce/vectors/v1` and binds to `graph.cxf.jsonld`. | not yet checked (L2): `oce verify` exits 0 or 1, never 2 |
 | T-2 | An input and an output are named bare, as `graph.oce` declares them, and never by a full path. | not yet checked (L3): the bundle lint |
-| T-3 | `vectors.json` has no `params` map, at the set level or in a scenario. Every scenario runs the stamped graph with the parameter values `graph.oce` writes. | not yet checked (L3): the bundle lint |
-| T-4 | Every boundary output of the graph is asserted by at least one window of at least one scenario. | not yet checked (L3): the bundle lint |
+| T-3 | `vectors.json` has no `params` map, at the set level or in a scenario. Every scenario runs the stamped graph with the parameter values `graph.oce` writes. | not yet checked (L2): the bundle lint |
+| T-4 | Every boundary output of the graph is asserted by at least one window of at least one scenario. | not yet checked (L2): the bundle lint |
 | T-5 | The `mutants` list names exactly the files `mutants/<name>.cxf.jsonld` that the bundle holds: no listed path is missing and no file is unlisted. | not yet checked (L2): the bundle lint; a missing file is `oce verify` exit 2 |
 | T-6 | A Real expectation is an exact literal. A bundle that needs a band waits for the format's `within`, which uses the named tolerances of `docs/design/commissioning.md`; until the engine has it, the key is refused. | not yet checked (L2): `oce verify`, `unknown-key` |
 | T-7 | The scenarios of a fault bundle include the published test vectors of the reference its card cites, at least one case at a threshold edge, and, where the graph has timing state, at least one transient that exercises the delay and its reset. | reader; M-7 with M-6 is the mechanical half |
-| T-8 | A window does not assert the tick at which a delay expires. It leaves at least one step of margin on each side of that edge. | reader |
+| T-8 | By default a window leaves at least one step of margin on each side of the tick at which a delay expires. A window may assert the expiry tick itself, which is what catches a delay that is a step too long or too short, and the card then says so in one sentence. | reader. Not yet true of every card: L3 adds the sentence to the cards whose vectors assert an expiry tick and that lack it |
 | T-9 | No step of an input's step list lies after the horizon. Such a step never takes effect, so a file that has one says less than it appears to, and it is refused. | not yet checked (L2): `oce verify`, `step-after-horizon`. The inherited verifier does not refuse it; issue #120 adds that refusal and L3 corrects the files that have one |
 
 ## Mutants
@@ -456,9 +471,10 @@ mutant, runs it and scores it.
 **What makes a good mutant.** One plausible authoring mistake, of the kind a person or an agent
 makes when writing the graph: a comparison flipped or made inclusive, a threshold moved by the
 margin the vectors leave around it, a delay dropped or shortened, two inputs wired the wrong way
-round. The mutant keeps every input and output of the graph and loads cleanly. A mutant that does
-not load, that changes an input or an output, or that differs from the graph only in a name proves
-nothing: the engine refuses the first two, and the third survives and fails the bar.
+round. The mutant keeps every input and output of the graph, and the accepted range of every input,
+and loads cleanly. A mutant that does not load, that changes an input or an output, or that differs
+from the graph only in a name proves nothing: the engine refuses the first two, and the third
+survives and fails the bar.
 
 A gap the vectors are known to leave is written in the card's `## Deviations`. It is not shipped
 as a mutant that survives.
@@ -470,7 +486,7 @@ as a mutant that survives.
 | M-3 | `mutants/<name>.cxf.jsonld` equals, byte for byte, what `oce emit mutants/<name>.oce --namespace urn:open-control-library:bundle:` writes. | not yet checked (L2): the emit and a byte comparison |
 | M-4 | Each entry of the `mutants` list in `vectors.json` has a `description` that states the mistake in one sentence. | not yet checked (L2): the bundle lint requires a non-empty string; what it says is `reader` |
 | M-5 | Every mutant is valid: it loads, its inputs and outputs equal the graph's in path and type, and its content id differs from the graph's. | not yet checked (L2): V-3, exit 2 with `mutant-load-failed`, `mutant-boundary-differs` or `mutant-identical` |
-| M-6 | Every mutant is caught: at least one scenario fails on it. | not yet checked (L2): V-3 and V-5 |
+| M-6 | Every mutant is caught, and by an expectation: at least one scenario fails on it, and the failure the receipt records for it (`body.mutants.entries[].failure.code`) is `value-mismatch` or `diagnostic-missing`. A mutant whose only failure is a refused frame (`frame-refused`), such as one that narrows an input's accepted range, does not count: no expectation rejected it. | not yet checked (L2): V-3 for caught; the bundle lint reads the failure codes in `receipt.json` |
 | M-7 | A bundle whose graph compares a signal with a threshold ships a mutant that changes the strictness of one such comparison or moves its threshold. A bundle whose graph has a delay ships a mutant that removes or shortens one. | reader |
 | M-8 | A mutant is one mistake. It is not a rewrite of the graph. | reader |
 
@@ -609,8 +625,8 @@ one.
 
 | # | Rule | Check |
 |---|---|---|
-| D-1 | `diagram.svg` exists, and the body of the card links it. | `tools/verify` lint |
-| D-2 | Every label fits inside the rectangle that encloses it. | `tools/lint/svg_fitment.py` |
+| D-1 | `diagram.svg` exists, and the body of the card links it. | `tools/verify` lint, for faults. For routines `tools/routines/reference.py` checks that the file exists; that the card links it is not yet checked (L2): the bundle lint |
+| D-2 | Every label of `diagram.svg` fits inside the rectangle that encloses it. | `tools/lint/svg_fitment.py`, for fault and routine diagrams |
 | D-3 | The diagram shows the blocks and connections of `graph.oce`. | reader |
 
 ## Routine bundles
@@ -621,8 +637,8 @@ is not a controller, and nothing in it grants permission to deploy. Beside the f
 
 | File | Origin | What checks it | What a reader may rely on |
 |---|---|---|---|
-| `source.md` | Authored. | reader | Which clauses, pages and figures the author read, and which choices are the library's own and not the guideline's. |
-| `overview.svg` | Authored. | `tools/lint/svg_fitment.py` | A one-screen picture of what the routine does. |
+| `source.md` | Authored. | `tools/routines/reference.py` checks that it exists; what it says is `reader`. | Which clauses, pages and figures the author read, and which choices are the library's own and not the guideline's. |
+| `overview.svg` | Authored. | `tools/routines/reference.py` checks that it exists. Its labels are not yet checked (L3): `tools/lint/svg_fitment.py`, whose scope is `diagram.svg` and `assets/*.svg` today. | A one-screen picture of what the routine does. |
 | `class-manifest.json` | Authored. | `tools/lint/routine_schemas.py`; `tools/routines/reference.py` | The class the routine belongs to, and where its class files are. |
 | `interface.json` | Authored. | `tools/lint/routine_schemas.py`; `tools/routines/reference.py` | The typed interface of the class. |
 | `specialization.json`, `specialization.schema.json` | Authored. | `tools/lint/routine_schemas.py`; `tools/routines/reference.py` | The one specialization of the class that `graph.oce` realizes. |
@@ -632,12 +648,13 @@ The formats of the four class files are under [Routine class contracts](#routine
 | # | Rule | Check |
 |---|---|---|
 | RB-1 | A Real boundary input or output of a routine graph declares its unit with `@unit`. An input declares its accepted range with `@min` and `@max` where the routine has one, and the engine then refuses a frame that carries a value outside it. | not yet checked (L2): the bundle lint requires a unit on every Real boundary; the range is `reader` |
-| RB-2 | The connectors of `interface.json` are the boundary of the graph: the same names, the same directions, the same primitive types. | not yet checked (L2): the bundle lint |
-| RB-3 | A Real boundary uses the unit `1`, `m3/s` or `K`. A fraction is 0 to 1, never 0 to 100. | not yet checked (L2): the bundle lint |
+| RB-2 | The connectors of `interface.json` are the boundary of the graph: the same names, the same directions, the same primitive types, and for a Real the same unit. An input with `integer_codes` is typed in the interface by an enum whose member ids are the symbols of its codes, in the same order. | `tools/routines/reference.py` checks all of this today between `interface.json` and `reference.json`; not yet checked (L2): the bundle lint, between `interface.json`, the graph and the card |
+| RB-3 | A Real boundary uses the unit `1`, `m3/s` or `K`. A fraction is 0 to 1, never 0 to 100. | `tools/routines/reference.py` checks the unit today in `reference.json`; not yet checked (L2): the bundle lint, in the graph. The fraction convention is `reader` |
 | RB-4 | A comparison block of a routine graph writes its hysteresis `h` and writes it as zero. A routine adds no hysteresis the guideline does not state. | `tools/routines/reference.py` |
 | RB-5 | `status` is `reference`. No routine bundle is promoted, and no graph is renamed to suggest deployment. | `tools/routines/reference.py` checks the status; the rest is `reader` |
 | RB-6 | No file named `routine.cxf.jsonld` exists under `routines/g36/`. | `tools/lint/routines.py` |
 | RB-7 | The class manifest's identity and revision agree with `interface.json` and `specialization.json`, and its artifact paths resolve to the bundle's own directory. | `tools/lint/routine_schemas.py`; `tools/routines/reference.py` |
+| RB-8 | In `vectors.json`, every value given to an input that has `integer_codes` is one of its codes, and every scenario keeps each pair of `ordered_inputs` in order at every tick. | `tools/routines/reference.py` checks both today against `reference.json`; nothing checks vectors against the card's two fields: not yet checked (L2), the bundle lint |
 
 ## Point dictionaries: `points/<family>.points.json`
 
@@ -764,7 +781,9 @@ Three pins have three purposes. `ENGINE_PIN`, at the repository root, names the 
 `routines/g36/SOURCE_DEVELOPMENT_PIN` names the reviewed development baseline for material the
 release lacks. Each source pin file holds one lower-case 40-digit hexadecimal Git commit and a
 line feed, and the two commits differ. No other pin file exists under `routines/g36/`.
-**Check:** `tools/lint/routines.py`, which also refuses the file names `DONOR_PIN` and `SOURCE_PIN`.
+**Check:** `tools/lint/routines.py` checks the two files' bytes and that the commits differ. Of
+other pin files it refuses exactly two names, `DONOR_PIN` and `SOURCE_PIN`; any other name is
+`reader`.
 
 ### Routine class contracts
 
@@ -778,6 +797,8 @@ Six JSON Schema resources, each declaring `https://json-schema.org/draft/2020-12
 | `routines/schemas/specialization.schema.json` | `https://open-control-library.example/schemas/routine-specialization-v1.json` |
 | `routines/schemas/routine-semantic-profile.schema.json` | `https://open-control-library.example/schemas/routine-semantic-profile-v1.json` |
 | `routines/schemas/routine-derivation-manifest.schema.json` | `https://open-control-library.example/schemas/routine-derivation-manifest-v1.json` |
+
+The interface resource carries another revision in its `$id` today; N-3 says when that changes.
 
 A reference uses a fragment of the same resource or one of the six absolute ids, and resolves from
 an in-memory registry. Validation fetches nothing from a network or a file system. Objects are
@@ -793,9 +814,11 @@ id. Enum member ids and symbols are unique within their enum.
 
 **Check:** `tools/lint/routine_schemas.py` checks all six resources with
 `Draft202012Validator.check_schema`, refuses duplicate JSON keys and non-finite numbers before
-schema validation, and adds the cross-document checks named in each subsection below. It accepts
-any positive `revision` today; that the value is 1 is `not yet checked (L3)`. That a canonical id
-is never reused is a `reader` rule: the checker holds no history.
+schema validation, and adds the cross-document checks named in each subsection below. It runs them
+on the synthetic fixture set and, through `tools/routines/reference.py`, on the class files of
+every registered routine bundle. It accepts any positive `revision` today; that the value is 1 is
+`not yet checked (L3)`. That a canonical id is never reused is a `reader` rule: the checker holds
+no history.
 
 #### Class manifests (`ocl/routine-class-manifest/v1`)
 
@@ -812,7 +835,9 @@ A class manifest has exactly `schema`, `id`, `revision`, `section`, `source` and
 A duplicate source path, an absolute path, a backslash, a control character, and an empty, `.` or
 `..` segment are each refused. `artifacts` has exactly `interface`, `specialization_schema` and
 `specialization_config`. Their paths share one class directory and end in `interface.json`,
-`specialization.schema.json` and `specialization.json`. **Check:** `tools/lint/routine_schemas.py`.
+`specialization.schema.json` and `specialization.json`. **Check:** `tools/lint/routine_schemas.py`;
+for a registered bundle `tools/routines/reference.py` also checks that the paths are in the
+bundle's own directory.
 
 #### Interfaces (`ocl/routine-interface/v1`)
 
@@ -847,8 +872,8 @@ Integer and Real operands are compatible. A runtime signal, a connector, time, a
 operating state and host or fault logic cannot appear in a guard.
 
 **Check:** `tools/lint/routine_schemas.py` validates guard structure, references and operand
-compatibility. It does not evaluate a guard, and no routine bundle has a connector whose presence
-is not `always`.
+compatibility. It does not evaluate a guard. `tools/routines/reference.py` requires every
+connector of a routine bundle to be a scalar whose presence is `always`.
 
 #### Specialization inputs (`ocl/routine-specialization/v1`)
 
@@ -955,7 +980,8 @@ the class and aspect policy above, not for existence in its ontology.
 schema linter validates. Those documents are test evidence for the contracts. They do not appear
 under `routines/g36/`, in a registry, a coverage claim, the source inventory, the book or any
 production catalog. A class file under `routines/g36/` belongs to a registered routine bundle.
-**Check:** `tools/lint/routine_schemas.py` refuses an unregistered class file.
+**Check:** `tools/lint/routine_schemas.py` refuses a class file under `routines/g36/` that no
+registry row owns. The other placements are `reader`.
 
 ### `routines/g36/source-inventory.json` (`ocl/g36-source-inventory/v1`)
 
@@ -1047,7 +1073,8 @@ equal those of `scope.json`, `scope` is `scope.json`, and `claims` is an empty l
 repeats no scope row and makes no claim of completeness, implementation or evidence. The two
 routine bundles read the 2018 edition and add no claim about the 2021 profile. The path
 `routines/g36/generic/air-economizer-high-limits` does not exist. **Check:**
-`tools/lint/routines.py`.
+`tools/lint/routines.py`, for the file's shape, the empty `claims` and the absent path; what the
+routine bundles claim about an edition is `reader`.
 
 ### What the routine catalog does not hold
 
@@ -1090,9 +1117,44 @@ its card says.
 
 | # | Rule | Check |
 |---|---|---|
-| X-1 | The gate runs the bar on every bundle a registry lists. | not yet checked (L2): a lint fails unless every registry row is covered; L3 removes every other path |
+| X-1 | The gate replays every bundle a registry lists, whatever its status. On every one it runs V-1, V-2 and `oce verify`, which must exit 0. On every bundle whose status is `verified` or `reference` it runs `oce verify` with `--require-mutants-caught` and applies V-4 to V-6. | not yet checked (L2): the gate loop, and a lint that fails unless every registry row is covered; L3 removes every other path |
 | X-2 | A scenario that fails, a mutant that survives and a file the engine refuses each fail the gate. | not yet checked (L2): V-3 |
 | X-3 | No tool in this repository loads, replays or compares a graph. | not yet checked (L4): no `Cargo.toml` and no `.rs` file is tracked |
+
+## What the inherited tools read until L4
+
+This section states what `tools/verify` and `tools/routines/reference.py` accept today, because
+every `vectors.json` in the tree is in this form until L2 and L3 convert it. It is not part of the
+bundle contract. L4 removes it with the tools, and no file is written to it after L3.
+
+**`vectors.json`, as the tree holds it.** One JSON object with exactly `schema`, `clock` and
+`scenarios`. `schema` is `cxf-library/vectors/v1`. `clock` has exactly `step_s` and `horizon_s`,
+both finite numbers greater than zero; ticks run at `k × step_s` for `k` from 0 to
+`floor(horizon_s / step_s)`, which is below 1,000,000. A scenario has exactly `name`, `inputs`,
+`expect` and an optional `description`, and a name is unique in its file. `inputs` maps each
+boundary input to a constant or to a step list of `{t, value}` objects; a value takes effect at
+the first tick whose time is at or after its `t`, and a step after the last tick takes effect
+never and is not refused (issue #120). An expectation has exactly `output`, `from_s`, `to_s` and
+`equals`; the window includes both ends and is checked at every tick inside it. A Boolean or an
+Integer matches `equals` exactly, and a Real matches within 1e-9 as an absolute difference. A
+field not named here is refused. A file with no scenario, a scenario with no expectation and a
+window that holds no tick are each refused. Every scenario runs on a freshly loaded engine, each
+tick is one complete input frame, and a scenario that leaves a boundary input without a value
+fails.
+
+**For a routine,** `tools/routines/reference.py` also requires that the horizon is a whole number
+of steps, at most 10,000; that the file has 1 to 512 scenarios; that every output has exactly one
+expectation at every tick; and that every input value is admitted by `reference.json`: a known
+integer code, a Real inside its range, each ordered pair in order.
+
+**Beside the vectors,** the same tools read a fault card's `verified` block as
+`{engine_rev, content_id, date}`, with `content_id` a `cxf:fnv1a128:` tag and `engine_rev` a
+prefix of `ENGINE_PIN`, and a routine's `reference.json` with exactly `schema`, `canonical_id`,
+`revision`, `standard`, `clauses`, `root_id`, `inputs`, `outputs` and `ordered_inputs`.
+
+Two source comments, in `tools/verify/src/main.rs` and `tools/routines/reference.py`, cite a
+section of this file by a title it no longer has. They mean this section, and are repointed or
+removed with the tools.
 
 ## Open dependencies
 

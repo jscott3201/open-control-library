@@ -34,18 +34,19 @@ A rule ships as a **bundle**: one folder whose files travel together.
 | `receipt.json` | the engine's own record of the run: which graph, which vectors, which engine version, every result |
 | `diagram.svg` | the block graph, drawn |
 
-A bundle is **verified** when the `oce` tool built from the engine commit in
-`ENGINE_PIN` has replayed every scenario green and every mutant has failed at
-least one. The card carries a stamp copied from the receipt (the graph's
-content id, the engine version, the vector set's id and the mutants caught),
-and CI regenerates the receipt on every pull request. Verified is not
-deployment qualification and not a conformance claim to any standard;
-`SCHEMA.md` says exactly what it does and does not claim.
+**The corpus is not converted to this layout yet** (issues #107 and #108).
+Today a rule's folder holds `card.md`, `rule.cxf.jsonld` (hand-written CXF),
+`vectors.json` and `diagram.svg`, no folder has a mutant or a receipt, and
+"verified" on a card means the earlier bar: the engine at `ENGINE_PIN`
+replayed every vector green.
 
-**The corpus is being converted to this layout** (issues #107 and #108). Until
-that lands, a rule's folder holds `card.md`, `rule.cxf.jsonld` (hand-written
-CXF), `vectors.json` and `diagram.svg`, and "verified" on a card means the
-earlier bar: the engine at `ENGINE_PIN` replayed every vector green.
+Once a bundle is converted, it is **verified** when the `oce` tool built from
+the engine commit in `ENGINE_PIN` has replayed every scenario green and every
+mutant has failed at least one. Its card then carries a stamp copied from the
+receipt (the graph's content id, the engine version, the vector set's id and
+the mutants caught), and CI regenerates the receipt on every pull request.
+Verified is not deployment qualification and not a conformance claim to any
+standard; `SCHEMA.md` says exactly what it does and does not claim.
 
 Here's a real one — AHU-0016, simultaneous heating and cooling:
 
