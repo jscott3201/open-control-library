@@ -71,13 +71,15 @@ forward or reverted before the next change merges.
 
 **Release.** A release is a pull request from `development` into `main` through
 `release-gate.yml`, tagged `vX.Y.Z` on `main`; the book publishes from `main`. `main` requires
-`CI OK` on a branch that is up to date with it, and a merged release leaves a commit on `main` that
-`development` does not contain (a merge commit or a squash; rebase merging is off). So every
-release after the first starts by bringing `main` back into `development`: branch from
-`development`, `git merge origin/main`, open a pull request into `development`, and merge it with
-a **merge commit, not a squash**. A squash copies the content and leaves `main`'s commit outside
-`development`'s history, so the next release pull request would still be behind `main` and could
-not merge. It is the one pull request into `development` that is not squash-merged.
+`CI OK` on a branch that is up to date with it, so a release pull request can merge only while
+`main` is an ancestor of `development`. Check before opening one:
+`git merge-base --is-ancestor origin/main origin/development`. It fails after any release that was
+merged through a pull request, because the merge leaves a commit on `main` that `development` does
+not contain (a merge commit or a squash; rebase merging is off). When it fails, bring `main` back
+into `development` first: branch from `development`, `git merge origin/main`, open a pull request
+into `development`, and merge it with a **merge commit, not a squash**. A squash copies the
+content and leaves `main`'s commit outside `development`'s history, so the check keeps failing. It
+is the one pull request into `development` that is not squash-merged.
 
 ---
 
@@ -105,9 +107,11 @@ not merge. It is the one pull request into `development` that is not squash-merg
 7. **No absolute paths (a home directory) and no UUID-shaped strings** in any tracked file. The
    tracked-file scan rejects them, and history then has to be scrubbed.
 8. **Nothing depends on an archived or external prototype, and nothing new is imported without an
-   issue.** What the gate fetches is pinned: the engine commit in `ENGINE_PIN`, the two Modelica
-   Buildings commits, and its tools (the Python requirements by version, the crates in each
-   `Cargo.lock`, mdBook by checksum, every action by commit). The dataset fixture the gate replays,
+   issue.** Of what the gate fetches, these are pinned: the engine commit in `ENGINE_PIN`, the two
+   Modelica Buildings commits, the Python requirements the gate names, by version, the crates in
+   each `Cargo.lock`, mdBook by checksum and every action by commit. These are not: the Python
+   packages those requirements pull in, the Python patch release (CI asks for `3.12`) and the
+   runner image (`ubuntu-latest`). The dataset fixture the gate replays,
    `tools/dataset_harness/tests/fixtures/lbl_fpu_tiny`, is synthetic data written here in the
    shape of the public LBNL fan-powered-unit dataset; it holds no source records. A new outside
    spec, harness, fixture or dataset comes in only under an issue that names its source, its
@@ -161,18 +165,29 @@ and nothing to crates.io.
 the gate script breaks one of these, and `test_check_workflow_gates.py` holds at least one refused
 fixture for each. In every workflow: each action pinned to a full commit SHA on a plain `uses:`
 line with its tag in a trailing comment; each checkout without the job token; a timeout of at most
-an hour on every job; the hosted `ubuntu-latest` runner; the `bash` default shell for every `run:`
-block; no step allowed to fail without failing its job; no `${{ }}` expression inside a `run:`
-block; a read-only token, widened only by the Pages deploy job, which runs only for a push or a
-dispatch on `main`; exactly these three workflow files. In the gate workflows: exactly the
-triggers in the table above; no job or step condition except `CI OK`'s `always()`; every job
-listed in its `CI OK`, which runs exactly the result check; in the release gate, no cache and every
-checkout at the one commit resolved for the run (`github.sha`; `development` for the scheduled
-run). **The gate commands are pinned** in the check: each job of `pr-gate.yml` and
-`release-gate.yml` must run exactly the pinned command lines, in order, and the steps of
-`.agents/gate.sh` must run exactly the same gate commands, so a command cannot leave the workflow
-or the script, lose a flag or gain `|| true` under a green `CI OK`. The check reads the files; it
-does not follow the script's control flow.
+an hour on every job; the hosted `ubuntu-latest` runner, with no container and no services; the
+`bash` default shell for every `run:` block; no job and no step allowed to fail without failing
+its workflow; no `${{ }}` expression inside a `run:` block; a read-only token, widened only by the
+Pages deploy job, which runs only for a push or a dispatch on `main`; exactly these three workflow
+files. In the gate workflows: exactly the triggers in the table above; no job or step condition
+except `CI OK`'s `always()`; every job listed in its `CI OK`, which runs exactly the result check;
+every checkout with exactly its pinned inputs, which in `pr-gate.yml` name no `ref` and no
+`repository`, so each job tests the pull request itself, and in the release gate name the one
+commit resolved for the run (`github.sha`; `development` for the scheduled run); no cache in the
+release gate.
+
+**The gate commands are pinned** in the check. Each job of `pr-gate.yml` and `release-gate.yml`
+must run exactly the pinned command lines, in order, so a command cannot leave a gate workflow,
+lose a flag or gain `|| true` under a green `CI OK`. Of `.agents/gate.sh` the check proves this:
+its first command is `set -euo pipefail`, and no later line changes the shell options; every
+`step` and `engine_step` line holds one command and no control operator; the commands on those
+lines are exactly the gate commands `pr-gate.yml` runs, and the functions the other steps call are
+the pinned ones, line for line and operator for operator; no other function is defined in the
+`name() {` form. It does not prove that a step is reached or that its result counts. The check
+reads the script; it does not run it or follow its control flow, so a final `exit 0`, a redefined
+`step` or `record`, an `if false` around a step, a `trap`, a heredoc that swallows a step, and a
+function written in another form (`function name {`, or on one line) that shadows a command all
+pass.
 
 ---
 

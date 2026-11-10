@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static rules for the workflows in .github/workflows and the step list of .agents/gate.sh.
+"""Static rules for the workflows in .github/workflows and for .agents/gate.sh.
 
 A workflow edit can turn the gate into a green light that proves less than it appears to. This
 check fails on the edits that do that, before GitHub Actions runs them. Each rule has an id, and
@@ -10,9 +10,10 @@ test_check_workflow_gates.py holds at least one refused fixture per id.
                     its tag in a trailing comment
   checkout-token    every actions/checkout step sets persist-credentials: false
   job-timeout       every job sets timeout-minutes, at most MAX_TIMEOUT_MINUTES
-  runner            every job runs on the hosted ubuntu-latest runner
+  runner            every job runs on the hosted ubuntu-latest runner, with no container and no
+                    services
   shell             every run block uses the workflow's `bash` default (errexit and pipefail)
-  no-soft-failure   no job or step may be allowed to fail without failing its job
+  no-soft-failure   no job and no step is allowed to fail without failing its workflow
   run-expression    no run block interpolates a ${{ }} expression (pass values through env)
   permissions       the workflow token is contents: read; only the Pages deploy job widens it, to
                     exactly pages: write and id-token: write
@@ -21,22 +22,33 @@ test_check_workflow_gates.py holds at least one refused fixture per id.
   pr-gate-triggers  pr-gate.yml runs on exactly pull requests into development and dispatch
   release-triggers  release-gate.yml runs on exactly pushes to development and main, pull requests
                     into main, one daily schedule and dispatch
-  release-checkout  every release-gate.yml checkout takes the one commit resolved for the run
+  release-checkout  release-gate.yml names the one commit resolved for the run, and no job or step
+                    overrides it
+  gate-checkout     every checkout of a gate workflow takes exactly the pinned inputs: the pull
+                    request's own commit in pr-gate.yml, the run's one commit in release-gate.yml
   ci-ok-needs       each gate workflow ends in a CI OK job that always runs, needs every other
                     job and runs exactly ci_ok.py on their results
   gate-if           no job or step in a gate workflow is conditional, except CI OK's always()
   gate-commands     each gate workflow runs exactly the pinned command lines, job by job and in
                     order; release-gate.yml restores no cache
-  gate-script       the steps of .agents/gate.sh run exactly the pinned gate commands
+  gate-script       .agents/gate.sh runs exactly the pinned gate commands, under the pinned shell
+                    options
 
 The pinned command list is PR_GATE and RELEASE_GATE below: one source that pr-gate.yml,
 release-gate.yml and .agents/gate.sh are each checked against. A gate command changes in
 pr-gate.yml first, then in .agents/gate.sh, then here; until all three agree this check fails.
 
-What the gate-script rule reads: the command of every `step` and `engine_step` call, with a
-function of the script replaced by the simple commands of its body. It compares that set with the
-pin. It does not model the script's control flow, so it cannot tell that a command it lists is
-reached.
+What the gate-script rule proves. The script's first command is `set -euo pipefail`, and no later
+line changes the shell options. Every `step` and `engine_step` line holds one command and no
+control operator. The commands on those lines are exactly the gate commands pr-gate.yml runs, and
+the functions the other steps call are the pinned ones, line for line and operator for operator.
+No other function is defined in the `name() {` form.
+
+What it does not prove. The check reads the script; it does not run it or follow its control
+flow, so it does not show that a step is reached or that its result counts. A final `exit 0`, a
+redefined `step` or `record`, an `if false` around a step, a `trap`, a heredoc that swallows a
+step, and a function written in another form (`function name {`, or on one line) that shadows a
+command all pass.
 
 Usage: python3 .github/scripts/check_workflow_gates.py [workflow-directory [gate-script]]
 Needs PyYAML (pinned with the other gate requirements).
@@ -94,6 +106,24 @@ TOOLCHAIN_CHANNEL = 'channel="$(bash .github/scripts/pinned-sources.sh toolchain
 INSTALL_TOOLCHAIN = 'rustup toolchain install "$channel" --profile minimal --no-self-update'
 EXPORT_TOOLCHAIN = 'echo "RUSTUP_TOOLCHAIN=$channel" >> "$GITHUB_ENV"'
 CI_OK_COMMAND = "NEEDS_JSON=${{ toJSON(needs) }} python3 .github/scripts/ci_ok.py"
+CHECK_SOURCES = "bash .github/scripts/pinned-sources.sh check"
+REPLAY_FAULT_LIBRARY = "cargo run --locked --manifest-path tools/verify/Cargo.toml -- --all"
+REPLAY_DATASET = (
+    "python3 tools/dataset_harness/harness.py replay"
+    " --adapter lbl-fpu"
+    " --dataset tools/dataset_harness/tests/fixtures/lbl_fpu_tiny"
+    " --rules FPB-0001,FPB-0002,FPB-0003,FPB-0004,FPB-0005,FPB-0006"
+    " --verifier tools/verify/target/debug/cxf-verify"
+    " --output target/dataset-harness/ci-lbl-fpu-results.json"
+)
+ASSERT_DATASET = (
+    "python3 -c 'import json;"
+    ' p="target/dataset-harness/ci-lbl-fpu-results.json"; d=json.load(open(p));'
+    ' assert d["schema"] == "cxf-library/dataset-validation/v1";'
+    ' assert d["summary"]["fault_free_alarm_samples"] == 0;'
+    ' assert d["summary"]["target_declared_rule_case_pairs"] == 1;'
+    ' assert d["summary"]["target_detected_rule_case_pairs"] == 1\''
+)
 PR_GATE = {
     "workflow-rules": (
         INSTALL_PARSER,
@@ -119,7 +149,7 @@ PR_GATE = {
     ),
     "verify": (
         FETCH_SOURCES,
-        "bash .github/scripts/pinned-sources.sh check",
+        CHECK_SOURCES,
         TOOLCHAIN_CHANNEL,
         INSTALL_TOOLCHAIN,
         EXPORT_TOOLCHAIN,
@@ -139,19 +169,9 @@ PR_GATE = {
         " --verifier tools/verify/target/debug/cxf-verify"
         " --report target/g36-reference-results.json",
         "cargo test --locked --manifest-path tools/verify/Cargo.toml",
-        "cargo run --locked --manifest-path tools/verify/Cargo.toml -- --all",
-        "python3 tools/dataset_harness/harness.py replay"
-        " --adapter lbl-fpu"
-        " --dataset tools/dataset_harness/tests/fixtures/lbl_fpu_tiny"
-        " --rules FPB-0001,FPB-0002,FPB-0003,FPB-0004,FPB-0005,FPB-0006"
-        " --verifier tools/verify/target/debug/cxf-verify"
-        " --output target/dataset-harness/ci-lbl-fpu-results.json",
-        "python3 -c 'import json;"
-        ' p="target/dataset-harness/ci-lbl-fpu-results.json"; d=json.load(open(p));'
-        ' assert d["schema"] == "cxf-library/dataset-validation/v1";'
-        ' assert d["summary"]["fault_free_alarm_samples"] == 0;'
-        ' assert d["summary"]["target_declared_rule_case_pairs"] == 1;'
-        ' assert d["summary"]["target_detected_rule_case_pairs"] == 1\'',
+        REPLAY_FAULT_LIBRARY,
+        REPLAY_DATASET,
+        ASSERT_DATASET,
     ),
     "book": (
         "bash tools/book/install-mdbook.sh target/mdbook-bin",
@@ -172,7 +192,7 @@ RELEASE_GATE = {
 }
 PINNED_GATES = {"pr-gate.yml": PR_GATE, "release-gate.yml": RELEASE_GATE}
 # Lines of pr-gate.yml that prepare the runner or report its result. .agents/gate.sh has its own
-# form of each (SCRIPT_ONLY), or needs none: it installs no toolchain and fetches no source.
+# form of each (SCRIPT_FUNCTIONS), or needs none: it installs no toolchain and fetches no source.
 CI_ONLY = (
     INSTALL_PARSER,
     INSTALL_REQUIREMENTS,
@@ -185,36 +205,78 @@ CI_ONLY = (
 GATE_COMMANDS = tuple(dict.fromkeys(
     command for commands in PR_GATE.values() for command in commands if command not in CI_ONLY
 ))
-# Every other simple command a step of .agents/gate.sh runs: its Python environment, the clean
-# build of `full`, the toolchain selection and the log the closing report reads. Shell plumbing
-# is listed too, so that `|| true` or an early `return 0` in a step is a command the pin lacks.
-SCRIPT_ONLY = (
-    "rm -rf target/gate-venv target/mdbook-bin tools/routine-compiler/target tools/verify/target",
-    "[ ! -x target/gate-venv/bin/python3 ]",
-    '"$GATE_PYTHON" -m venv target/gate-venv',
-    "target/gate-venv/bin/python3 -m pip install --quiet --disable-pip-version-check"
-    " --requirement tools/lint/requirements-routine-schemas.txt PyYAML==6.0.3",
-    "local channel",
-    'rustup run "$channel" rustc --version',
-    'echo "the toolchain the pinned engine names is not installed:'
-    ' rustup toolchain install $channel" >&2',
-    "return 1",
-    'export RUSTUP_TOOLCHAIN="$channel"',
-    "sources_ok=1",
-    "tee target/gate/verify-all.log",
+
+# ── The pinned gate script ───────────────────────────────────────────────────────────────────
+# The first command of .agents/gate.sh. Without `pipefail` the replay piped into `tee` reports
+# tee's status; without `errexit` and `nounset` a broken step function runs on.
+SCRIPT_OPTIONS = "set -euo pipefail"
+# A step of the script runs one gate command, alone on its line, or one of the functions in
+# SCRIPT_STEP_FUNCTIONS. The body of each function below is pinned line for line, operators and
+# keywords included, in the script's own form with `$VENV` and `$MDBOOK_DIR` replaced by their
+# values. Five gate commands are run inside these bodies, not on a step line of their own.
+SCRIPT_FUNCTIONS = {
+    "clean_build_outputs": (
+        "rm -rf target/gate-venv target/mdbook-bin tools/routine-compiler/target"
+        " tools/verify/target",
+    ),
+    "python_environment": (
+        "if [ ! -x target/gate-venv/bin/python3 ]; then",
+        '"$GATE_PYTHON" -m venv target/gate-venv || return 1',
+        "fi",
+        "target/gate-venv/bin/python3 -m pip install --quiet --disable-pip-version-check"
+        " --requirement tools/lint/requirements-routine-schemas.txt PyYAML==6.0.3",
+    ),
+    "select_engine_toolchain": (
+        "local channel",
+        TOOLCHAIN_CHANNEL + " || return 1",
+        'if ! rustup run "$channel" rustc --version; then',
+        'echo "the toolchain the pinned engine names is not installed:'
+        ' rustup toolchain install $channel" >&2',
+        "return 1",
+        "fi",
+        'export RUSTUP_TOOLCHAIN="$channel"',
+    ),
+    "pinned_sources": (
+        CHECK_SOURCES + " && select_engine_toolchain && sources_ok=1",
+    ),
+    "fault_library": (
+        REPLAY_FAULT_LIBRARY + " | tee target/gate/verify-all.log",
+    ),
+    "dataset_fixture_replay": (
+        REPLAY_DATASET + " &&",
+        ASSERT_DATASET,
+    ),
+}
+SCRIPT_STEP_FUNCTIONS = (
+    "clean_build_outputs",
+    "python_environment",
+    "pinned_sources",
+    "fault_library",
+    "dataset_fixture_replay",
 )
+# Functions the script also defines. Their bodies are not compared: they are its control flow.
+SCRIPT_PLUMBING = ("record", "step", "engine_step", "observed_totals")
+
+# ── Checkouts of the gate workflows ──────────────────────────────────────────────────────────
+# The exact `with:` of every checkout. pr-gate.yml names no ref and no repository, so each job
+# tests the pull request's own merge commit; release-gate.yml names the one commit of the run.
+CHECKOUT_INPUTS = {
+    "pr-gate.yml": {"persist-credentials": False},
+    "release-gate.yml": {"ref": CHECKOUT_REF_USE, "persist-credentials": False},
+}
+# Jobs that check the library out one level down, beside the pinned sources.
+CHECKOUT_PATH = {
+    ("pr-gate.yml", "verify"): "open-control-library",
+    ("release-gate.yml", "gate"): "open-control-library",
+}
 
 HEREDOC = re.compile(r"(?<!<)<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 FUNCTION = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\(\) \{$")
-STEP_FUNCTIONS = ("step", "engine_step")
 STEP_CALL = re.compile(r"^(?:step|engine_step)\s")
 STEP = re.compile(r"^(?:step|engine_step)\s+'[^']*'\s+(\S.*)$")
 LITERAL_VARIABLE = re.compile(r"^([A-Z][A-Z0-9_]*)=([A-Za-z0-9_./-]+)$")
 CONTROL_OPERATOR = re.compile(r"^[;&|]+$")
-# The operators that only sequence commands. Any other one (`&` puts a step in the background,
-# where its result is lost) makes the line unreadable.
-SEQUENCING = (";", "&&", "||", "|")
-SHELL_KEYWORDS = ("if", "then", "else", "elif", "fi", "!")
+SHELL_OPTIONS = re.compile(r"(?<![\w./$-])(?:set\s+[-+]|shopt(?![\w-]))")
 
 
 def triggers(workflow: dict) -> dict:
@@ -291,10 +353,6 @@ def check_text(name: str, text: str, actions: list[str]) -> list[str]:
                 f"{name}: action-pin: line {number}: an action must be `owner/repo@<40-hex commit>"
                 f" # <tag>`: {match['ref']}"
             )
-        if SOFT_FAILURE_KEY in line:
-            failures.append(
-                f"{name}: no-soft-failure: line {number}: a failing step must fail its job"
-            )
     # The lines above are read as text, for the tag comment. A quoted key or a flow mapping is
     # not such a line, so the parsed references are checked too, and counted against the lines.
     for action in actions:
@@ -362,6 +420,13 @@ def check_workflow(name: str, workflow: dict) -> list[str]:
         if job.get("runs-on") != RUNNER:
             fail("runner", f"job {job_id} must run on `{RUNNER}`, a hosted runner:"
                            f" {job.get('runs-on')!r}")
+        for key in ("container", "services"):
+            if key in job:
+                fail("runner", f"job {job_id} sets `{key}`; its commands must run on the"
+                               " runner itself, beside nothing else")
+        if SOFT_FAILURE_KEY in job:
+            fail("no-soft-failure", f"job {job_id} is allowed to fail; a failing job must fail"
+                                    " its workflow")
         if default_shell(job) not in (None, SHELL):
             fail("shell", f"job {job_id} sets its own default shell: {default_shell(job)!r}")
         if (name, job_id) == DEPLOY_JOB:
@@ -382,6 +447,9 @@ def check_workflow(name: str, workflow: dict) -> list[str]:
                         f"job {job_id} step {index}: actions/checkout must set"
                         " persist-credentials: false",
                     )
+            if SOFT_FAILURE_KEY in step:
+                fail("no-soft-failure", f"job {job_id} step {index} is allowed to fail; a"
+                                        " failing step must fail its job")
             if step.get("shell", SHELL) != SHELL:
                 fail("shell", f"job {job_id} step {index} sets its own shell:"
                               f" {step['shell']!r}")
@@ -451,6 +519,24 @@ def check_commands(name: str, workflow: dict, pinned: dict) -> list[str]:
     return failures
 
 
+def check_checkouts(name: str, workflow: dict) -> list[str]:
+    """Every checkout of a gate workflow takes exactly the pinned inputs."""
+    failures = []
+    for job_id, job in jobs_of(workflow).items():
+        pinned = dict(CHECKOUT_INPUTS[name])
+        if (name, job_id) in CHECKOUT_PATH:
+            pinned["path"] = CHECKOUT_PATH[(name, job_id)]
+        for index, step in enumerate(steps_of(job), start=1):
+            if not str(step.get("uses", "")).lower().startswith("actions/checkout@"):
+                continue
+            if step.get("with") != pinned:
+                failures.append(
+                    f"{name}: gate-checkout: job {job_id} step {index}: actions/checkout must"
+                    f" take exactly these inputs: {pinned}; it has {step.get('with')}"
+                )
+    return failures
+
+
 def check_pr_gate(name: str, workflow: dict) -> list[str]:
     failures = []
     on = triggers(workflow)
@@ -503,9 +589,6 @@ def check_release_gate(name: str, workflow: dict) -> list[str]:
             options = step.get("with") if isinstance(step.get("with"), dict) else {}
             if "CHECKOUT_REF" in (step.get("env") or {}):
                 fail("release-checkout", f"job {job_id} step {index} sets its own CHECKOUT_REF")
-            if action.startswith("actions/checkout@") and options.get("ref") != CHECKOUT_REF_USE:
-                fail("release-checkout", f"job {job_id} step {index}: actions/checkout must set"
-                                         f" ref: {CHECKOUT_REF_USE}")
             if action.startswith(CACHING_ACTIONS) or "cache" in options:
                 fail("gate-commands", f"job {job_id} step {index} restores a cache; the release"
                                       " gate builds from nothing")
@@ -531,107 +614,148 @@ def logical_lines(text: str) -> list[str]:
     return lines
 
 
-def script_commands(text: str) -> tuple[set[tuple[str, ...]], list[str]]:
-    """The simple commands the steps of a gate script run, as words, and what could not be read.
+def read_script(text: str) -> tuple[list[str], dict[str, list[str]], list[str]]:
+    """A gate script as its top-level lines, its functions and the names defined twice.
 
-    A step is a call of `step` or `engine_step` with a single-quoted label. Its command is split
-    at `;`, `&&`, `||` and `|`; `if`, `then`, `else`, `elif`, `fi`, `!` and a leading `env` are
-    dropped; a function of the script stands for the commands of its body; and `$NAME` is
-    replaced where the script assigns NAME one literal value, once, at the top level.
+    A function is one written `name() {` on a line of its own and closed by `}` on a line of its
+    own. Lines are stripped and blank ones dropped; the lines of a function are its body.
     """
+    top: list[str] = []
     functions: dict[str, list[str]] = {}
-    top, current = [], None
+    repeated, current = [], None
     for line in logical_lines(text):
-        if current is None and FUNCTION.match(line):
-            current = FUNCTION.match(line)[1]
+        opening = FUNCTION.match(line) if current is None else None
+        if opening:
+            current = opening[1]
+            if current in functions:
+                repeated.append(current)
             functions[current] = []
-        elif current is None:
-            top.append(line)
-        elif line == "}":
+        elif current is not None and line == "}":
             current = None
-        else:
-            functions[current].append(line)
+        elif line.strip():
+            (top if current is None else functions[current]).append(line.strip())
+    return top, functions, repeated
 
+
+def literal_variables(text: str) -> dict[str, str]:
+    """NAME to value, for each name the script assigns one literal value, once, at column 0."""
     variables = {}
-    for line in top:
+    for line in logical_lines(text):
         literal = LITERAL_VARIABLE.match(line)
         if literal and len(re.findall(rf"\b{literal[1]}=", text)) == 1:
             variables[literal[1]] = literal[2]
+    return variables
 
-    def expand(word: str) -> str:
-        for variable, value in variables.items():
-            word = re.sub(rf"\$(?:{variable}(?![A-Za-z0-9_])|\{{{variable}\}})", value, word)
-        return word
 
-    problems: list[str] = []
-
-    def simple_commands(line: str) -> list[tuple[str, ...]]:
-        try:
+def embedded(command: str) -> bool:
+    """Whether a gate command is run inside a pinned function body, not on a step line."""
+    wanted = words(command)
+    for body in SCRIPT_FUNCTIONS.values():
+        for line in body:
             line_words = words(line)
-        except ValueError as error:
-            problems.append(f"cannot read `{line.strip()}`: {error}")
-            return []
-        commands, command = [], []
-        for word in (*line_words, ";"):
-            if not CONTROL_OPERATOR.match(word):
-                command.append(expand(word))
-                continue
-            if word not in SEQUENCING:
-                problems.append(f"cannot read `{line.strip()}`: the operator `{word}`")
-            while command and command[0] in SHELL_KEYWORDS:
-                command.pop(0)
-            if command and command[0] == "env":
-                command.pop(0)
-            if command:
-                commands.append(tuple(command))
-            command = []
-        return commands
-
-    def resolve(line: str, calling: tuple[str, ...]) -> set[tuple[str, ...]]:
-        found = set()
-        for command in simple_commands(line):
-            if command[0] not in functions:
-                found.add(command)
-            elif len(command) > 1 or command[0] in calling or command[0] in STEP_FUNCTIONS:
-                problems.append(f"cannot follow the call `{shlex.join(command)}`")
-            else:
-                for body_line in functions[command[0]]:
-                    found |= resolve(body_line, (*calling, command[0]))
-        return found
-
-    found: set[tuple[str, ...]] = set()
-    bodies = [line for name, body in functions.items() if name not in STEP_FUNCTIONS
-              for line in body]
-    for line in (line.strip() for line in top + bodies):
-        if not STEP_CALL.match(line):
-            continue
-        step = STEP.match(line)
-        if step:
-            found |= resolve(step[1], ())
-        else:
-            problems.append(f"cannot read the step `{line}`: a step is `step '<label>' <command>`")
-    return found, problems
+            if any(line_words[at:at + len(wanted)] == wanted for at in range(len(line_words))):
+                return True
+    return False
 
 
 def check_gate_script(path: Path) -> list[str]:
-    """The steps of the gate script run exactly the gate commands and the script's own."""
+    """The gate script runs exactly the pinned gate commands, under the pinned shell options.
+
+    Read from the script: its first command; every later line that changes the shell options;
+    every `step` and `engine_step` line, which must hold a single-quoted label and one command
+    with no control operator; and every function. `$NAME` is replaced where the script assigns
+    NAME one literal value, and a leading `env` is dropped, before a line is compared as words.
+    """
     name = f"{path.parent.name}/{path.name}"
     if not path.is_file():
         return [f"{name}: gate-script: the gate script is missing"]
-    found, problems = script_commands(path.read_text(encoding="utf-8"))
-    failures = [f"{name}: gate-script: {problem}" for problem in problems]
-    for command in GATE_COMMANDS:
-        if words(command) not in found:
-            failures.append(f"{name}: gate-script: no step runs the gate command `{command}`,"
-                            " which pr-gate.yml runs")
-    for command in SCRIPT_ONLY:
-        if words(command) not in found:
-            failures.append(f"{name}: gate-script: no step runs `{command}`, which the pin lists"
-                            " as the script's own")
-    pinned = {words(command) for command in GATE_COMMANDS + SCRIPT_ONLY}
-    for command in sorted(found - pinned):
-        failures.append(f"{name}: gate-script: a step runs `{shlex.join(command)}`, which the"
-                        " pin does not list and pr-gate.yml does not run")
+    text = path.read_text(encoding="utf-8")
+    failures = []
+
+    def fail(message: str) -> None:
+        failures.append(f"{name}: gate-script: {message}")
+
+    variables = literal_variables(text)
+
+    def line_words(line: str) -> tuple[str, ...] | None:
+        try:
+            read = words(line)
+        except ValueError as error:
+            fail(f"cannot read `{line}`: {error}")
+            return None
+        for variable, value in variables.items():
+            pattern = rf"\$(?:{variable}(?![A-Za-z0-9_])|\{{{variable}\}})"
+            read = tuple(re.sub(pattern, value, word) for word in read)
+        return read
+
+    top, functions, repeated = read_script(text)
+    bodies = [line for body in functions.values() for line in body]
+    if not top or top[0] != SCRIPT_OPTIONS:
+        fail(f"the first command must be `{SCRIPT_OPTIONS}`")
+    for line in top[1:] + bodies:
+        if SHELL_OPTIONS.search(line):
+            fail(f"`{line}` changes the shell options; only the first command,"
+                 f" `{SCRIPT_OPTIONS}`, may set them")
+
+    for function in repeated:
+        fail(f"the function `{function}` is defined twice")
+    for function in sorted(set(functions) - set(SCRIPT_FUNCTIONS) - set(SCRIPT_PLUMBING)):
+        fail(f"the script defines a function `{function}` that the pin does not list")
+    for function, pinned in SCRIPT_FUNCTIONS.items():
+        if function not in functions:
+            fail(f"the pinned function `{function}` is missing")
+            continue
+        body = [line_words(line) for line in functions[function]]
+        if None in body:
+            continue
+        for at, (line, read) in enumerate(zip(functions[function], body), start=1):
+            if at > len(pinned) or read != words(pinned[at - 1]):
+                expected = f"`{pinned[at - 1]}`" if at <= len(pinned) else "no such line"
+                fail(f"function `{function}` line {at} is `{line}`; the pin has {expected}")
+                break
+        else:
+            if len(body) < len(pinned):
+                fail(f"function `{function}` ends before the pinned line"
+                     f" `{pinned[len(body)]}`")
+
+    direct, called = set(), set()
+    for line in top:
+        if not STEP_CALL.match(line):
+            continue
+        step = STEP.match(line)
+        if not step:
+            fail(f"cannot read the step `{line}`: a step is `step '<label>' <command>`")
+            continue
+        command = line_words(step[1])
+        if command is None:
+            continue
+        if any(CONTROL_OPERATOR.match(word) for word in command):
+            fail(f"the step `{line}` holds a control operator; a step line is one command, so"
+                 " that the result `step` records is that command's")
+        elif command[0] == "env":
+            direct.add(command[1:])
+        elif command[0] not in functions:
+            direct.add(command)
+        elif len(command) > 1 or command[0] not in SCRIPT_STEP_FUNCTIONS:
+            fail(f"the step `{line}` calls a function of the script that is not a pinned step"
+                 " function, or calls one with arguments")
+        else:
+            called.add(command[0])
+    for line in bodies:
+        if STEP_CALL.match(line) and line != 'step "$@"':
+            fail(f"the step `{line}` is inside a function; steps are top-level lines")
+
+    pinned_direct = {words(command): command for command in GATE_COMMANDS
+                     if not embedded(command)}
+    for command, written in pinned_direct.items():
+        if command not in direct:
+            fail(f"no step runs the gate command `{written}`, which pr-gate.yml runs")
+    for command in sorted(direct - set(pinned_direct)):
+        fail(f"a step runs `{shlex.join(command)}`, which the pin does not list and"
+             " pr-gate.yml does not run")
+    for function in SCRIPT_STEP_FUNCTIONS:
+        if function not in called:
+            fail(f"no step runs the pinned step function `{function}`")
     return failures
 
 
@@ -663,6 +787,7 @@ def check(directory: Path, gate_script: Path) -> list[str]:
         if name in GATES:
             failures += check_ci_ok(name, workflow)
             failures += check_commands(name, workflow, PINNED_GATES[name])
+            failures += check_checkouts(name, workflow)
         if name == "pr-gate.yml":
             failures += check_pr_gate(name, workflow)
         if name == "release-gate.yml":

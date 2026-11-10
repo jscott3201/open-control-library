@@ -17,8 +17,11 @@
 # requirements, the checksum-pinned mdBook. Change a command by changing pr-gate.yml first, then
 # this file, then the pinned list in .github/scripts/check_workflow_gates.py: the workflow rules
 # step holds pr-gate.yml and the steps below to that one list and fails until all three agree. It
-# reads a step as `step '<label>' <command>` (or `engine_step`), so keep that form. A failing gate
-# is fixed at its cause, never by editing this file.
+# reads a step as `step '<label>' <command>` (or `engine_step`): one command, with no `&&`, `||`,
+# `|` or `;` on the line. A step that needs more calls a function, and the check pins that
+# function's body line for line. The `set -euo pipefail` below must stay the first command and the
+# only line that sets shell options. A failing gate is fixed at its cause, never by editing this
+# file.
 #
 # What the script needs and does not install:
 #   * three sibling checkouts at their pins (the engine at ENGINE_PIN, Modelica Buildings at
@@ -244,12 +247,20 @@ NOT COVERED BY THIS SCRIPT — a green run here does not prove these pass:
   · the CI platform. CI runs on ubuntu-latest (x86_64) with Python 3.12. This
     run used $(uname -sm) with $(python3 --version 2>&1 || echo 'no python3'). The Rust toolchain is the
     same in both: the channel the pinned engine names.
-  · this script as CI executes it. The workflow rules step checks that the
-    commands of these steps are the ones pr-gate.yml runs; it does not
-    follow the script's control flow. CI executes this script only in
+  · this script's control flow, and this script as CI executes it. The
+    workflow rules step proves that the first command is set -euo pipefail and
+    no later line changes the shell options, that every step line holds one
+    command and no control operator, that the commands on those lines are
+    exactly the gate commands pr-gate.yml runs, and that the functions the
+    other steps call are the pinned ones, line for line and operator for
+    operator. It does not prove that a step is reached or that its result
+    counts: it reads the script and does not follow its control flow, so a
+    final exit 0, a redefined step or record, an if false around a step, a
+    trap, a heredoc that swallows a step, and a function written in another
+    form that shadows a command all pass. CI executes this script only in
     release-gate.yml, after a merge and daily: for a pull request that
-    changes this script, a script under .github/scripts or a workflow,
-    this run is the only one before the merge.
+    changes this script, a script under .github/scripts or a workflow, this
+    run is the only one before the merge.
   · the workflows themselves: triggers, concurrency, the required CI OK
     status and branch protection are GitHub's to evaluate. The workflow
     rules step reads the files; it does not run them.

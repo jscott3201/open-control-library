@@ -59,13 +59,26 @@ whose numbers overlap GitHub's.
   release archive and binary against pinned SHA-256 digests.
 - The workflow-rules check pins the gate commands (GitHub #112). Every job of
   `pr-gate.yml` and `release-gate.yml` must run exactly the pinned command
-  lines, in order, and the steps of `.agents/gate.sh` must run the same gate
-  commands, so a command can no longer leave the workflow or the script, lose a
-  flag or gain `|| true` while `CI OK` stays green. The check also requires the
-  exact trigger sets of both gate workflows, a plain SHA-pinned `uses:` line for
-  every action, the hosted `ubuntu-latest` runner, the `bash` default shell, a
-  timeout of at most 60 minutes, no `${{ }}` expression in a `run:` block, and
-  the Pages deploy job's exact condition and token. No gate command changed.
+  lines, in order, so a command can no longer leave a gate workflow, lose a
+  flag or gain `|| true` while `CI OK` stays green. Of `.agents/gate.sh` the
+  check proves that its first command is `set -euo pipefail` and no later line
+  changes the shell options, that every `step` and `engine_step` line holds one
+  command and no control operator, that the commands on those lines are exactly
+  the gate commands `pr-gate.yml` runs, and that the functions the other steps
+  call are the pinned ones, line for line and operator for operator. It does
+  not prove that a step is reached or that its result counts: the check reads
+  the script and does not follow its control flow, so a final `exit 0`, a
+  redefined `step` or `record`, an `if false` around a step, a `trap`, a
+  heredoc that swallows a step, and a function written in another form that
+  shadows a command all pass. No gate command changed.
+- The workflow-rules check also requires, in every workflow, a plain
+  SHA-pinned `uses:` line for every action, the hosted `ubuntu-latest` runner
+  with no container and no services, the `bash` default shell, a timeout of at
+  most 60 minutes, no job or step that is allowed to fail, no `${{ }}`
+  expression in a `run:` block, and the Pages deploy job's exact condition and
+  token; and in the gate workflows, the exact trigger sets and the exact inputs
+  of every checkout, so that `pr-gate.yml` can only test the pull request
+  itself (GitHub #112).
 - `release-gate.yml` checks out `github.sha` for dispatched and pull-request
   runs as it already did for pushes, instead of a ref that can move while the
   run waits (GitHub #112). Both jobs read the commit resolved when the event

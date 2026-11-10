@@ -71,9 +71,10 @@ python3 tools/lint/g36_source.py --check \
 The remaining catalog gates are steps of the gate script: the schema, semantic
 and catalog lints, their unit tests, and the check of the empty deployment
 inventory. Run `bash .agents/gate.sh` from the repository root. The script
-([`.agents/gate.sh`](../.agents/gate.sh)) is the one place those commands are
-written, in the form CI runs them; it builds its own Python environment under
-`target/` and reads the pinned sibling checkouts that
+([`.agents/gate.sh`](../.agents/gate.sh)) holds those commands in the form CI
+runs them, and the workflow-rules check keeps it and
+`.github/workflows/pr-gate.yml` identical. It builds its own Python environment
+under `target/` and reads the pinned sibling checkouts that
 `bash .github/scripts/pinned-sources.sh fetch` creates.
 
 `tools/lint/requirements-routine-schemas.txt` pins `jsonschema==4.26.0`,
