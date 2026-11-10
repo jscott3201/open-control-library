@@ -21,18 +21,32 @@ to the exact logic the engine verified.
 
 ## How a rule ships
 
-Each rule is one folder of four files that travel together:
+A rule ships as a **bundle**: one folder whose files travel together.
+`SCHEMA.md` is the contract for every one of them.
 
 | File | What it is |
 |---|---|
 | `card.md` | the fault card — what the rule detects, the points and parameters it needs, likely diagnoses, energy impact, and every judgment call written down |
-| `rule.cxf.jsonld` | the detection logic itself, as elementary CDL blocks |
-| `vectors.json` | executable test scenarios that pin the rule's behavior from both sides of every threshold |
+| `graph.oce` | the detection logic itself, as elementary CDL blocks, written in the engine's authoring text form; this is the source of truth |
+| `graph.cxf.jsonld` | the same logic as CXF JSON-LD, emitted from `graph.oce` by the pinned `oce` tool and never edited by hand; this is what a host loads |
+| `vectors.json` | executable test scenarios that pin the rule's behavior, compared exactly |
+| `mutants/` | copies of the logic with one deliberate mistake each, which the scenarios must reject |
+| `receipt.json` | the engine's own record of the run: which graph, which vectors, which engine version, every result |
 | `diagram.svg` | the block graph, drawn |
 
-A rule is marked **verified** only when the engine at a pinned revision
-replays every vector green. The engine's `content_id` is stamped on the card,
-so the verified logic stays identifiable forever.
+**The corpus is not converted to this layout yet** (issues #107 and #108).
+Today a rule's folder holds `card.md`, `rule.cxf.jsonld` (hand-written CXF),
+`vectors.json` and `diagram.svg`, no folder has a mutant or a receipt, and
+"verified" on a card means the earlier bar: the engine at `ENGINE_PIN`
+replayed every vector green.
+
+Once a bundle is converted, it is **verified** when the `oce` tool built from
+the engine commit in `ENGINE_PIN` has replayed every scenario green and every
+mutant has failed at least one. Its card then carries a stamp copied from the
+receipt (the graph's content id, the engine version, the vector set's id and
+the mutants caught), and CI regenerates the receipt on every pull request.
+Verified is not deployment qualification and not a conformance claim to any
+standard; `SCHEMA.md` says exactly what it does and does not claim.
 
 Here's a real one — AHU-0016, simultaneous heating and cooling:
 
@@ -107,12 +121,14 @@ The issue-to-merge process, the standing rules and what CI runs when are in
 
 ## Layout
 
-- **`SCHEMA.md`** — the normative contracts. Read this first.
+- **`SCHEMA.md`** — the bundle contract and every other file format. Read this first.
 - **`AGENTS.md`** — how work lands here: process, standing rules, CI and the gate.
-- **`faults/<equip>/<FAULT-ID>/`** — one folder per rule; `faults/registry.json` maps them all.
+- **`faults/<equip>/<FAULT-ID>/`** — one bundle per fault rule; `faults/registry.json` maps them all.
+- **`routines/`** — the routine catalog: two Guideline 36 reference bundles, and the pins, schemas and inventories around them.
 - **`points/`** — canonical point dictionaries.
 - **`playbooks/`**, **`clusters/`** — remediation workflows and fault syndromes.
-- **`tools/`** — the verifier, lints, and book generator.
+- **`ENGINE_PIN`** — the one engine commit every verified stamp refers to.
+- **`tools/`** — the lints and the book generator, and the inherited verifier that the pinned `oce` tool replaces (issue #109).
 
 ## License
 

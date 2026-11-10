@@ -6,6 +6,9 @@ control content that runs on the
 Guideline 36 routine reference bundles, point dictionaries, remediation playbooks and fault
 clusters. Every rule is a CDL block graph shipped as CXF JSON-LD with executable vectors, and a
 rule is `verified` only when the engine at the commit in `ENGINE_PIN` replays every vector green.
+`SCHEMA.md` is the bundle contract the corpus is being converted to (L2 and L3, issues #107 and
+#108): the authoring text form is the source, the CXF is emitted by the pinned `oce` tool, and
+`verified` also requires that every mutant is caught.
 
 What it is not: it is not the engine, and it does not grow engine-shaped tooling. Code that loads,
 replays, compiles or authors control graphs belongs in the engine repository. The verifier and
@@ -22,7 +25,9 @@ bundles are reference parts of a sequence.
 Read in this order, every session, before the first change:
 
 1. This file.
-2. [`SCHEMA.md`](SCHEMA.md): the normative contracts for every file format in the tree.
+2. [`SCHEMA.md`](SCHEMA.md): the bundle contract and every other file format in the tree. Each
+   rule in it names the check that enforces it, or says `not yet checked (L<n>)`, or says `reader`
+   where only a reviewer can enforce it.
 3. [`Handoff.md`](Handoff.md), "Boundaries to preserve": what the routine bundles are and are not.
 4. The GitHub issue you are assigned, then its milestone's tracking issue (the issue labelled
    `tracking` lists the order and the hard dependencies).
@@ -95,9 +100,11 @@ is the one pull request into `development` that is not squash-merged.
    deployment check as an execution test.
 4. **Formats and schemas stay at revision 1 until 1.0.0 and change in place.** No backwards
    compatibility: no new revision number, no reader for an older shape, no migration table. A
-   change to a format edits `SCHEMA.md` and converts the corpus in the same pull request. Where a
-   sentence in `SCHEMA.md` still asks for an identifier bump, or an identifier already carries a
-   higher number, the bundle-contract issue resolves it; do not add to either.
+   change to a format edits `SCHEMA.md` and converts the corpus in the same pull request. The
+   exception is pull request #121 alone and ends when L3 (#108) merges. An amendment to
+   `SCHEMA.md` before then converts, in the same pull request, every bundle already converted.
+   Until L3 merges, the data files and the lints still carry the identifiers the tree had before;
+   `SCHEMA.md`, "Identifiers", says what to write in the meantime.
 5. **No engine-shaped code.** Nothing that loads, replays, compiles or authors control graphs is
    added here. What the library needs from the engine is asked for in an engine issue and consumed
    at `ENGINE_PIN`.
@@ -197,8 +204,8 @@ that shadows a command all pass.
 
 | Path | Purpose |
 | --- | --- |
-| `SCHEMA.md` | The normative contracts. |
-| `faults/<family>/<ID>/` | One fault rule per folder: `card.md`, `rule.cxf.jsonld`, `vectors.json`, `diagram.svg`. `faults/registry.json` maps them. |
+| `SCHEMA.md` | The bundle contract and every other file format. |
+| `faults/<family>/<ID>/` | One fault bundle per folder. Until L2 and L3 convert it to the layout in `SCHEMA.md`: `card.md`, `rule.cxf.jsonld`, `vectors.json`, `diagram.svg`. `faults/registry.json` maps them. |
 | `routines/` | The routine catalog: two Guideline 36 reference bundles, schemas, the source inventory and its pins. |
 | `points/`, `playbooks/`, `clusters/` | Point dictionaries, remediation playbooks, fault clusters. |
 | `tools/` | The inherited verifier and routine compiler, the lints, the dataset harness and the book generator. |

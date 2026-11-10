@@ -25,7 +25,7 @@ routine inventories:
 - `g36/source-inventory.json` records every regular Git blob below the pinned
   upstream G36 source root in separate release and development snapshots.
   `g36/LICENSE-BUILDINGS.html` retains the legal notice shared by both pins.
-- `registry.json` is the sole canonical class inventory. Its v3 rows register
+- `registry.json` is the sole canonical class inventory. Its rows register
   review-only reference bundles with IDs, names, status, and class directories.
   Fixed engineering values do not appear in class IDs.
 - `generated-registry.json` is the only future executable deployment inventory.
@@ -85,8 +85,8 @@ variants or source locations. Local types and enums belong to one interface.
 The schemas cover scalar and rank-one/rank-two typed values,
 fixed and parameter-controlled dimensions, stable repeated-member IDs, and
 parameter-only optional-connector guards. A fixed dimension owns an ordered
-canonical member list in interface v3 whose count equals its extent. A
-parameter-driven dimension has no canonical member list; specialization v1 owns
+canonical member list in the interface whose count equals its extent. A
+parameter-driven dimension has no canonical member list; the specialization owns
 its ordered members. Member IDs are authored stable identities rather than
 array ordinals and are unique across all dimensions in an interface and
 specialization pair. The schemas do not evaluate guards or define production
@@ -137,14 +137,30 @@ reports engine replay as **not-run**. `cxf-verify --routines` still checks the
 empty deployment inventory; it does not verify these reference cases and must
 not be reported as executable sequence coverage.
 
-Each class folder has `card.md`, `source.md`, `class-manifest.json`,
+## What a routine bundle holds
+
+`SCHEMA.md` is the contract. A routine is a bundle of kind
+`routine`: the files every bundle has (`card.md`, the authoring text form
+`graph.oce`, the CXF emitted from it as `graph.cxf.jsonld`, `vectors.json`, at
+least one mutant under `mutants/`, `receipt.json` and `diagram.svg`), and beside
+them `source.md`, `overview.svg` and the four class files `class-manifest.json`,
+`interface.json`, `specialization.json` and `specialization.schema.json`. Port
+types, units and accepted ranges are written in the text form, where the engine
+enforces the ranges. The two things the text form cannot say are on the card:
+`integer_codes`, the integers a mode input accepts and what each means, and
+`ordered_inputs`, the pairs of inputs whose first may not exceed the second. A
+routine's status stays `reference` whether or not it is verified, and no file
+in a bundle is an activation authorization.
+
+**The two bundles are not converted yet** (issue #107). Until they are, each
+class folder has `card.md`, `source.md`, `class-manifest.json`,
 `interface.json`, `specialization.schema.json`, `specialization.json`,
 `reference.json`, `reference.cxf.jsonld`, `vectors.json`, `overview.svg`, and
-`diagram.svg`. The empty specialization is intentional: these two scalar classes
-have no structural choices, and their engineering software values remain runtime
-inputs. The reference contract carries the explicit scalar ABI, units, accepted
-ranges, and cross-input ordering checks. It is not a semantic binding profile or
-an activation authorization.
+`diagram.svg`; `reference.json` carries the integer codes, units, accepted
+ranges and input ordering; and the commands under "Reference replay" above are
+how they are checked. The empty specialization is intentional: these two scalar
+classes have no structural choices, and their engineering software values remain
+runtime inputs.
 
 ## Before any live deployment
 
