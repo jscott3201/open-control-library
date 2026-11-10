@@ -71,6 +71,23 @@ whose numbers overlap GitHub's.
 - `AGENTS.md` (the issue-to-merge process, the standing rules, CI and the
   gate), a pull-request template and a work-item issue template (GitHub #104).
 
+### Fixed
+
+- `tools/verify` refuses vectors that compare nothing instead of reporting them
+  as passed (GitHub #114). A scenario with an empty `expect` list, or with an
+  expectation whose window holds no tick (it ends before it starts, ends before
+  the first tick, starts after the last tick or falls between two ticks), is
+  reported `FAIL`. A vectors file with no scenario, or whose `clock.step_s` or
+  `clock.horizon_s` is not a finite number greater than zero, is reported
+  `ERROR` for the bundle; a zero `step_s` used to run without end. Each refusal
+  names the bundle, the scenario and the reason, and the run exits with status
+  1. `--trace-json` now refuses a vectors file with no scenario (status 2); it
+  still accepts an empty `expect` list and a zero horizon, because a trace
+  compares nothing itself. `SCHEMA.md` ("Verification") states the rules and
+  the exit statuses. No bundle, vector or card changed: all 137 fault bundles
+  (1,760 scenarios) and both routine reference replays (21 authored scenarios
+  and the generated matrix) pass as before.
+
 ## [0.1.0] - 2026-10-05
 
 First tagged release (GitHub #102). The date is the preparation date; use the tag date if
