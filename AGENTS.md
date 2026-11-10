@@ -172,22 +172,24 @@ Pages deploy job, which runs only for a push or a dispatch on `main`; exactly th
 files. In the gate workflows: exactly the triggers in the table above; no job or step condition
 except `CI OK`'s `always()`; every job listed in its `CI OK`, which runs exactly the result check;
 every checkout with exactly its pinned inputs, which in `pr-gate.yml` name no `ref` and no
-`repository`, so each job tests the pull request itself, and in the release gate name the one
+`repository`, so each job checks out the pull request itself, and in the release gate name the one
 commit resolved for the run (`github.sha`; `development` for the scheduled run); no cache in the
 release gate.
 
 **The gate commands are pinned** in the check. Each job of `pr-gate.yml` and `release-gate.yml`
 must run exactly the pinned command lines, in order, so a command cannot leave a gate workflow,
-lose a flag or gain `|| true` under a green `CI OK`. Of `.agents/gate.sh` the check proves this:
-its first command is `set -euo pipefail`, and no later line changes the shell options; every
-`step` and `engine_step` line holds one command and no control operator; the commands on those
-lines are exactly the gate commands `pr-gate.yml` runs, and the functions the other steps call are
-the pinned ones, line for line and operator for operator; no other function is defined in the
-`name() {` form. It does not prove that a step is reached or that its result counts. The check
-reads the script; it does not run it or follow its control flow, so a final `exit 0`, a redefined
-`step` or `record`, an `if false` around a step, a `trap`, a heredoc that swallows a step, and a
-function written in another form (`function name {`, or on one line) that shadows a command all
-pass.
+lose a flag or gain `|| true` under a green `CI OK`. The lines are compared, not what surrounds
+them: a workflow or job `env`, a `working-directory` or an added action step can still change what
+a pinned line does. Of `.agents/gate.sh` the check proves this: its first command is
+`set -euo pipefail`, and no later line changes the shell options; every `step` and `engine_step`
+line holds one command and no control operator; each of those commands is a gate command
+`pr-gate.yml` runs or a call of a pinned function; each pinned function matches its pin line for
+line and operator for operator; between them they run every gate command `pr-gate.yml` runs; no
+other function is defined in the `name() {` form. It does not prove that a step is reached or that
+its result counts. The check reads the script; it does not run it or follow its control flow, so a
+final `exit 0`, a redefined `step` or `record`, an `if false` around a step, a `trap`, a heredoc
+that swallows a step, and a function written in another form (`function name {`, or on one line)
+that shadows a command all pass.
 
 ---
 

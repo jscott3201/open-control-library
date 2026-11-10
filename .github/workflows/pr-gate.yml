@@ -30,8 +30,8 @@
 #
 # Rules, enforced by .github/scripts/check_workflow_gates.py (job `workflow-rules`): every action
 # is pinned to a full commit SHA with its tag in a trailing comment; every checkout drops the job
-# token and names no `ref` and no `repository`, so each job tests the pull request itself (its
-# inputs are pinned exactly); every job has a timeout of at most an hour and runs on the hosted
+# token and names no `ref` and no `repository`, so each job checks out the pull request itself
+# (its inputs are pinned exactly); every job has a timeout of at most an hour and runs on the hosted
 # `ubuntu-latest` runner, with no container and no services; every run block uses the `bash`
 # default shell, which stops at the first failing command; no job and no step may fail without
 # failing the workflow; no job or step is conditional except `CI OK`; no run block interpolates a

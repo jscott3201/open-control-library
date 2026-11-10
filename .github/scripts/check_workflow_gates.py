@@ -40,15 +40,20 @@ pr-gate.yml first, then in .agents/gate.sh, then here; until all three agree thi
 
 What the gate-script rule proves. The script's first command is `set -euo pipefail`, and no later
 line changes the shell options. Every `step` and `engine_step` line holds one command and no
-control operator. The commands on those lines are exactly the gate commands pr-gate.yml runs, and
-the functions the other steps call are the pinned ones, line for line and operator for operator.
-No other function is defined in the `name() {` form.
+control operator. Each of those commands is a gate command pr-gate.yml runs or a call of a pinned
+function, and each pinned function matches its pin line for line and operator for operator.
+Between them they run every gate command pr-gate.yml runs. No other function is defined in the
+`name() {` form.
 
 What it does not prove. The check reads the script; it does not run it or follow its control
 flow, so it does not show that a step is reached or that its result counts. A final `exit 0`, a
 redefined `step` or `record`, an `if false` around a step, a `trap`, a heredoc that swallows a
 step, and a function written in another form (`function name {`, or on one line) that shadows a
 command all pass.
+
+What the gate-commands rule does not prove. It compares the command lines of a gate workflow, not
+what surrounds them: a workflow or job `env`, a `working-directory` or an added action step can
+still change what a pinned line does.
 
 Usage: python3 .github/scripts/check_workflow_gates.py [workflow-directory [gate-script]]
 Needs PyYAML (pinned with the other gate requirements).
@@ -259,7 +264,7 @@ SCRIPT_PLUMBING = ("record", "step", "engine_step", "observed_totals")
 
 # ── Checkouts of the gate workflows ──────────────────────────────────────────────────────────
 # The exact `with:` of every checkout. pr-gate.yml names no ref and no repository, so each job
-# tests the pull request's own merge commit; release-gate.yml names the one commit of the run.
+# checks out the pull request's own merge commit; release-gate.yml names the one commit of the run.
 CHECKOUT_INPUTS = {
     "pr-gate.yml": {"persist-credentials": False},
     "release-gate.yml": {"ref": CHECKOUT_REF_USE, "persist-credentials": False},

@@ -249,15 +249,16 @@ NOT COVERED BY THIS SCRIPT — a green run here does not prove these pass:
     same in both: the channel the pinned engine names.
   · this script's control flow, and this script as CI executes it. The
     workflow rules step proves that the first command is set -euo pipefail and
-    no later line changes the shell options, that every step line holds one
-    command and no control operator, that the commands on those lines are
-    exactly the gate commands pr-gate.yml runs, and that the functions the
-    other steps call are the pinned ones, line for line and operator for
-    operator. It does not prove that a step is reached or that its result
-    counts: it reads the script and does not follow its control flow, so a
-    final exit 0, a redefined step or record, an if false around a step, a
-    trap, a heredoc that swallows a step, and a function written in another
-    form that shadows a command all pass. CI executes this script only in
+    no later line changes the shell options; that every step line holds one
+    command and no control operator; that each of those commands is a gate
+    command pr-gate.yml runs or a call of a pinned function; that each
+    pinned function matches its pin line for line and operator for operator;
+    and that between them they run every gate command pr-gate.yml runs. It
+    does not prove that a step is reached or that its result counts: it
+    reads the script and does not follow its control flow, so a final
+    exit 0, a redefined step or record, an if false around a step, a trap,
+    a heredoc that swallows a step, and a function written in another form
+    that shadows a command all pass. CI executes this script only in
     release-gate.yml, after a merge and daily: for a pull request that
     changes this script, a script under .github/scripts or a workflow, this
     run is the only one before the merge.
