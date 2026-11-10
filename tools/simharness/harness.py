@@ -678,8 +678,22 @@ def write_plant_rule_copy(rule_dir: Path, target: Path, rid: str) -> None:
 
 
 def plant_gate_windows(key: str | None, pts: dict, n: int) -> list:
+    """Expect windows for one plant rule over a run of `n` samples.
+
+    A rule with no gate (`key` is None) is asserted from the end of the lead
+    margin to the last sample. A run that ends before the margin does has no
+    tick to assert on, so it is refused here: the window would end before it
+    starts, which the verifier refuses as comparing nothing.
+    """
     if key is None:
-        return [(GATE_LEAD_S, (n - 1) * STEP_S)]
+        last = (n - 1) * STEP_S
+        if last < GATE_LEAD_S:
+            raise ValueError(
+                f"run too short for an ungated rule: {n} sample(s) at {STEP_S}s end at "
+                f"{last}s, before the {GATE_LEAD_S}s lead margin is over, so the window "
+                f"{GATE_LEAD_S}..{last}s would hold no tick and compare nothing; "
+                f"simulate a period that runs at least {GATE_LEAD_S}s")
+        return [(GATE_LEAD_S, last)]
     if key == "chw_load40":
         ok = [v > 40.0 for v in pts["chiller_load"]]
     elif key == "chiller_loaded20":

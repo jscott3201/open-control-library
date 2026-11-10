@@ -87,6 +87,23 @@ whose numbers overlap GitHub's.
   runs as it already did for pushes, instead of a ref that can move while the
   run waits (GitHub #112). Both jobs read the commit resolved when the event
   fired; the scheduled run still checks out `development` by name.
+- `cxf-library/vectors/v1` has no per-vector `tolerance` any more, and the
+  format is closed (GitHub #119, issue #116). `tools/verify` put no upper bound
+  on an expectation's optional `tolerance`, so a large one (`1e308`, or `1e6`
+  against a setpoint of 0.6) made a Real comparison that could not fail. No
+  vector, routine or fixture in the repository set the field, so it is removed
+  instead of bounded: a Real output matches within a fixed 1e-9 of `equals`,
+  and a vector that carries `tolerance` is refused as an unknown field, by
+  `tools/verify` and by `tools/routines/reference.py` (which accepted values up
+  to 1e-6). Named tolerances belong to the bundle contract (GitHub #106). A
+  field `SCHEMA.md` does not name is now refused instead of ignored, in the
+  file, its clock, a scenario, an expectation (the bundle is reported `ERROR`)
+  and a step of an input's step list (the scenario is reported `FAIL`), and
+  two scenarios of one file may not share a name (`ERROR`). `--trace-json`
+  refuses the same files with status 2. No bundle, vector or card changed: no
+  file in the library carried an unknown field or a repeated scenario name,
+  and all 137 fault bundles (1,760 scenarios) and both routine reference
+  replays pass as before.
 
 ### Added
 
@@ -121,6 +138,20 @@ whose numbers overlap GitHub's.
   the exit statuses. No bundle, vector or card changed: all 137 fault bundles
   (1,760 scenarios) and both routine reference replays (21 authored scenarios
   and the generated matrix) pass as before.
+- `tools/verify` refuses a clock that schedules more than 1,000,000 ticks
+  (`floor(horizon_s / step_s)` of 1,000,000 or more), the limit `--trace-json`
+  already had (GitHub #119, issue #116). `step_s: 1e-300` against a horizon of
+  one second, or a 60 s step against `horizon_s: 1e300`, ran without end: the
+  replay had no limit, and for a window with no tick inside it the coverage
+  check walked the whole schedule before it could refuse the window. The clock
+  is now checked first and the bundle is reported `ERROR` before any tick runs.
+  The largest bundle in the library schedules 2,593 ticks.
+- `tools/simharness/harness.py` refuses a run that ends inside the 3600 s lead
+  margin of an ungated plant rule, and says why (GitHub #119, issue #116). It
+  used to emit the window from 3600 s to the last sample, which ends before it
+  starts for a run shorter than an hour (a one-sample run included); the
+  verifier once passed such a window without comparing anything and now
+  refuses it. A run whose last sample is at 3600 s or later is unchanged.
 
 ## [0.1.0] - 2026-10-05
 

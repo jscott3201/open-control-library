@@ -76,6 +76,19 @@ class ReferenceTests(unittest.TestCase):
                 value = copy.deepcopy(self.vectors[0]); change(value)
                 self.reject(r.validate_vectors, value, self.refs[0])
 
+    def test_expectation_that_carries_a_tolerance_is_rejected_as_an_unexpected_key(self):
+        expectation = self.vectors[1]["scenarios"][0]["expect"][0]
+        self.assertEqual(self.refs[1]["outputs"][expectation["output"]]["type"], "real")
+        r.validate_vectors(self.vectors[1], self.refs[1])
+        for tolerance in (1e-9, 0, 1e-6, 1, 1e308):
+            with self.subTest(tolerance=tolerance):
+                value = copy.deepcopy(self.vectors[1])
+                value["scenarios"][0]["expect"][0]["tolerance"] = tolerance
+                with self.assertRaisesRegex(
+                        r.InvalidReference,
+                        r"expectation: keys must be exactly output, from_s, to_s, equals \(unexpected tolerance\)"):
+                    r.validate_vectors(value, self.refs[1])
+
     def test_clock_and_schedule_boundaries(self):
         for clock in ({"step_s": 0, "horizon_s": 2}, {"step_s": 1, "horizon_s": -1},
                       {"step_s": 1, "horizon_s": 1.5}, {"step_s": 1, "horizon_s": 10001},
@@ -153,6 +166,23 @@ class ReferenceTests(unittest.TestCase):
                          lambda t: t["scenarios"][0]["samples"][0]["outputs"].pop("deadband")):
             value = copy.deepcopy(trace); mutation(value)
             self.reject(run, value)
+
+    def test_traced_real_matches_only_within_the_fixed_tolerance(self):
+        vector = copy.deepcopy(self.vectors[1]); vector["scenarios"] = vector["scenarios"][:1]
+        case = vector["scenarios"][0]
+        out = {e["output"]: e["equals"] for e in case["expect"]}
+        self.assertEqual(out["airflow_setpoint"], 0.6)
+        ticks = int(vector["clock"]["horizon_s"] / vector["clock"]["step_s"]) + 1
+        def run(setpoint):
+            samples = [{"t": t * vector["clock"]["step_s"], "outputs": out | {"airflow_setpoint": setpoint}} for t in range(ticks)]
+            trace = {"schema": "cxf-library/replay-trace/v1", "scenarios": [{"name": case["name"], "samples": samples}]}
+            with patch.object(r.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=json.dumps(trace), stderr="")):
+                return r.replay(Path("unused"), self.bundles[1][1] / "reference.cxf.jsonld", vector, self.refs[1])
+        for near in (0.6, 0.6 + 5e-10, 0.6 - 5e-10):
+            self.assertGreater(run(near)["assertions"], 0)
+        for far in (0.6 + 2e-9, 0.6 - 2e-9, 0.7):
+            with self.subTest(observed=far), self.assertRaisesRegex(r.InvalidReference, "airflow_setpoint@0.*expected 0.6, observed"):
+                run(far)
 
     def test_empty_catalog_does_not_claim_engine_replay(self):
         with patch.object(r, "validate_catalog", return_value=[]), \

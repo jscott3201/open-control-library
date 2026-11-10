@@ -676,15 +676,27 @@ Target dialect: the open-control engine's composite subset
 
 - `clock`: ticks run at `k × step_s` for `k = 0 … floor(horizon_s / step_s)`,
   so the first tick is at 0 s and the last at the last whole step. `step_s` is
-  a finite number greater than zero.
+  a finite number greater than zero. A clock schedules at most 1,000,000
+  ticks: `floor(horizon_s / step_s)` is below 1,000,000.
 - `inputs`: canonical point name → constant (number/bool) or a step list
   `[{t, value}…]` (piecewise-constant; each value staged before the first tick
   with model time ≥ its `t`).
 - `expect`: windowed assertions on boundary outputs, inclusive of both ends,
-  checked at every tick whose time falls in the window. Reals compare with
-  optional `tolerance` (default 1e-9). A window with no tick inside it checks
-  nothing, and a scenario with no expectation asserts nothing: a replay for a
-  verdict refuses both (see "Verification").
+  checked at every tick whose time falls in the window. A Boolean or an
+  Integer output matches `equals` exactly; a Real output matches when it is
+  within 1e-9 of `equals`, as an absolute difference. That is the verifier's
+  one rule for every expectation. An expectation has no `tolerance` field: the
+  per-vector tolerance is gone until the bundle contract (GitHub #106) defines
+  named tolerances, and a vector that carries one is refused like any other
+  unknown field. A window with no tick inside it checks nothing, and a
+  scenario with no expectation asserts nothing: a replay for a verdict refuses
+  both (see "Verification").
+- The format is closed. The file has exactly `schema`, `clock` and
+  `scenarios`; the clock, `step_s` and `horizon_s`; a scenario, `name`,
+  `inputs`, `expect` and the optional `description`; an expectation, `output`,
+  `from_s`, `to_s` and `equals`; a step of a step list, `t` and `value`. A
+  field this contract does not name is refused, not ignored.
+- A scenario's `name` is unique in its file.
 - Scenarios are independent: each runs on a freshly loaded engine.
 - Windows must respect timing parameters (e.g. leave ≥ one step of margin
   around an `alarm_delay` edge rather than asserting the exact boundary tick).
@@ -848,12 +860,22 @@ nothing is refused before any tick runs, with a message that names the bundle,
 the scenario and the reason:
 
 - The bundle is reported `ERROR`, and none of its scenarios is replayed, when
-  its vectors file holds no scenario, or when `clock.step_s` or
-  `clock.horizon_s` is not a finite number greater than zero.
+  its vectors file holds no scenario, when two of its scenarios have the same
+  name, when `clock.step_s` or `clock.horizon_s` is not a finite number greater
+  than zero, or when the clock schedules more than 1,000,000 ticks
+  (`floor(horizon_s / step_s)` is 1,000,000 or more). The tick limit is checked
+  before the schedule is walked, so a step far smaller than its horizon is
+  refused at once instead of running without end.
 - A scenario is reported `FAIL` when its `expect` list is empty, or when one of
   its expectations has a window that holds no tick: one that ends before it
   starts (`to_s` below `from_s`), ends before the first tick at 0 s, starts
   after the last tick, or falls between two neighbouring ticks.
+
+A vectors file that carries a field the contract does not name (`tolerance`
+on an expectation is one) is not read: the bundle is reported `ERROR` with the
+file and the field, and none of its scenarios is replayed. An unknown field in
+a step of an input's step list fails that scenario (`FAIL`) and names the
+input and the field.
 
 A refused scenario is a failed scenario. The verifier exits with status 0 only
 when every bundle it was given passed its lint (skipped under `--replay-only`)
@@ -865,5 +887,7 @@ failed `--trace-json`, `--routines` or `--g36-declarations` request.
 `--trace-json` records the committed outputs of every scenario and compares
 nothing itself: its caller holds the expected values. It therefore accepts an
 empty `expect` list and a `horizon_s` of zero (a single tick at 0 s). It
-refuses a vectors file with no scenario and a `step_s` that is not greater
-than zero.
+refuses a vectors file with no scenario, one in which two scenarios have the
+same name, one that carries a field the contract does not name, a `step_s`
+that is not greater than zero, and a clock over the same limit of 1,000,000
+ticks.
