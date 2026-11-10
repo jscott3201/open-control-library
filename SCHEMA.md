@@ -95,7 +95,14 @@ content id tag `oce:canon1:`.
 
 Two outputs of tools under `tools/` carry identifiers of the same family and are defined by those
 tools, not here: the dataset harness result (`tools/dataset_harness/result.schema.json`) and the
-trace the inherited verifier prints. L4 decides what remains of each.
+trace the inherited verifier prints. Issue #109 settles what remains of each.
+
+**Until L3 merges, write what the lints require, not what this table says.** The data files and
+the lints still carry the identifiers the tree had before this contract: the prefix `cxf-library/`
+in place of `ocl/`, with four of them above revision 1 (the dictionaries that have `imports`, the
+routine registry, the routine interface and the coverage manifest). L3 rewrites every file and
+every lint constant to the table above in one pull request. A file added before then uses the
+identifier its lint accepts today.
 
 | # | Rule | Check |
 |---|---|---|
@@ -175,7 +182,7 @@ keeps only a minimal conformance corpus.
 | # | Rule | Check |
 |---|---|---|
 | B-1 | A bundle directory holds exactly the files of [Files](#files), plus, for kind `routine`, the files of [Routine bundles](#routine-bundles). A file this contract does not name is refused. | not yet checked (L2): the bundle lint, on the bundles L2 converts; L3 for every bundle |
-| B-2 | A bundle whose status is not `draft` holds every file of [Files](#files) and at least one mutant. A `draft` bundle may lack `mutants/` and `receipt.json`, and then its card has no `verified` block. | not yet checked (L2): the bundle lint |
+| B-2 | A bundle with no mutant does not meet [the bar](#the-bar): its status is `draft`, it has no `receipt.json`, and its card has no `verified` block. A bundle of any other status holds every file of [Files](#files) and at least one mutant. Kind `routine` has no `draft` status, so a routine bundle always holds a mutant. | not yet checked (L2): the bundle lint |
 | B-3 | The card's `kind` is the kind its location gives: `fault` under `faults/`, `routine` under `routines/`. | not yet checked (L2): the bundle lint |
 | B-4 | No bundle holds a `reference/` directory. The name is reserved for file-backed reference series, which the vector format does not have. | not yet checked (L2): B-1 refuses it |
 | B-5 | Every fault bundle has exactly one row in `faults/registry.json`, and every routine bundle exactly one row in `routines/registry.json`; neither registry has a row without a bundle. | `tools/lint/registry.py` (faults); `tools/routines/reference.py` and `tools/lint/routine_schemas.py` (routines) |
@@ -317,7 +324,7 @@ bundle's own files. The claim is exactly this:
 | V-5 | In `receipt.json`: `schema` is `oce/receipt/v1`, `kind` is `vectors`, `comparison.mode` is `exact`, `passed` is true, `body.status` is `pass`, `body.load_warnings_total` is 0, `body.mutants.status` is `scored`, `body.mutants.total` is at least 1 and `body.mutants.survived` is 0. | not yet checked (L2): the bundle lint reads the receipt |
 | V-6 | The stamp equals the receipt fields it copies, and `oce id graph.cxf.jsonld` prints the stamp's `content_id`. | not yet checked (L2): the bundle lint and `oce id` |
 | V-7 | The `oce` binary is built from the engine checkout at the commit in `ENGINE_PIN`, with no tracked file of that checkout modified, and with the Rust toolchain that checkout names. | `bash .github/scripts/pinned-sources.sh check` proves the checkout today; not yet checked (L2): the step that builds `oce` from it |
-| V-8 | A status of `verified`, `adopted`, `deprecated` or `reference` requires a stamp. | `tools/verify` lint requires the fields the card has today for `verified` and `adopted`; not yet checked (L2): the bundle lint, for this stamp and all four statuses |
+| V-8 | A status of `verified` or `reference` requires a stamp, and a status of `draft` forbids one. A bundle is never stamped on the strength of scenarios alone: a set that lists no mutant produces no mutant score to copy. | `tools/verify` lint requires, for `verified`, the fields the cards carry today; not yet checked (L2): the bundle lint, for this stamp and both directions |
 | V-9 | No expectation, vector or mutant is edited to make a failing run pass. A failing scenario is a finding and is reported. A new scenario may be added and is named in the pull request. | reader |
 
 A run-time warning does not fail the bar. The receipt counts warnings per scenario and for the set
@@ -333,7 +340,7 @@ A vacuous PASS is a green result that compared nothing, or nothing that could ha
 |---|---|---|
 | A set with no scenario, or a scenario with no expectation. | The set's verdict is `no_data` and `oce verify` exits 1. | not yet checked (L2): V-3 |
 | A window that contains no tick, runs backwards, or lies outside the clock. | The engine refuses the file. | not yet checked (L2): V-3, codes `window-uncovered`, `invalid-window`, `window-outside-clock` |
-| An input step placed after the horizon, where it could never take effect, or a horizon the clock never reaches. | The engine refuses the file. | not yet checked (L2): V-3, codes `step-after-horizon`, `horizon-off-cadence` |
+| An input step placed after the horizon, where it could never take effect, or a horizon the clock never reaches. | T-9; the engine refuses the file. | not yet checked (L2): V-3, codes `step-after-horizon`, `horizon-off-cadence` |
 | Two scenarios with one name, so that one hides the other in a report. | The engine refuses the file. | not yet checked (L2): V-3, code `duplicate-scenario` |
 | A field the format does not define, such as `tolerance`, silently ignored. | The format is closed at every level. | not yet checked (L2): V-3, code `unknown-key` |
 | A scenario that leaves an input without a value, so the graph runs on a default. | The engine refuses the set. | not yet checked (L2): V-3, code `input-not-supplied` |
@@ -438,6 +445,7 @@ This section holds only the rules this library adds for its own bundles.
 | T-6 | A Real expectation is an exact literal. A bundle that needs a band waits for the format's `within`, which uses the named tolerances of `docs/design/commissioning.md`; until the engine has it, the key is refused. | not yet checked (L2): `oce verify`, `unknown-key` |
 | T-7 | The scenarios of a fault bundle include the published test vectors of the reference its card cites, at least one case at a threshold edge, and, where the graph has timing state, at least one transient that exercises the delay and its reset. | reader; M-7 with M-6 is the mechanical half |
 | T-8 | A window does not assert the tick at which a delay expires. It leaves at least one step of margin on each side of that edge. | reader |
+| T-9 | No step of an input's step list lies after the horizon. Such a step never takes effect, so a file that has one says less than it appears to, and it is refused. | not yet checked (L2): `oce verify`, `step-after-horizon`. The inherited verifier does not refuse it; issue #120 adds that refusal and L3 corrects the files that have one |
 
 ## Mutants
 
@@ -480,15 +488,16 @@ section does not name for the card's kind is refused.
 | `id` | string | The bundle id |
 | `name` | string | A short name for a person |
 | `equipment` | string | An equipment family key: the stem of one file `points/<equipment>.points.json` |
-| `status` | enum | Kind `fault`: `draft` \| `verified` \| `adopted` \| `deprecated`. Kind `routine`: `reference`. |
+| `status` | enum | Kind `fault`: `draft` \| `verified`. Kind `routine`: `reference`. |
 | `g36` | string or null | The clause of ASHRAE Guideline 36 the bundle implements, or null. Never null for kind `routine`. |
 | `derived_from` | string or null | The id of the bundle this one is derived from, or null. It equals the `derived_from` statement of `graph.oce`. It is an opaque provenance id: nothing resolves it until the bundle index exists. |
 | `verified` | map | [The stamp](#the-stamp). Absent while the status is `draft`. |
 
-`status` says where a bundle is in its life. `draft` makes no claim. `verified` means the bundle
-meets [the bar](#the-bar). `reference` is the one status of a routine: the routine meets the bar
-and is not a deployable controller. `adopted` and `deprecated` are labels a maintainer sets on a
-fault that still meets the bar; no check gives either a further meaning.
+`status` has three values and each has a check. `draft` makes no claim: the bundle has no stamp.
+`verified` means a fault bundle meets [the bar](#the-bar). `reference` is the one status of a
+routine: the routine meets the bar and is not a deployable controller. There is no other value. A
+status is added to this table, with the check that gives it a meaning, by the pull request that
+first needs it.
 
 ### Front matter of kind `fault`
 
@@ -560,7 +569,7 @@ symbols to them explicitly.
 |---|---|---|
 | C-1 | `schema` is `ocl/card/v1`, and the front matter has exactly the keys this section names for the card's kind, with every required key present. | `tools/verify` lint checks the identifier the cards carry today; not yet checked (L3): the bundle lint, for this identifier and the closed key set |
 | C-2 | `id` equals the bundle id, and for a fault the folder name. `equipment` is a dictionary key, and for a fault the family folder. | `tools/verify` lint (faults); not yet checked (L2): the bundle lint (routines) |
-| C-3 | `status`, `method`, `category` and `severity` hold one of the values listed. | `tools/verify` lint |
+| C-3 | `status`, `method`, `category` and `severity` hold one of the values listed. | `tools/verify` lint, which also accepts two status values this contract does not have (`adopted`, `deprecated`; no card uses either); not yet checked (L3): the bundle lint refuses them |
 | C-4 | `points` and `outputs` are not empty. Every entry of `points` resolves in the family dictionary. | `tools/verify` lint |
 | C-5 | Every entry of `clusters` is an id in `clusters/clusters.json`, and every entry of `playbooks` names a file `playbooks/<slug>.md`. | `tools/verify` lint |
 | C-6 | `adjudicates.verdict` is one of its two values, `adjudicates.points` is not empty, and each of its points is among the card's own `points`. | `tools/verify` lint |
@@ -589,6 +598,9 @@ behaviour a scenario pins on purpose. `faults/ahu/AHU-0016/card.md` is the exemp
 order and the lengths are `reader` rules.
 
 ## Diagrams: `diagram.svg`
+
+`diagram.svg` is drawn by hand. No tool generates it, and no tool compares it with the graph: that
+it shows what `graph.oce` says is a reviewer's check (D-3).
 
 Boundary inputs are blue pills on the left and fault outputs red pills on the right. Each block is
 a rounded rectangle labelled with its instance name over `Class · key parameters`, and signals flow

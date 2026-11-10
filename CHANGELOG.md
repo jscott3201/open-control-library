@@ -31,6 +31,33 @@ whose numbers overlap GitHub's.
 
 ### Changed
 
+- `SCHEMA.md` is replaced, in place, by the bundle contract (GitHub #121, issue
+  #106). One contract covers every bundle kind (`fault`, `routine`, and
+  `sequence`, of which none exists yet). The source of truth of a bundle is its
+  authoring text form, `graph.oce`; its CXF, `graph.cxf.jsonld`, is emitted
+  from that text by the `oce` tool built from the engine commit in
+  `ENGINE_PIN`; and a bundle is verified when that tool has replayed its
+  vectors green and each of its mutants has failed at least one scenario, with
+  the receipt committed and the card's stamp copied from it (content id,
+  engine version, vector set id, mutants caught). The contract states what
+  verified does not claim: deployment qualification, or conformance to
+  ANSI/ASHRAE Standard 231-2026 or to Guideline 36. Every rule in it names the
+  check that enforces it or says `not yet checked (L<n>)`. Decided with it, by
+  the owner on 2026-11-10: every identifier is at revision 1 under the prefix
+  `ocl/`; the sequence name inside a graph is the bundle id in lower case with
+  underscores; every bundle is emitted under the namespace
+  `urn:open-control-library:bundle:`; a routine bundle keeps its four class
+  files and loses `reference.json`, whose integer codes and input ordering
+  move to the card; `faults/registry.json` loses `legacy_id`; a bundle's
+  vectors set no parameters and assert every output. The contract also removes
+  two status values that no card used and no check defined (`adopted`,
+  `deprecated`), and the vector format it cites is the engine's
+  `oce/vectors/v1`, in which a Real is compared bit for bit. **No file other
+  than documents changed.** No bundle, dictionary, registry, lint or workflow
+  is converted here: the contract is ahead of the tree until L2 (issue #107)
+  and L3 (issue #108) merge, the lints still require the identifiers the files
+  carry today, and every `verified` on a card still means what it meant before
+  this entry. `README.md`, `routines/README.md` and `AGENTS.md` say the same.
 - `tools/verify` drives the engine through complete frames (GitHub #103). The
   engine removed per-input staging and `tick` when complete frames became its
   only execution surface, so the verifier did not compile against any engine
