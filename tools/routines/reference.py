@@ -26,6 +26,9 @@ ARTIFACTS = ("class-manifest.json", "interface.json", "specialization.schema.jso
              "specialization.json", "reference.json", "reference.cxf.jsonld",
              "vectors.json", "card.md", "source.md", "diagram.svg", "overview.svg")
 ID_PATTERN = re.compile(r"G36-05-(0[1-9]|1[0-9]|2[0-2])-[A-Z]+(?:-[A-Z]+)*\Z")
+# How far a traced Real output may lie from its expected value, as an absolute difference. It is
+# the verifier's one rule for Reals (SCHEMA.md, "`vectors.json` contract"); a vector cannot widen it.
+REAL_TOLERANCE = 1e-9
 
 
 class InvalidReference(ValueError):
@@ -182,15 +185,12 @@ def validate_vectors(vectors: dict, ref: dict) -> int:
         expected = case["expect"]
         require(isinstance(expected, list) and expected, f"{name}: expectations required")
         for exp in expected:
-            require(isinstance(exp, dict) and {"output", "from_s", "to_s", "equals"} <= set(exp) <= {"output", "from_s", "to_s", "equals", "tolerance"}, f"{name}: invalid expectation shape")
+            exact(exp, ("output", "from_s", "to_s", "equals"), f"{name} expectation")
             output = exp["output"]
             require(isinstance(output, str) and output in ref["outputs"], f"{name}: unknown output")
             value_valid(exp["equals"], ref["outputs"][output], f"{name}/{output} expected")
             lo, hi = exp["from_s"], exp["to_s"]
             require(number(lo) and number(hi) and lo in ticks and hi in ticks and lo <= hi, f"{name}: empty or off-clock expectation window")
-            tol = exp.get("tolerance", 1e-9)
-            require(number(tol) and 0 <= tol <= 1e-6, f"{name}: tolerance must be finite and between 0 and 1e-6")
-            require("tolerance" not in exp or ref["outputs"][output]["type"] == "real", f"{name}: tolerance only applies to Real outputs")
         for t in ticks:
             frame = {p: next(e["value"] for e in reversed(events) if e["t"] <= t) for p, events in schedules.items()}
             validate_frame(frame, ref)
@@ -393,7 +393,7 @@ def replay(verifier: Path, graph: Path, vectors: dict, ref: dict) -> dict:
                 actual = sample["outputs"][key]
                 value_valid(actual, ref["outputs"][key], f"engine/{key}")
                 expected = exp["equals"]
-                equal = abs(actual - expected) <= exp.get("tolerance", 1e-9) if ref["outputs"][key]["type"] == "real" else type(actual) is type(expected) and actual == expected
+                equal = abs(actual - expected) <= REAL_TOLERANCE if ref["outputs"][key]["type"] == "real" else type(actual) is type(expected) and actual == expected
                 require(equal, f"{case['name']}/{key}@{t}: expected {expected!r}, observed {actual!r}")
     return {"scenarios": len(traces), "samples": len(traces) * count, "assertions": assertions}
 

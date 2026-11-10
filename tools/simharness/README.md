@@ -165,7 +165,10 @@ can silently include equipment on another loop. DOE prototype IDFs enter via the
 firing-status proxy and same-loop circulation; HW-0010 additionally splits
 windows on active-setpoint changes and applies an 1800 s settling margin;
 unnecessary-operation rules replay ungated — gating on the
-equipment they accuse would mask them). `PLANT_EXCLUDE` names the
+equipment they accuse would mask them). An ungated rule is asserted from the
+end of the 3600 s lead margin to the last sample; a run that ends inside that
+margin is refused with the reason, because its window would hold no tick and
+the verifier refuses a window that compares nothing. `PLANT_EXCLUDE` names the
 baseline-fitted, reset-class, and by-construction rules with reasons.
 
 Historical multi-climate plant outputs made before the cadence/timeline guard

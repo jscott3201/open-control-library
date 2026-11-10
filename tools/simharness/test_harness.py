@@ -125,5 +125,39 @@ class PlantTopologyTests(unittest.TestCase):
             harness.OS_LEAD_S = old_lead
 
 
+class UngatedWindowTests(unittest.TestCase):
+    def setUp(self):
+        self.old_step = harness.STEP_S
+        harness.STEP_S = 300
+
+    def tearDown(self):
+        harness.STEP_S = self.old_step
+
+    def test_ungated_rule_is_asserted_from_the_lead_margin_to_the_last_sample(self):
+        self.assertEqual(harness.GATE_LEAD_S, 3600)
+        # A week at 300 s: 2,017 samples, the last at 604,800 s.
+        self.assertEqual(
+            harness.plant_gate_windows(None, {}, 2017), [(3600, 604800)])
+        # The shortest run that covers the window: its last sample is the one tick inside it.
+        self.assertEqual(
+            harness.plant_gate_windows(None, {}, 13), [(3600, 3600)])
+
+    def test_run_that_ends_inside_the_lead_margin_is_refused_and_says_why(self):
+        # One sample short of the margin, and a single sample: both used to
+        # get the inverted window (3600, last sample).
+        for n, last in ((12, 3300), (2, 300), (1, 0)):
+            with self.subTest(samples=n):
+                with self.assertRaisesRegex(
+                        ValueError,
+                        rf"run too short for an ungated rule: {n} sample\(s\) at 300s "
+                        rf"end at {last}s, before the 3600s lead margin is over, so the "
+                        rf"window 3600\.\.{last}s would hold no tick and compare nothing"):
+                    harness.plant_gate_windows(None, {}, n)
+
+    def test_gated_rule_on_a_short_run_still_has_no_window_and_no_refusal(self):
+        pts = {"chiller_load": [50.0] * 12}
+        self.assertEqual(harness.plant_gate_windows("chw_load40", pts, 12), [])
+
+
 if __name__ == "__main__":
     unittest.main()

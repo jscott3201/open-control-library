@@ -16,7 +16,21 @@ mod point_resolution;
 
 const G36_DECLARATIONS_USAGE: &str = "usage: cxf-verify --g36-declarations <release-root>";
 
+/// The most ticks one scenario may schedule. A clock is refused when
+/// `floor(horizon_s / step_s)`, the index of its last tick, is this or more, on the replay path
+/// and on the trace path alike: a step far smaller than its horizon would otherwise run without
+/// end.
+const MAX_TICKS: f64 = 1_000_000.0;
+
+/// How far a committed Real output may lie from its expected value and still match it, as an
+/// absolute difference. It is the one comparison rule for Reals: a vector cannot widen it.
+const REAL_TOLERANCE: f64 = 1e-9;
+
+/// A `vectors.json` document (SCHEMA.md, "`vectors.json` contract"). The file, its clock, each
+/// scenario and each expectation are closed: a field the contract does not name is refused when
+/// the file is read, so a misspelt or retired field cannot be silently ignored.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Vectors {
     schema: String,
     clock: Clock,
@@ -31,12 +45,14 @@ struct GeneratedRoutineRegistry {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Clock {
     step_s: f64,
     horizon_s: f64,
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Scenario {
     name: String,
     #[serde(default)]
@@ -47,13 +63,12 @@ struct Scenario {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Expect {
     output: String,
     from_s: f64,
     to_s: f64,
     equals: serde_json::Value,
-    #[serde(default)]
-    tolerance: Option<f64>,
 }
 
 impl Expect {
@@ -84,16 +99,23 @@ impl std::fmt::Display for Window {
 }
 
 /// Why a vectors file, or one scenario in it, is refused before any tick runs: replaying it
-/// would compare nothing where it claims to, or its clock describes no schedule. A refused
-/// scenario is a failed scenario; the verifier never reports it as passed.
+/// would compare nothing where it claims to, its clock describes no schedule or one too long to
+/// run, or its report could not tell two scenarios apart. A refused scenario is a failed
+/// scenario; the verifier never reports it as passed.
 #[derive(Debug, Clone, PartialEq)]
 enum Vacuous {
     /// `clock.step_s` is not a finite number greater than zero.
     StepNotPositive { step_s: f64 },
     /// `clock.horizon_s` is not a finite number greater than zero.
     HorizonNotPositive { horizon_s: f64 },
+    /// The clock schedules more than [`MAX_TICKS`] ticks: `floor(horizon_s / step_s)` is
+    /// [`MAX_TICKS`] or more.
+    TooManyTicks { step_s: f64, horizon_s: f64 },
     /// The vectors file holds no scenario.
     NoScenarios,
+    /// Two scenarios of the vectors file have this name, so a report line that carries it would
+    /// not say which of them passed or failed.
+    DuplicateScenarioName { name: String },
     /// The scenario's `expect` list is empty.
     NoExpectations,
     /// The window ends before it starts, so no time is inside it.
@@ -117,9 +139,19 @@ impl std::fmt::Display for Vacuous {
                 f,
                 "`clock.horizon_s` is {horizon_s}: it must be a finite number greater than zero"
             ),
+            // `{:?}` writes a very large or very small number with an exponent, where `{}` would
+            // write out hundreds of digits.
+            Self::TooManyTicks { step_s, horizon_s } => write!(
+                f,
+                "`clock` schedules more than 1,000,000 ticks (`step_s` {step_s:?}, `horizon_s` {horizon_s:?}): `floor(horizon_s / step_s)` must be below 1,000,000"
+            ),
             Self::NoScenarios => {
                 write!(f, "`scenarios` is empty: the vectors file compares nothing")
             }
+            Self::DuplicateScenarioName { name } => write!(
+                f,
+                "`scenarios` holds the name `{name}` more than once: a scenario name must be unique in its vectors file"
+            ),
             Self::NoExpectations => {
                 write!(f, "`expect` is empty: the scenario compares nothing")
             }
@@ -307,11 +339,14 @@ fn resolve_point(paths: &[String], name: &str, kind: &str) -> Result<usize, Stri
     }
 }
 
-fn values_match(got: &Value, expected: &serde_json::Value, tolerance: f64) -> bool {
+/// Whether a committed output is the expected value: a Boolean or an Integer exactly, a Real
+/// within [`REAL_TOLERANCE`]. A value of another type than the expected one never matches, and
+/// neither does a Real that is not a number.
+fn values_match(got: &Value, expected: &serde_json::Value) -> bool {
     match (got, expected) {
         (Value::Boolean(g), serde_json::Value::Bool(e)) => g == e,
         (Value::Real(g), serde_json::Value::Number(n)) => {
-            n.as_f64().is_some_and(|e| (g - e).abs() <= tolerance)
+            n.as_f64().is_some_and(|e| (g - e).abs() <= REAL_TOLERANCE)
         }
         (Value::Integer(g), serde_json::Value::Number(n)) => n.as_i64().is_some_and(|e| *g == e),
         _ => false,
@@ -391,9 +426,11 @@ fn tick_times(clock: &Clock) -> impl Iterator<Item = f64> {
     (0..=last_tick_index(clock)).map(move |k| k as f64 * step_s)
 }
 
-/// A replay clock must describe a schedule: a finite step and a finite horizon, both greater than
-/// zero. A step of zero or less schedules no second tick, and a zero step never reaches the
-/// horizon.
+/// A replay clock must describe a schedule the verifier will run to its end: a finite step and a
+/// finite horizon, both greater than zero, and at most [`MAX_TICKS`] ticks. A step of zero or
+/// less schedules no second tick, and a zero step never reaches the horizon. A step far smaller
+/// than its horizon schedules ticks without end in practice: the quotient of two finite positive
+/// numbers can be as large as infinity, which is refused like any other count over the limit.
 fn check_clock(clock: &Clock) -> Result<(), Vacuous> {
     if !(clock.step_s.is_finite() && clock.step_s > 0.0) {
         return Err(Vacuous::StepNotPositive {
@@ -405,15 +442,36 @@ fn check_clock(clock: &Clock) -> Result<(), Vacuous> {
             horizon_s: clock.horizon_s,
         });
     }
+    if (clock.horizon_s / clock.step_s).floor() >= MAX_TICKS {
+        return Err(Vacuous::TooManyTicks {
+            step_s: clock.step_s,
+            horizon_s: clock.horizon_s,
+        });
+    }
     Ok(())
 }
 
+/// The first scenario name that an earlier scenario in the list already has.
+fn duplicate_scenario_name(scenarios: &[Scenario]) -> Option<&str> {
+    let mut seen = BTreeSet::new();
+    scenarios
+        .iter()
+        .map(|scenario| scenario.name.as_str())
+        .find(|name| !seen.insert(*name))
+}
+
 /// What must hold of a vectors file before any of its scenarios is replayed for a verdict: a
-/// clock that describes a schedule and at least one scenario.
+/// clock that describes a schedule of at most [`MAX_TICKS`] ticks, at least one scenario, and no
+/// name shared by two scenarios.
 fn check_vectors(vectors: &Vectors) -> Result<(), Vacuous> {
     check_clock(&vectors.clock)?;
     if vectors.scenarios.is_empty() {
         return Err(Vacuous::NoScenarios);
+    }
+    if let Some(name) = duplicate_scenario_name(&vectors.scenarios) {
+        return Err(Vacuous::DuplicateScenarioName {
+            name: name.to_string(),
+        });
     }
     Ok(())
 }
@@ -484,6 +542,15 @@ fn prepare_scenario(rule_bytes: &[u8], scenario: &Scenario) -> Result<Replay, St
         match spec {
             serde_json::Value::Array(steps) => {
                 for step in steps {
+                    if let Some(unknown) = step.as_object().and_then(|fields| {
+                        fields
+                            .keys()
+                            .find(|field| !matches!(field.as_str(), "t" | "value"))
+                    }) {
+                        return Err(format!(
+                            "input `{name}`: step has the unknown field `{unknown}`"
+                        ));
+                    }
                     let t = step
                         .get("t")
                         .and_then(serde_json::Value::as_f64)
@@ -539,7 +606,7 @@ fn run_scenario(
                 continue;
             }
             let got = committed_output(&frame, path)?;
-            if !values_match(got, &exp.equals, exp.tolerance.unwrap_or(1e-9)) {
+            if !values_match(got, &exp.equals) {
                 return Err(ScenarioError::Failed(format!(
                     "t={t}s: `{}` = {} but expected {} (window {}..{}s)",
                     exp.output,
@@ -608,7 +675,7 @@ fn validate_trace_clock(clock: &Clock) -> Result<(), String> {
         return Err("trace clock horizon_s must be finite and non-negative".to_string());
     }
     let n_ticks = (clock.horizon_s / clock.step_s).floor();
-    if !n_ticks.is_finite() || n_ticks >= 1_000_000.0 {
+    if !n_ticks.is_finite() || n_ticks >= MAX_TICKS {
         return Err("trace clock exceeds the 1,000,000-sample safety limit".to_string());
     }
     Ok(())
@@ -631,6 +698,15 @@ fn trace_vectors(fault_dir: &Path, vectors_path: &Path) -> Result<TraceDocument,
             "{}: {}",
             vectors_path.display(),
             Vacuous::NoScenarios
+        ));
+    }
+    if let Some(name) = duplicate_scenario_name(&vectors.scenarios) {
+        return Err(format!(
+            "{}: {}",
+            vectors_path.display(),
+            Vacuous::DuplicateScenarioName {
+                name: name.to_string()
+            }
         ));
     }
     if vectors.scenarios.len() > 512 {
@@ -1234,8 +1310,10 @@ mod tests {
     }
 
     /// The check a scenario goes through before it is replayed, for one whose window holds every
-    /// tick there could be, on the clock `step_s`, `horizon_s`. The check runs no tick, so a
-    /// clock that schedules ticks without end is safe to ask about.
+    /// tick there could be, on the clock `step_s`, `horizon_s`. The check executes no frame, but
+    /// it does walk the clock's tick times until one falls inside the window: the clock is
+    /// checked first, so that walk is over at most a million ticks, and this window ends it at
+    /// the first.
     fn check_on_clock(step_s: f64, horizon_s: f64) -> Result<(), Vacuous> {
         check_scenario(
             &Clock { step_s, horizon_s },
@@ -1295,6 +1373,57 @@ mod tests {
         ));
     }
 
+    /// A clock whose step is far smaller than its horizon is refused before the tick schedule
+    /// is walked: the walk, and the replay after it, would not end.
+    #[test]
+    fn clock_that_schedules_more_than_a_million_ticks_is_refused() {
+        let too_many = |step_s, horizon_s| Err(Vacuous::TooManyTicks { step_s, horizon_s });
+        // The limit is on the index of the last tick, `floor(horizon_s / step_s)`.
+        assert_eq!(check_on_clock(1.0, 999_999.0), Ok(()));
+        assert_eq!(check_on_clock(1.0, 999_999.5), Ok(()));
+        assert_eq!(check_on_clock(1.0, 1_000_000.0), too_many(1.0, 1_000_000.0));
+        assert_eq!(check_on_clock(60.0, 59_999_999.0), Ok(()));
+        assert_eq!(
+            check_on_clock(60.0, 60_000_000.0),
+            too_many(60.0, 60_000_000.0)
+        );
+        // The two shapes that ran without end: a step too small and a horizon too long.
+        assert_eq!(check_on_clock(1e-300, 1.0), too_many(1e-300, 1.0));
+        assert_eq!(check_on_clock(60.0, 1e300), too_many(60.0, 1e300));
+        // Two finite numbers whose quotient is not: still a count over the limit.
+        assert_eq!(check_on_clock(1e-300, 1e300), too_many(1e-300, 1e300));
+        assert_eq!(
+            check_on_clock(f64::MIN_POSITIVE, f64::MAX),
+            too_many(f64::MIN_POSITIVE, f64::MAX)
+        );
+
+        // A window no tick is inside does not get the schedule walked for it first: the clock
+        // is the reason, for the scenario and for the file.
+        let unbounded = Clock {
+            step_s: 1e-300,
+            horizon_s: 1.0,
+        };
+        let past_the_horizon = scenario(
+            serde_json::json!({"a": 45.0, "b": 45.0}),
+            serde_json::json!([y_is(false, 2.0, 3.0)]),
+        );
+        assert_eq!(
+            run_scenario(BOTH_ABOVE, &unbounded, &past_the_horizon),
+            refused(Vacuous::TooManyTicks {
+                step_s: 1e-300,
+                horizon_s: 1.0,
+            })
+        );
+        let one_scenario = serde_json::json!([{"name": "probe", "inputs": {}, "expect": []}]);
+        assert_eq!(
+            check_vectors(&vectors(
+                serde_json::json!({"step_s": 60, "horizon_s": 1e300}),
+                one_scenario
+            )),
+            too_many(60.0, 1e300)
+        );
+    }
+
     fn vectors(clock: serde_json::Value, scenarios: serde_json::Value) -> Vectors {
         serde_json::from_value(serde_json::json!({
             "schema": "cxf-library/vectors/v1",
@@ -1334,6 +1463,122 @@ mod tests {
     }
 
     #[test]
+    fn vectors_file_with_two_scenarios_of_one_name_is_refused() {
+        let three_ticks = serde_json::json!({"step_s": 60, "horizon_s": 120});
+        let named = |names: &[&str]| {
+            let scenarios: Vec<serde_json::Value> = names
+                .iter()
+                .map(|name| serde_json::json!({"name": name, "inputs": {}, "expect": []}))
+                .collect();
+            vectors(three_ticks.clone(), serde_json::Value::Array(scenarios))
+        };
+        assert_eq!(check_vectors(&named(&["first", "second", "third"])), Ok(()));
+        // Names are compared as written: a different case is a different name.
+        assert_eq!(check_vectors(&named(&["probe", "Probe"])), Ok(()));
+        assert_eq!(
+            check_vectors(&named(&["probe", "probe"])),
+            Err(Vacuous::DuplicateScenarioName {
+                name: "probe".to_string()
+            })
+        );
+        // The repeat need not be a neighbour, and the first name repeated is the one reported.
+        assert_eq!(
+            check_vectors(&named(&["first", "second", "third", "second", "first"])),
+            Err(Vacuous::DuplicateScenarioName {
+                name: "second".to_string()
+            })
+        );
+    }
+
+    /// The message serde gives for `document` when it does not deserialize as a vectors file.
+    fn unreadable(document: serde_json::Value) -> String {
+        match serde_json::from_value::<Vectors>(document) {
+            Ok(_) => panic!("the document deserialized as a vectors file"),
+            Err(error) => error.to_string(),
+        }
+    }
+
+    /// A vectors file with `extra` merged into the object at `pointer` (a JSON pointer; the empty
+    /// pointer is the file itself). Without `extra` it is a complete file that deserializes.
+    fn vectors_document_with(pointer: &str, extra: serde_json::Value) -> serde_json::Value {
+        let mut document = serde_json::json!({
+            "schema": "cxf-library/vectors/v1",
+            "clock": {"step_s": 60, "horizon_s": 120},
+            "scenarios": [{
+                "name": "probe",
+                "description": "both inputs above their thresholds",
+                "inputs": {"a": 45.0, "b": 45.0},
+                "expect": [{"output": "y", "from_s": 0, "to_s": 120, "equals": true}]
+            }]
+        });
+        let target = document
+            .pointer_mut(pointer)
+            .and_then(serde_json::Value::as_object_mut)
+            .expect("the pointer names an object of the document");
+        for (field, value) in extra.as_object().expect("extra fields are an object") {
+            target.insert(field.clone(), value.clone());
+        }
+        document
+    }
+
+    #[test]
+    fn field_the_contract_does_not_name_is_refused_at_every_level_of_the_file() {
+        serde_json::from_value::<Vectors>(vectors_document_with("", serde_json::json!({})))
+            .expect("the document deserializes when nothing is added to it");
+        for (pointer, level) in [
+            ("", "the file"),
+            ("/clock", "the clock"),
+            ("/scenarios/0", "a scenario"),
+            ("/scenarios/0/expect/0", "an expectation"),
+        ] {
+            let error = unreadable(vectors_document_with(
+                pointer,
+                serde_json::json!({"note": "not in the contract"}),
+            ));
+            assert!(error.contains("unknown field `note`"), "{level}: {error}");
+        }
+    }
+
+    /// `tolerance` was an optional field of an expectation. No value of it is accepted now,
+    /// neither the old default nor one so wide that the comparison could not fail.
+    #[test]
+    fn expectation_that_carries_a_tolerance_is_refused_as_an_unknown_field() {
+        for tolerance in [1e-9, 0.0, 1e6, 1e308, -1.0] {
+            let error = unreadable(vectors_document_with(
+                "/scenarios/0/expect/0",
+                serde_json::json!({"tolerance": tolerance}),
+            ));
+            assert!(
+                error.contains("unknown field `tolerance`"),
+                "tolerance {tolerance}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn input_step_with_an_unknown_field_fails_its_scenario_and_names_the_field() {
+        let y_stays_true =
+            serde_json::json!([{"output": "y", "from_s": 0, "to_s": 120, "equals": true}]);
+        let plain = scenario(
+            serde_json::json!({"a": 45.0, "b": [{"t": 0, "value": 45.0}]}),
+            y_stays_true.clone(),
+        );
+        run_scenario(BOTH_ABOVE, &THREE_TICKS, &plain).expect("a step of `t` and `value` replays");
+
+        let extra = scenario(
+            serde_json::json!({"a": 45.0, "b": [{"t": 0, "value": 45.0, "hold": "linear"}]}),
+            y_stays_true,
+        );
+        assert_eq!(
+            failed(
+                run_scenario(BOTH_ABOVE, &THREE_TICKS, &extra),
+                "a step has only `t` and `value`",
+            ),
+            "input `b`: step has the unknown field `hold`"
+        );
+    }
+
+    #[test]
     fn refusal_names_the_bundle_the_scenario_and_the_reason() {
         let bundle = Path::new("faults/ahu/AHU-0001");
         assert_eq!(
@@ -1356,6 +1601,26 @@ mod tests {
             (
                 Vacuous::HorizonNotPositive { horizon_s: 0.0 },
                 "`clock.horizon_s` is 0: it must be a finite number greater than zero",
+            ),
+            (
+                Vacuous::TooManyTicks {
+                    step_s: 1e-300,
+                    horizon_s: 1.0,
+                },
+                "`clock` schedules more than 1,000,000 ticks (`step_s` 1e-300, `horizon_s` 1.0): `floor(horizon_s / step_s)` must be below 1,000,000",
+            ),
+            (
+                Vacuous::TooManyTicks {
+                    step_s: 60.0,
+                    horizon_s: 1e300,
+                },
+                "`clock` schedules more than 1,000,000 ticks (`step_s` 60.0, `horizon_s` 1e300): `floor(horizon_s / step_s)` must be below 1,000,000",
+            ),
+            (
+                Vacuous::DuplicateScenarioName {
+                    name: "probe".to_string(),
+                },
+                "`scenarios` holds the name `probe` more than once: a scenario name must be unique in its vectors file",
             ),
             (
                 Vacuous::InvertedWindow(window(1, 120.0, 0.0)),
@@ -1386,17 +1651,23 @@ mod tests {
     }
 
     #[test]
-    fn expected_value_matches_only_its_own_type_and_reals_only_within_tolerance() {
+    fn expected_value_matches_only_its_own_type_and_reals_only_within_the_fixed_tolerance() {
         use serde_json::json;
-        assert!(values_match(&Value::Boolean(true), &json!(true), 1e-9));
-        assert!(!values_match(&Value::Boolean(true), &json!(false), 1e-9));
-        assert!(values_match(&Value::Real(1.0), &json!(1.05), 0.1));
-        assert!(!values_match(&Value::Real(1.0), &json!(1.2), 0.1));
-        assert!(!values_match(&Value::Real(f64::NAN), &json!(1.0), 0.1));
-        assert!(values_match(&Value::Integer(3), &json!(3), 0.5));
-        assert!(!values_match(&Value::Integer(3), &json!(4), 10.0));
-        assert!(!values_match(&Value::Boolean(true), &json!(1), 1e-9));
-        assert!(!values_match(&Value::Real(1.0), &json!(true), 1e-9));
+        assert!(values_match(&Value::Boolean(true), &json!(true)));
+        assert!(!values_match(&Value::Boolean(true), &json!(false)));
+        // A Real matches within 1e-9 of the expected value, on either side, and no further.
+        assert!(values_match(&Value::Real(0.6), &json!(0.6)));
+        assert!(values_match(&Value::Real(0.6), &json!(0.6 + 5e-10)));
+        assert!(values_match(&Value::Real(0.6), &json!(0.6 - 5e-10)));
+        assert!(!values_match(&Value::Real(0.6), &json!(0.6 + 2e-9)));
+        assert!(!values_match(&Value::Real(0.6), &json!(0.6 - 2e-9)));
+        assert!(!values_match(&Value::Real(0.6), &json!(1e6)));
+        assert!(!values_match(&Value::Real(f64::NAN), &json!(1.0)));
+        assert!(!values_match(&Value::Real(f64::INFINITY), &json!(1.0)));
+        assert!(values_match(&Value::Integer(3), &json!(3)));
+        assert!(!values_match(&Value::Integer(3), &json!(4)));
+        assert!(!values_match(&Value::Boolean(true), &json!(1)));
+        assert!(!values_match(&Value::Real(1.0), &json!(true)));
     }
 
     #[test]
@@ -1481,8 +1752,11 @@ mod tests {
         );
     }
 
+    /// Parsing only: a file of `schema`, `clock` and `scenarios`, with no routine identity beside
+    /// them, deserializes. The replay path goes on to refuse this one, which has a zero horizon
+    /// and no scenario; `--trace-json` refuses it for the missing scenario.
     #[test]
-    fn fault_vectors_remain_valid_without_routine_identity() {
+    fn vectors_file_of_schema_clock_and_scenarios_alone_deserializes() {
         let vectors: Vectors = serde_json::from_str(
             r#"{
                 "schema":"cxf-library/vectors/v1",
