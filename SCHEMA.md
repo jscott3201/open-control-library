@@ -674,12 +674,17 @@ Target dialect: the open-control engine's composite subset
 }
 ```
 
+- `clock`: ticks run at `k × step_s` for `k = 0 … floor(horizon_s / step_s)`,
+  so the first tick is at 0 s and the last at the last whole step. `step_s` is
+  a finite number greater than zero.
 - `inputs`: canonical point name → constant (number/bool) or a step list
   `[{t, value}…]` (piecewise-constant; each value staged before the first tick
   with model time ≥ its `t`).
 - `expect`: windowed assertions on boundary outputs, inclusive of both ends,
   checked at every tick whose time falls in the window. Reals compare with
-  optional `tolerance` (default 1e-9).
+  optional `tolerance` (default 1e-9). A window with no tick inside it checks
+  nothing, and a scenario with no expectation asserts nothing: a replay for a
+  verdict refuses both (see "Verification").
 - Scenarios are independent: each runs on a freshly loaded engine.
 - Windows must respect timing parameters (e.g. leave ≥ one step of margin
   around an `alarm_delay` edge rather than asserting the exact boundary tick).
@@ -836,3 +841,29 @@ engine default. A fault may be marked
 `status: verified` only when all scenarios pass; record the engine rev,
 exported content ID, and date in `verified`. Re-verify (and re-record) after
 any engine pin bump or rule edit.
+
+A scenario passes only when every one of its expectations was compared with a
+committed output at one tick or more and matched at each. What would compare
+nothing is refused before any tick runs, with a message that names the bundle,
+the scenario and the reason:
+
+- The bundle is reported `ERROR`, and none of its scenarios is replayed, when
+  its vectors file holds no scenario, or when `clock.step_s` or
+  `clock.horizon_s` is not a finite number greater than zero.
+- A scenario is reported `FAIL` when its `expect` list is empty, or when one of
+  its expectations has a window that holds no tick: one that ends before it
+  starts (`to_s` below `from_s`), ends before the first tick at 0 s, starts
+  after the last tick, or falls between two neighbouring ticks.
+
+A refused scenario is a failed scenario. The verifier exits with status 0 only
+when every bundle it was given passed its lint (skipped under `--replay-only`)
+and every scenario passed; with 1 when a scenario failed or was refused, a
+bundle was refused or could not be loaded, or a lint error was found; and with
+2 on a usage error, on a `faults/` directory that `--all` cannot read, or on a
+failed `--trace-json`, `--routines` or `--g36-declarations` request.
+
+`--trace-json` records the committed outputs of every scenario and compares
+nothing itself: its caller holds the expected values. It therefore accepts an
+empty `expect` list and a `horizon_s` of zero (a single tick at 0 s). It
+refuses a vectors file with no scenario and a `step_s` that is not greater
+than zero.

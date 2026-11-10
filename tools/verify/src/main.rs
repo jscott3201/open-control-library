@@ -56,6 +56,132 @@ struct Expect {
     tolerance: Option<f64>,
 }
 
+impl Expect {
+    /// Whether the tick at `t` is inside the window, which includes both of its ends.
+    fn holds(&self, t: f64) -> bool {
+        self.from_s <= t && t <= self.to_s
+    }
+}
+
+/// One expectation of a scenario, as a refusal names it.
+#[derive(Debug, Clone, PartialEq)]
+struct Window {
+    /// Position in the scenario's `expect` list, counted from one.
+    expectation: usize,
+    output: String,
+    from_s: f64,
+    to_s: f64,
+}
+
+impl std::fmt::Display for Window {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "expectation {} on `{}` has the window {}..{}s",
+            self.expectation, self.output, self.from_s, self.to_s
+        )
+    }
+}
+
+/// Why a vectors file, or one scenario in it, is refused before any tick runs: replaying it
+/// would compare nothing where it claims to, or its clock describes no schedule. A refused
+/// scenario is a failed scenario; the verifier never reports it as passed.
+#[derive(Debug, Clone, PartialEq)]
+enum Vacuous {
+    /// `clock.step_s` is not a finite number greater than zero.
+    StepNotPositive { step_s: f64 },
+    /// `clock.horizon_s` is not a finite number greater than zero.
+    HorizonNotPositive { horizon_s: f64 },
+    /// The vectors file holds no scenario.
+    NoScenarios,
+    /// The scenario's `expect` list is empty.
+    NoExpectations,
+    /// The window ends before it starts, so no time is inside it.
+    InvertedWindow(Window),
+    /// The window ends before the first tick, at 0 s.
+    WindowBeforeFirstTick(Window),
+    /// The window starts after the last tick the clock schedules.
+    WindowAfterLastTick { window: Window, last_tick_s: f64 },
+    /// The window lies inside the schedule and between two neighbouring ticks.
+    WindowBetweenTicks { window: Window, step_s: f64 },
+}
+
+impl std::fmt::Display for Vacuous {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StepNotPositive { step_s } => write!(
+                f,
+                "`clock.step_s` is {step_s}: it must be a finite number greater than zero"
+            ),
+            Self::HorizonNotPositive { horizon_s } => write!(
+                f,
+                "`clock.horizon_s` is {horizon_s}: it must be a finite number greater than zero"
+            ),
+            Self::NoScenarios => {
+                write!(f, "`scenarios` is empty: the vectors file compares nothing")
+            }
+            Self::NoExpectations => {
+                write!(f, "`expect` is empty: the scenario compares nothing")
+            }
+            Self::InvertedWindow(window) => {
+                write!(
+                    f,
+                    "{window}, which ends before it starts: no tick is inside it"
+                )
+            }
+            Self::WindowBeforeFirstTick(window) => write!(
+                f,
+                "{window}, which ends before the first tick at 0s: no tick is inside it"
+            ),
+            Self::WindowAfterLastTick {
+                window,
+                last_tick_s,
+            } => write!(
+                f,
+                "{window}, which starts after the last tick at {last_tick_s}s: no tick is inside it"
+            ),
+            Self::WindowBetweenTicks { window, step_s } => write!(
+                f,
+                "{window}, which falls between two ticks (one every {step_s}s from 0s): no tick is inside it"
+            ),
+        }
+    }
+}
+
+/// Why a scenario did not pass.
+#[derive(Debug, PartialEq)]
+enum ScenarioError {
+    /// Refused before any tick ran.
+    Refused(Vacuous),
+    /// Replayed, or prepared for replay, and stopped: a name did not resolve on the boundary, a
+    /// frame was refused, or a committed output was not the expected value.
+    Failed(String),
+}
+
+impl From<Vacuous> for ScenarioError {
+    fn from(reason: Vacuous) -> Self {
+        Self::Refused(reason)
+    }
+}
+
+impl From<String> for ScenarioError {
+    fn from(message: String) -> Self {
+        Self::Failed(message)
+    }
+}
+
+/// The message of a refusal: the bundle, the scenario when the refusal is one scenario's, and the
+/// reason.
+fn refusal(bundle: &Path, scenario: Option<&str>, reason: &Vacuous) -> String {
+    match scenario {
+        Some(name) => format!(
+            "refused: bundle `{}`, scenario `{name}`: {reason}",
+            bundle.display()
+        ),
+        None => format!("refused: bundle `{}`: {reason}", bundle.display()),
+    }
+}
+
 /// One staged input change: `value` replaces what boundary input `input` holds, before the first
 /// tick whose time >= `t`.
 struct InputEvent {
@@ -254,11 +380,80 @@ fn committed_output<'a>(frame: &'a CompletedFrame, path: &str) -> Result<&'a Val
         })
 }
 
+/// Index of the last tick, `floor(horizon_s / step_s)`.
+fn last_tick_index(clock: &Clock) -> u64 {
+    (clock.horizon_s / clock.step_s).floor() as u64
+}
+
 /// Tick times `k * step_s` for `k = 0 ..= floor(horizon_s / step_s)`.
 fn tick_times(clock: &Clock) -> impl Iterator<Item = f64> {
-    let n_ticks = (clock.horizon_s / clock.step_s).floor() as u64;
     let step_s = clock.step_s;
-    (0..=n_ticks).map(move |k| k as f64 * step_s)
+    (0..=last_tick_index(clock)).map(move |k| k as f64 * step_s)
+}
+
+/// A replay clock must describe a schedule: a finite step and a finite horizon, both greater than
+/// zero. A step of zero or less schedules no second tick, and a zero step never reaches the
+/// horizon.
+fn check_clock(clock: &Clock) -> Result<(), Vacuous> {
+    if !(clock.step_s.is_finite() && clock.step_s > 0.0) {
+        return Err(Vacuous::StepNotPositive {
+            step_s: clock.step_s,
+        });
+    }
+    if !(clock.horizon_s.is_finite() && clock.horizon_s > 0.0) {
+        return Err(Vacuous::HorizonNotPositive {
+            horizon_s: clock.horizon_s,
+        });
+    }
+    Ok(())
+}
+
+/// What must hold of a vectors file before any of its scenarios is replayed for a verdict: a
+/// clock that describes a schedule and at least one scenario.
+fn check_vectors(vectors: &Vectors) -> Result<(), Vacuous> {
+    check_clock(&vectors.clock)?;
+    if vectors.scenarios.is_empty() {
+        return Err(Vacuous::NoScenarios);
+    }
+    Ok(())
+}
+
+/// What must hold of a scenario before it is replayed for a verdict: it has at least one
+/// expectation, and every expectation's window holds at least one tick of `clock`, so that a pass
+/// means every expectation was compared with a committed output at least once.
+fn check_scenario(clock: &Clock, scenario: &Scenario) -> Result<(), Vacuous> {
+    check_clock(clock)?;
+    if scenario.expect.is_empty() {
+        return Err(Vacuous::NoExpectations);
+    }
+    for (index, expect) in scenario.expect.iter().enumerate() {
+        if tick_times(clock).any(|t| expect.holds(t)) {
+            continue;
+        }
+        let window = Window {
+            expectation: index + 1,
+            output: expect.output.clone(),
+            from_s: expect.from_s,
+            to_s: expect.to_s,
+        };
+        let last_tick_s = last_tick_index(clock) as f64 * clock.step_s;
+        return Err(if expect.from_s > expect.to_s {
+            Vacuous::InvertedWindow(window)
+        } else if expect.to_s < 0.0 {
+            Vacuous::WindowBeforeFirstTick(window)
+        } else if expect.from_s > last_tick_s {
+            Vacuous::WindowAfterLastTick {
+                window,
+                last_tick_s,
+            }
+        } else {
+            Vacuous::WindowBetweenTicks {
+                window,
+                step_s: clock.step_s,
+            }
+        });
+    }
+    Ok(())
 }
 
 fn prepare_scenario(rule_bytes: &[u8], scenario: &Scenario) -> Result<Replay, String> {
@@ -319,7 +514,15 @@ fn prepare_scenario(rule_bytes: &[u8], scenario: &Scenario) -> Result<Replay, St
     })
 }
 
-fn run_scenario(rule_bytes: &[u8], clock: &Clock, scenario: &Scenario) -> Result<(), String> {
+/// Replay one scenario for a verdict. `Ok` means every expectation was compared with the
+/// committed output at one tick or more and matched at each: a scenario that would compare
+/// nothing somewhere is refused before the engine is loaded.
+fn run_scenario(
+    rule_bytes: &[u8],
+    clock: &Clock,
+    scenario: &Scenario,
+) -> Result<(), ScenarioError> {
+    check_scenario(clock, scenario)?;
     let mut replay = prepare_scenario(rule_bytes, scenario)?;
 
     // Pre-resolve assertion outputs.
@@ -332,19 +535,19 @@ fn run_scenario(rule_bytes: &[u8], clock: &Clock, scenario: &Scenario) -> Result
     for t in tick_times(clock) {
         let frame = replay.advance(t)?;
         for (path, exp) in &expects {
-            if t < exp.from_s || t > exp.to_s {
+            if !exp.holds(t) {
                 continue;
             }
             let got = committed_output(&frame, path)?;
             if !values_match(got, &exp.equals, exp.tolerance.unwrap_or(1e-9)) {
-                return Err(format!(
+                return Err(ScenarioError::Failed(format!(
                     "t={t}s: `{}` = {} but expected {} (window {}..{}s)",
                     exp.output,
                     fmt_value(got),
                     exp.equals,
                     exp.from_s,
                     exp.to_s
-                ));
+                )));
             }
         }
     }
@@ -423,6 +626,13 @@ fn trace_vectors(fault_dir: &Path, vectors_path: &Path) -> Result<TraceDocument,
         return Err(format!("unsupported vectors schema `{}`", vectors.schema));
     }
     validate_trace_clock(&vectors.clock)?;
+    if vectors.scenarios.is_empty() {
+        return Err(format!(
+            "{}: {}",
+            vectors_path.display(),
+            Vacuous::NoScenarios
+        ));
+    }
     if vectors.scenarios.len() > 512 {
         return Err("trace request exceeds the 512-scenario safety limit".to_string());
     }
@@ -499,6 +709,7 @@ fn verify_fault_dir(dir: &Path, replay_only: bool) -> Result<bool, String> {
     if vectors.schema != "cxf-library/vectors/v1" {
         return Err(format!("unsupported vectors schema `{}`", vectors.schema));
     }
+    check_vectors(&vectors).map_err(|reason| refusal(dir, None, &reason))?;
 
     println!("{}", dir.display());
 
@@ -566,7 +777,15 @@ fn verify_fault_dir(dir: &Path, replay_only: bool) -> Result<bool, String> {
     for scenario in &vectors.scenarios {
         match run_scenario(&rule_bytes, &vectors.clock, scenario) {
             Ok(()) => println!("  PASS  {}", scenario.name),
-            Err(msg) => {
+            Err(ScenarioError::Refused(reason)) => {
+                all_pass = false;
+                println!(
+                    "  FAIL  {} — {}",
+                    scenario.name,
+                    refusal(dir, Some(&scenario.name), &reason)
+                );
+            }
+            Err(ScenarioError::Failed(msg)) => {
                 all_pass = false;
                 println!("  FAIL  {} — {msg}", scenario.name);
             }
@@ -616,9 +835,9 @@ mod tests {
     use oce_api::Value;
 
     use super::{
-        Clock, InputEvent, InputSchedule, Scenario, Vectors, g36_declaration_root, run_scenario,
-        tick_times, trace_scenario, validate_generated_registry, validate_trace_clock,
-        values_match,
+        Clock, InputEvent, InputSchedule, Scenario, ScenarioError, Vacuous, Vectors, Window,
+        check_scenario, check_vectors, g36_declaration_root, refusal, run_scenario, tick_times,
+        trace_scenario, validate_generated_registry, validate_trace_clock, values_match,
     };
 
     /// A schedule over inputs `a` and `b`, with `(t, input index, value)` events.
@@ -732,6 +951,15 @@ mod tests {
         })
     }
 
+    /// The message of a scenario that was replayed, or prepared for replay, and failed: `why`
+    /// says what is wrong with it. A scenario refused before any tick is a different error.
+    fn failed(verdict: Result<(), ScenarioError>, why: &str) -> String {
+        match verdict {
+            Err(ScenarioError::Failed(message)) => message,
+            other => panic!("expected a failed replay ({why}), got {other:?}"),
+        }
+    }
+
     /// A scenario that supplies only one of the two inputs used to replay with the other held at
     /// the engine's zero seed, and so passed a `y` false expectation. A complete frame cannot be
     /// built for it, so it is refused.
@@ -747,7 +975,10 @@ mod tests {
         run_scenario(BOTH_ABOVE, &THREE_TICKS, &complete).expect("a complete scenario replays");
 
         let partial = scenario(serde_json::json!({"a": 45.0}), y_stays_false.clone());
-        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &partial).expect_err("incomplete frame");
+        let error = failed(
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &partial),
+            "incomplete frame",
+        );
         assert!(
             error.contains("both_above.b` has no value at t=0s"),
             "{error}"
@@ -757,8 +988,10 @@ mod tests {
             serde_json::json!({"a": 45.0, "b": [{"t": 60, "value": 0.0}]}),
             y_stays_false,
         );
-        let error =
-            run_scenario(BOTH_ABOVE, &THREE_TICKS, &late).expect_err("no value at the first tick");
+        let error = failed(
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &late),
+            "no value at the first tick",
+        );
         assert!(
             error.contains("both_above.b` has no value at t=0s"),
             "{error}"
@@ -774,8 +1007,10 @@ mod tests {
         run_scenario(BOTH_ABOVE, &THREE_TICKS, &right).expect("y is true at every tick");
 
         let flipped = scenario(both_above, expect_y(false));
-        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &flipped)
-            .expect_err("y is true, the expectation says false");
+        let error = failed(
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &flipped),
+            "y is true, the expectation says false",
+        );
         assert!(
             error.contains("t=0s: `y` = true but expected false"),
             "{error}"
@@ -799,8 +1034,10 @@ mod tests {
             pulse_at_the_middle_tick(),
             serde_json::json!([{"output": "y", "from_s": 0, "to_s": 120, "equals": false}]),
         );
-        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &one_wide_window)
-            .expect_err("y is true at the 60 s tick");
+        let error = failed(
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &one_wide_window),
+            "y is true at the 60 s tick",
+        );
         assert!(
             error.contains("t=60s: `y` = true but expected false"),
             "{error}"
@@ -813,8 +1050,10 @@ mod tests {
                 {"output": "y", "from_s": 60, "to_s": 120, "equals": true}
             ]),
         );
-        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &last_tick_wrong)
-            .expect_err("y is false again at the 120 s tick");
+        let error = failed(
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &last_tick_wrong),
+            "y is false again at the 120 s tick",
+        );
         assert!(
             error.contains("t=120s: `y` = false but expected true"),
             "{error}"
@@ -827,8 +1066,10 @@ mod tests {
             serde_json::json!({"a": 45.0, "b": 45.0}),
             serde_json::json!([{"output": "yy", "from_s": 0, "to_s": 120, "equals": true}]),
         );
-        let error = run_scenario(BOTH_ABOVE, &THREE_TICKS, &misspelt)
-            .expect_err("the graph has no output `yy`");
+        let error = failed(
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &misspelt),
+            "the graph has no output `yy`",
+        );
         assert!(
             error.contains("no boundary output matching `yy`"),
             "{error}"
@@ -839,12 +1080,309 @@ mod tests {
             serde_json::json!({"a": 45.0, "b": 45.0}),
             serde_json::json!([{"output": "u1", "from_s": 0, "to_s": 120, "equals": true}]),
         );
-        let error =
-            run_scenario(BOTH_ABOVE, &THREE_TICKS, &internal).expect_err("`both.u1` is internal");
+        let error = failed(
+            run_scenario(BOTH_ABOVE, &THREE_TICKS, &internal),
+            "`both.u1` is internal",
+        );
         assert!(
             error.contains("no boundary output matching `u1`"),
             "{error}"
         );
+    }
+
+    /// The verdict on a scenario with these expectations over [`THREE_TICKS`], with both inputs
+    /// above their thresholds so that `y` is true at every tick. The expectations refused below
+    /// assert `false`: a single comparison would fail them, so `Ok` for one of them can only mean
+    /// that nothing was compared.
+    fn verdict_over_three_ticks(expect: serde_json::Value) -> Result<(), ScenarioError> {
+        run_scenario(
+            BOTH_ABOVE,
+            &THREE_TICKS,
+            &scenario(serde_json::json!({"a": 45.0, "b": 45.0}), expect),
+        )
+    }
+
+    fn y_is(equals: bool, from_s: f64, to_s: f64) -> serde_json::Value {
+        serde_json::json!({"output": "y", "from_s": from_s, "to_s": to_s, "equals": equals})
+    }
+
+    fn refused(reason: Vacuous) -> Result<(), ScenarioError> {
+        Err(ScenarioError::Refused(reason))
+    }
+
+    /// The expectation at position `expectation` (from one) on `y`.
+    fn window(expectation: usize, from_s: f64, to_s: f64) -> Window {
+        Window {
+            expectation,
+            output: "y".to_string(),
+            from_s,
+            to_s,
+        }
+    }
+
+    #[test]
+    fn scenario_with_an_empty_expect_list_is_refused() {
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([])),
+            refused(Vacuous::NoExpectations)
+        );
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(true, 0.0, 120.0)])),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn window_after_the_last_tick_is_refused() {
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(false, 180.0, 240.0)])),
+            refused(Vacuous::WindowAfterLastTick {
+                window: window(1, 180.0, 240.0),
+                last_tick_s: 120.0,
+            })
+        );
+        // A window that starts on the last tick and runs past the horizon holds that tick.
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(true, 120.0, 240.0)])),
+            Ok(())
+        );
+
+        // The last tick is the last whole step, not the horizon: with ticks at 0, 60 and 120 s
+        // and a horizon of 150 s, a window inside the horizon can still be past the last tick.
+        let horizon_past_the_last_tick = Clock {
+            step_s: 60.0,
+            horizon_s: 150.0,
+        };
+        let inside_the_horizon = scenario(
+            serde_json::json!({"a": 45.0, "b": 45.0}),
+            serde_json::json!([y_is(false, 130.0, 150.0)]),
+        );
+        assert_eq!(
+            run_scenario(BOTH_ABOVE, &horizon_past_the_last_tick, &inside_the_horizon),
+            refused(Vacuous::WindowAfterLastTick {
+                window: window(1, 130.0, 150.0),
+                last_tick_s: 120.0,
+            })
+        );
+    }
+
+    #[test]
+    fn window_between_two_ticks_is_refused() {
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(false, 61.0, 119.0)])),
+            refused(Vacuous::WindowBetweenTicks {
+                window: window(1, 61.0, 119.0),
+                step_s: 60.0,
+            })
+        );
+        // A window of no width between two ticks holds none either.
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(false, 90.0, 90.0)])),
+            refused(Vacuous::WindowBetweenTicks {
+                window: window(1, 90.0, 90.0),
+                step_s: 60.0,
+            })
+        );
+        // Both ends are inside the window: one that only touches a tick holds it.
+        for (from_s, to_s) in [(60.0, 60.0), (61.0, 120.0), (0.0, 59.0)] {
+            assert_eq!(
+                verdict_over_three_ticks(serde_json::json!([y_is(true, from_s, to_s)])),
+                Ok(()),
+                "{from_s}..{to_s}s"
+            );
+        }
+    }
+
+    #[test]
+    fn window_before_the_first_tick_is_refused() {
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(false, -30.0, -1.0)])),
+            refused(Vacuous::WindowBeforeFirstTick(window(1, -30.0, -1.0)))
+        );
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(true, -30.0, 0.0)])),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn inverted_window_is_refused() {
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(false, 120.0, 0.0)])),
+            refused(Vacuous::InvertedWindow(window(1, 120.0, 0.0)))
+        );
+        // Inverted is the reason wherever the window lies, past the last tick included.
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([y_is(false, 240.0, 180.0)])),
+            refused(Vacuous::InvertedWindow(window(1, 240.0, 180.0)))
+        );
+    }
+
+    /// One expectation that is compared does not carry another that is not.
+    #[test]
+    fn every_expectation_must_hold_a_tick_not_only_the_first() {
+        assert_eq!(
+            verdict_over_three_ticks(serde_json::json!([
+                y_is(true, 0.0, 120.0),
+                y_is(false, 180.0, 240.0)
+            ])),
+            refused(Vacuous::WindowAfterLastTick {
+                window: window(2, 180.0, 240.0),
+                last_tick_s: 120.0,
+            })
+        );
+    }
+
+    /// The check a scenario goes through before it is replayed, for one whose window holds every
+    /// tick there could be, on the clock `step_s`, `horizon_s`. The check runs no tick, so a
+    /// clock that schedules ticks without end is safe to ask about.
+    fn check_on_clock(step_s: f64, horizon_s: f64) -> Result<(), Vacuous> {
+        check_scenario(
+            &Clock { step_s, horizon_s },
+            &scenario(
+                serde_json::json!({"a": 45.0, "b": 45.0}),
+                serde_json::json!([y_is(true, f64::MIN, f64::MAX)]),
+            ),
+        )
+    }
+
+    #[test]
+    fn clock_without_a_positive_finite_step_is_refused() {
+        assert_eq!(check_on_clock(60.0, 120.0), Ok(()));
+        // A negative step used to run a single tick; a zero step scheduled ticks without end.
+        for step_s in [-60.0, 0.0, -0.0, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                check_on_clock(step_s, 120.0),
+                Err(Vacuous::StepNotPositive { step_s }),
+                "step_s = {step_s}"
+            );
+        }
+        assert!(matches!(
+            check_on_clock(f64::NAN, 120.0),
+            Err(Vacuous::StepNotPositive { step_s }) if step_s.is_nan()
+        ));
+        // The scenario is refused for its clock when it is replayed, too.
+        assert_eq!(
+            run_scenario(
+                BOTH_ABOVE,
+                &Clock {
+                    step_s: -60.0,
+                    horizon_s: 120.0,
+                },
+                &scenario(
+                    serde_json::json!({"a": 45.0, "b": 45.0}),
+                    serde_json::json!([y_is(true, -60.0, 120.0)]),
+                ),
+            ),
+            refused(Vacuous::StepNotPositive { step_s: -60.0 })
+        );
+    }
+
+    #[test]
+    fn clock_without_a_positive_finite_horizon_is_refused() {
+        // A horizon shorter than one step is positive: it schedules the tick at 0 s.
+        assert_eq!(check_on_clock(60.0, 30.0), Ok(()));
+        for horizon_s in [-120.0, 0.0, -0.0, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                check_on_clock(60.0, horizon_s),
+                Err(Vacuous::HorizonNotPositive { horizon_s }),
+                "horizon_s = {horizon_s}"
+            );
+        }
+        assert!(matches!(
+            check_on_clock(60.0, f64::NAN),
+            Err(Vacuous::HorizonNotPositive { horizon_s }) if horizon_s.is_nan()
+        ));
+    }
+
+    fn vectors(clock: serde_json::Value, scenarios: serde_json::Value) -> Vectors {
+        serde_json::from_value(serde_json::json!({
+            "schema": "cxf-library/vectors/v1",
+            "clock": clock,
+            "scenarios": scenarios
+        }))
+        .expect("vectors deserialize")
+    }
+
+    #[test]
+    fn vectors_file_with_no_scenarios_is_refused() {
+        let three_ticks = serde_json::json!({"step_s": 60, "horizon_s": 120});
+        assert_eq!(
+            check_vectors(&vectors(three_ticks.clone(), serde_json::json!([]))),
+            Err(Vacuous::NoScenarios)
+        );
+        let one_scenario = serde_json::json!([{"name": "probe", "inputs": {}, "expect": []}]);
+        assert_eq!(
+            check_vectors(&vectors(three_ticks, one_scenario.clone())),
+            Ok(())
+        );
+        // The clock is the file's too, and is refused before any scenario is looked at.
+        assert_eq!(
+            check_vectors(&vectors(
+                serde_json::json!({"step_s": -60, "horizon_s": 120}),
+                one_scenario.clone()
+            )),
+            Err(Vacuous::StepNotPositive { step_s: -60.0 })
+        );
+        assert_eq!(
+            check_vectors(&vectors(
+                serde_json::json!({"step_s": 60, "horizon_s": 0}),
+                one_scenario
+            )),
+            Err(Vacuous::HorizonNotPositive { horizon_s: 0.0 })
+        );
+    }
+
+    #[test]
+    fn refusal_names_the_bundle_the_scenario_and_the_reason() {
+        let bundle = Path::new("faults/ahu/AHU-0001");
+        assert_eq!(
+            refusal(bundle, Some("probe"), &Vacuous::NoExpectations),
+            "refused: bundle `faults/ahu/AHU-0001`, scenario `probe`: `expect` is empty: the scenario compares nothing"
+        );
+        assert_eq!(
+            refusal(bundle, None, &Vacuous::NoScenarios),
+            "refused: bundle `faults/ahu/AHU-0001`: `scenarios` is empty: the vectors file compares nothing"
+        );
+    }
+
+    #[test]
+    fn each_reason_states_the_value_or_the_window_that_is_wrong() {
+        let reasons = [
+            (
+                Vacuous::StepNotPositive { step_s: -60.0 },
+                "`clock.step_s` is -60: it must be a finite number greater than zero",
+            ),
+            (
+                Vacuous::HorizonNotPositive { horizon_s: 0.0 },
+                "`clock.horizon_s` is 0: it must be a finite number greater than zero",
+            ),
+            (
+                Vacuous::InvertedWindow(window(1, 120.0, 0.0)),
+                "expectation 1 on `y` has the window 120..0s, which ends before it starts: no tick is inside it",
+            ),
+            (
+                Vacuous::WindowBeforeFirstTick(window(2, -30.0, -1.0)),
+                "expectation 2 on `y` has the window -30..-1s, which ends before the first tick at 0s: no tick is inside it",
+            ),
+            (
+                Vacuous::WindowAfterLastTick {
+                    window: window(3, 180.0, 240.0),
+                    last_tick_s: 120.0,
+                },
+                "expectation 3 on `y` has the window 180..240s, which starts after the last tick at 120s: no tick is inside it",
+            ),
+            (
+                Vacuous::WindowBetweenTicks {
+                    window: window(4, 61.0, 119.0),
+                    step_s: 60.0,
+                },
+                "expectation 4 on `y` has the window 61..119s, which falls between two ticks (one every 60s from 0s): no tick is inside it",
+            ),
+        ];
+        for (reason, message) in reasons {
+            assert_eq!(reason.to_string(), message);
+        }
     }
 
     #[test]
