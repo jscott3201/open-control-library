@@ -103,7 +103,9 @@ class TrackedFileScan(unittest.TestCase):
                 GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
             )
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertEqual(result.stdout.count("FAIL: git grep exited"), 8, result.stdout)
+        patterns = (SCRIPTS / "check-no-secrets.sh").read_text(encoding="utf-8").count("\nscan '")
+        self.assertGreater(patterns, 0)
+        self.assertEqual(result.stdout.count("FAIL: git grep exited"), patterns, result.stdout)
         self.assertIn("The scan did not complete", result.stdout)
         self.assertNotIn("OK: tracked-file scan clean", result.stdout)
         self.assertIn("not a git repository", result.stderr)

@@ -211,6 +211,9 @@ STEP_CALL = re.compile(r"^(?:step|engine_step)\s")
 STEP = re.compile(r"^(?:step|engine_step)\s+'[^']*'\s+(\S.*)$")
 LITERAL_VARIABLE = re.compile(r"^([A-Z][A-Z0-9_]*)=([A-Za-z0-9_./-]+)$")
 CONTROL_OPERATOR = re.compile(r"^[;&|]+$")
+# The operators that only sequence commands. Any other one (`&` puts a step in the background,
+# where its result is lost) makes the line unreadable.
+SEQUENCING = (";", "&&", "||", "|")
 SHELL_KEYWORDS = ("if", "then", "else", "elif", "fi", "!")
 
 
@@ -532,9 +535,9 @@ def script_commands(text: str) -> tuple[set[tuple[str, ...]], list[str]]:
     """The simple commands the steps of a gate script run, as words, and what could not be read.
 
     A step is a call of `step` or `engine_step` with a single-quoted label. Its command is split
-    at control operators; `if`, `then`, `else`, `elif`, `fi`, `!` and a leading `env` are dropped;
-    a function of the script stands for the commands of its body; and `$NAME` is replaced where
-    the script assigns NAME one literal value, once, at the top level.
+    at `;`, `&&`, `||` and `|`; `if`, `then`, `else`, `elif`, `fi`, `!` and a leading `env` are
+    dropped; a function of the script stands for the commands of its body; and `$NAME` is
+    replaced where the script assigns NAME one literal value, once, at the top level.
     """
     functions: dict[str, list[str]] = {}
     top, current = [], None
@@ -573,6 +576,8 @@ def script_commands(text: str) -> tuple[set[tuple[str, ...]], list[str]]:
             if not CONTROL_OPERATOR.match(word):
                 command.append(expand(word))
                 continue
+            if word not in SEQUENCING:
+                problems.append(f"cannot read `{line.strip()}`: the operator `{word}`")
             while command and command[0] in SHELL_KEYWORDS:
                 command.pop(0)
             if command and command[0] == "env":

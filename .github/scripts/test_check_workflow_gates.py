@@ -304,6 +304,8 @@ CASES = [
      f"step 'a gate command' {SCRIPT_REGISTRY_LINT}step 'a new lint' python3 tools/new_lint.py\n"),
     ("gate-script", "a step function returns before its commands", GATE_SCRIPT_NAME,
      "prepare() {\n", "prepare() {\n  return 0\n"),
+    ("gate-script", "a step runs in the background, where its result is lost", GATE_SCRIPT_NAME,
+     SCRIPT_REGISTRY_LINT, "python3 tools/lint/registry.py &\n"),
     ("gate-script", "a step has no label the check can read", GATE_SCRIPT_NAME,
      f"step 'a gate command' {SCRIPT_REGISTRY_LINT}", f'step "$label" {SCRIPT_REGISTRY_LINT}'),
 ]
@@ -508,6 +510,7 @@ class GateScriptReader(unittest.TestCase):
             ),
             "a step inside a step": "step 'outer' step 'inner' python3 lint.py\n",
             "a label that is not a literal": 'step "$label" python3 lint.py\n',
+            "a step in the background": "step 'lint' python3 lint.py &\n",
         }
         for what, lines in unreadable.items():
             with self.subTest(what):
